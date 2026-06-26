@@ -63,6 +63,14 @@ export default function LordFarmsDeal() {
                 <div className="absolute bottom-5 left-5 right-5">
                   <p className="font-display text-2xl font-medium text-paper-50">{lordsFarmsDeal.borrower}</p>
                   <p className="mt-1 text-sm text-paper-50/60">{lordsFarmsDeal.location}</p>
+                  <a
+                    href={lordsFarmsDeal.website}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex rounded-full bg-paper-50/10 px-4 py-2 text-xs font-semibold text-paper-50 ring-1 ring-paper-50/20 transition hover:bg-paper-50/15"
+                  >
+                    Visit LordsFarms.com
+                  </a>
                 </div>
               </div>
 
@@ -142,6 +150,14 @@ export default function LordFarmsDeal() {
                 <button onClick={reserveInvestment} className="rounded-full bg-gold-400 px-6 py-3 text-sm font-bold text-ink-950 transition hover:bg-gold-300">
                   Reserve Investment
                 </button>
+                <a
+                  href={lordsFarmsDeal.website}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full bg-gradient-to-r from-moss-500 to-emerald-400 px-6 py-3 text-center text-sm font-bold text-ink-950 shadow-[0_10px_28px_rgba(34,197,94,0.22)] transition hover:bg-moss-400"
+                >
+                  Visit LordsFarms.com
+                </a>
                 <button onClick={simulatePlaid} className="rounded-full px-6 py-3 text-sm font-semibold text-paper-50 ring-1 ring-paper-50/20 transition hover:ring-paper-50/45">
                   Test Plaid Bank Verification
                 </button>

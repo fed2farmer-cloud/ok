@@ -3,6 +3,7 @@ export const lordsFarmsDeal = {
   borrower: "Lords Farms LLC",
   title: "Lords Farms Regenerative Agritourism Farm",
   location: "Palmdale, California · Antelope Valley",
+  website: "https://lordsfarms.com",
   property: "20-acre farm project with organic crops, poultry, aquaculture, canals, cabins, and agritourism experiences.",
   useOfFunds: "Land improvements, irrigation infrastructure, equipment, livestock materials, and launch operations.",
   fundingGoal: 40000,
