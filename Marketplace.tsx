@@ -146,6 +146,15 @@ export default function Marketplace() {
                       <div className="h-full rounded-full bg-gradient-to-r from-moss-500 to-gold-400 transition-all duration-700" style={{ width: `${l.funded}%` }} />
                     </div>
                   </div>
+
+                  <div className="mt-5 grid grid-cols-2 gap-3">
+                    <a href={i === 0 ? "#lords-farms" : "#marketplace"} className="rounded-full bg-gold-400 px-4 py-2.5 text-center text-xs font-bold text-ink-950 transition hover:bg-gold-300">
+                      Invest Now
+                    </a>
+                    <a href={i === 0 ? "#investment-details" : "#marketplace"} className="rounded-full px-4 py-2.5 text-center text-xs font-bold text-paper-50 ring-1 ring-paper-50/20 transition hover:ring-paper-50/45">
+                      View Details
+                    </a>
+                  </div>
                 </div>
               </article>
             </Reveal>

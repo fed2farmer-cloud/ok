@@ -7,6 +7,8 @@ import HowItWorks from "./HowItWorks";
 import Calculator from "./Calculator";
 import Marketplace from "./Marketplace";
 import LordFarmsDeal from "./LordFarmsDeal";
+import InvestmentDetails from "./InvestmentDetails";
+import Dashboards from "./Dashboards";
 import Invest from "./Invest";
 import Integrations from "./Integrations";
 import Security from "./Security";
@@ -36,6 +38,8 @@ export default function App() {
         <Calculator />
         <Marketplace />
         <LordFarmsDeal />
+        <InvestmentDetails />
+        <Dashboards />
         <Invest />
         <Integrations />
         <Security />
