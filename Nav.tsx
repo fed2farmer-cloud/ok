@@ -13,18 +13,24 @@ const links = [
 
 export function Logo({ light = false }: { light?: boolean }) {
   return (
-    <a href="#top" className="flex items-center gap-2.5">
-      <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-moss-500 to-ink-700 ring-1 ring-moss-400/40">
-        <svg viewBox="0 0 24 24" className="h-5 w-5 text-gold-300" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 21h18" />
-          <path d="M5 21V11l7-6 7 6v10" />
-          <path d="M12 21v-4a2 2 0 0 0-4 0v4" opacity={0} />
-          <circle cx="12" cy="13" r="2.6" />
-          <path d="M12 10.4V8.8M12 17.2v-1.6" />
+    <a href="#top" className="group flex items-center gap-3">
+      <span className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-400 via-moss-500 to-ink-800 shadow-[0_14px_40px_rgba(34,197,94,0.25)] ring-1 ring-gold-300/35">
+        <span className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.45),transparent_28%),radial-gradient(circle_at_80%_85%,rgba(201,161,75,0.35),transparent_32%)]" />
+        <svg viewBox="0 0 32 32" className="relative h-7 w-7 text-paper-50" fill="none" aria-hidden="true">
+          <circle cx="16" cy="16" r="10.5" stroke="currentColor" strokeWidth="1.6" opacity="0.9" />
+          <path d="M6.5 17.5c4.4-1.6 7.1-.7 10.3 1.4 2.7 1.8 5.3 2.1 8.7.3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.8" />
+          <path d="M10.2 13.6c2.4-3.2 6.7-4 10-1.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <path d="M16 5.5v21M7 16h18" stroke="currentColor" strokeWidth="1" opacity="0.45" />
+          <path d="M20.8 8.2l2.5-2.5M8.7 23.3l2.5-2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" className="text-gold-300" />
         </svg>
       </span>
-      <span className={cn("font-display text-lg font-medium tracking-tight", light ? "text-ink-950" : "text-paper-50")}>
-        Secured<span className="text-gold-400">Landing</span>
+      <span className="flex flex-col leading-none">
+        <span className={cn("font-display text-xl font-semibold tracking-tight", light ? "text-ink-950" : "text-paper-50")}>
+          Secured<span className="text-gold-300">Landing</span>
+        </span>
+        <span className="mt-1 hidden text-[9px] font-semibold uppercase tracking-[0.28em] text-paper-50/45 sm:block">
+          Land Backed Capital
+        </span>
       </span>
     </a>
   );
@@ -56,7 +62,7 @@ export default function Nav() {
             <a
               key={l.href}
               href={l.href}
-              className="text-[13px] font-medium tracking-wide text-paper-50/65 transition-colors hover:text-paper-50"
+              className="rounded-full px-3.5 py-2 text-[13px] font-semibold tracking-wide text-paper-50/75 ring-1 ring-paper-50/10 transition hover:bg-paper-50/8 hover:text-paper-50 hover:ring-paper-50/25"
             >
               {l.label}
             </a>
@@ -66,21 +72,29 @@ export default function Nav() {
         <div className="hidden items-center gap-3 lg:flex">
           <a
             href="#invest"
-            className="rounded-full px-4 py-2 text-[13px] font-semibold text-paper-50/80 ring-1 ring-paper-50/20 transition hover:ring-paper-50/45 hover:text-paper-50"
+            className="rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2 text-[13px] font-semibold text-white shadow-[0_10px_28px_rgba(37,99,235,0.32)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(37,99,235,0.42)]"
           >
             Start Investing
           </a>
-<SignedOut>
-  <SignInButton mode="modal">
-    <button className="rounded-full px-4 py-2 text-[13px] font-semibold ring-1 ring-paper-50/20">
-      Sign In
-    </button>
-  </SignInButton>
-</SignedOut>
+          <a
+            href="#borrow"
+            className="rounded-full bg-gradient-to-r from-moss-500 to-emerald-400 px-4 py-2 text-[13px] font-semibold text-ink-950 shadow-[0_10px_28px_rgba(34,197,94,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(34,197,94,0.38)]"
+          >
+            Get a Loan
+          </a>
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button className="rounded-full bg-paper-50 px-4 py-2 text-[13px] font-semibold text-ink-950 ring-1 ring-paper-50/25 transition hover:-translate-y-0.5 hover:bg-gold-200">
+                Sign In
+              </button>
+            </SignInButton>
+          </SignedOut>
 
-<SignedIn>
-  <UserButton />
-</SignedIn>
+          <SignedIn>
+            <div className="rounded-full bg-paper-50/10 p-1 ring-1 ring-paper-50/15">
+              <UserButton />
+            </div>
+          </SignedIn>
         </div>
 
         <button
@@ -106,13 +120,27 @@ export default function Nav() {
               {l.label}
             </a>
           ))}
-          <div className="mt-4 flex gap-3">
-            <a href="#invest" onClick={() => setOpen(false)} className="flex-1 rounded-full py-2.5 text-center text-sm font-semibold ring-1 ring-paper-50/25">
-              Start Investing
-            </a>
-            <a href="#borrow" onClick={() => setOpen(false)} className="flex-1 rounded-full bg-gold-400 py-2.5 text-center text-sm font-semibold text-ink-950">
-              Get a Loan
-            </a>
+          <div className="mt-4 grid gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <a href="#invest" onClick={() => setOpen(false)} className="rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 py-2.5 text-center text-sm font-semibold text-white">
+                Start Investing
+              </a>
+              <a href="#borrow" onClick={() => setOpen(false)} className="rounded-full bg-gradient-to-r from-moss-500 to-emerald-400 py-2.5 text-center text-sm font-semibold text-ink-950">
+                Get a Loan
+              </a>
+            </div>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="w-full rounded-full bg-paper-50 py-2.5 text-center text-sm font-semibold text-ink-950">
+                  Sign In
+                </button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <div className="flex justify-center rounded-full bg-paper-50/10 py-2 ring-1 ring-paper-50/15">
+                <UserButton />
+              </div>
+            </SignedIn>
           </div>
         </div>
       )}
