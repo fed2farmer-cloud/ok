@@ -16,13 +16,11 @@ export function Logo({ light = false }: { light?: boolean }) {
     <a href="#top" className="group flex items-center gap-3">
       <span className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-400 via-moss-500 to-ink-800 shadow-[0_14px_40px_rgba(34,197,94,0.25)] ring-1 ring-gold-300/35">
         <span className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.45),transparent_28%),radial-gradient(circle_at_80%_85%,rgba(201,161,75,0.35),transparent_32%)]" />
-        <svg viewBox="0 0 32 32" className="relative h-7 w-7 text-paper-50" fill="none" aria-hidden="true">
-          <circle cx="16" cy="16" r="10.5" stroke="currentColor" strokeWidth="1.6" opacity="0.9" />
-          <path d="M6.5 17.5c4.4-1.6 7.1-.7 10.3 1.4 2.7 1.8 5.3 2.1 8.7.3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.8" />
-          <path d="M10.2 13.6c2.4-3.2 6.7-4 10-1.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          <path d="M16 5.5v21M7 16h18" stroke="currentColor" strokeWidth="1" opacity="0.45" />
-          <path d="M20.8 8.2l2.5-2.5M8.7 23.3l2.5-2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" className="text-gold-300" />
-        </svg>
+        <img
+  src="/logo.png"
+  alt="SecuredLanding"
+  className="h-7 w-7 object-contain"
+/>
       </span>
       <span className="flex flex-col leading-none">
         <span className={cn("font-display text-xl font-semibold tracking-tight", light ? "text-ink-950" : "text-paper-50")}>
