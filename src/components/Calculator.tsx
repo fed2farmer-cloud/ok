@@ -1,50 +1,56 @@
-import { useState } from 'react'
+import { useState } from "react";
 
 export default function Calculator() {
-  const [crops, setCrops] = useState('100')
-  const [price, setPrice] = useState('50')
-  const revenue = parseFloat(crops) * parseFloat(price) || 0
+  const [value, setValue] = useState(100000);
+  const ltv = 0.5;
+
+  const loanAmount = value * ltv;
 
   return (
-    <section id="calculator" className="py-20 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Revenue Calculator
-          </h2>
-          <p className="text-xl text-gray-600">
-            Estimate your potential earnings
-          </p>
+    <section
+      id="calculator"
+      className="py-20 bg-gray-50"
+    >
+      <div className="max-w-4xl mx-auto px-6">
+
+        <h2 className="text-5xl font-bold text-center mb-4">
+          Land Loan Calculator
+        </h2>
+
+        <p className="text-center text-gray-600 mb-10">
+          Estimate how much you can borrow using your land as collateral.
+        </p>
+
+        <div className="bg-white rounded-xl shadow-xl p-8">
+
+          <label className="block font-semibold mb-2">
+            Estimated Land Value ($)
+          </label>
+
+          <input
+            type="number"
+            value={value}
+            onChange={(e) =>
+              setValue(Number(e.target.value))
+            }
+            className="w-full border rounded-lg p-3 mb-8"
+          />
+
+          <div className="bg-green-50 rounded-xl p-6 text-center">
+
+            <p className="text-gray-600">
+              Maximum Loan (50% LTV)
+            </p>
+
+            <h3 className="text-5xl font-bold text-green-700 mt-3">
+              ${loanAmount.toLocaleString()}
+            </h3>
+
+          </div>
+
         </div>
-        <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-8">
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Crop Yield (kg)
-            </label>
-            <input
-              type="number"
-              value={crops}
-              onChange={(e) => setCrops(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent"
-            />
-          </div>
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Price per Unit (₹)
-            </label>
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent"
-            />
-          </div>
-          <div className="bg-green-50 rounded-lg p-4">
-            <p className="text-sm text-gray-600 mb-1">Estimated Revenue</p>
-            <p className="text-3xl font-bold text-green-600">₹{revenue.toFixed(0)}</p>
-          </div>
-        </div>
+
       </div>
     </section>
-  )
+  );
 }
