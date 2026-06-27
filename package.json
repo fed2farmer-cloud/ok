@@ -7,8 +7,7 @@
   "dependencies": {
     "@clerk/clerk-react": "latest",
     "@rollup/rollup-linux-x64-gnu": "^4.62.2",
-    "@tailwindcss/vite": "latest",
-    "@vitejs/plugin-react": "4.3.4",
+    "tailwindcss": "latest"
     "clsx": "latest",
     "react": "latest",
     "react-dom": "latest",
