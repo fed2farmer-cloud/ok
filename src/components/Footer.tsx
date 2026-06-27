@@ -1,41 +1,43 @@
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-white py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid md:grid-cols-4 gap-8 mb-8">
+    <footer id="contact" className="bg-slate-900 text-white py-16">
+      <div className="max-w-7xl mx-auto px-6">
+        <h2 className="text-3xl font-bold text-green-400">
+          SecuredLanding
+        </h2>
+
+        <p className="mt-3 text-gray-300 max-w-xl">
+          America's land-backed lending marketplace. Borrow against your
+          land or invest in secured real estate loans.
+        </p>
+
+        <div className="grid md:grid-cols-3 gap-10 mt-10">
           <div>
-            <h3 className="text-lg font-bold mb-4">Fed2Farmer</h3>
-            <p className="text-gray-400">Empowering farmers through technology</p>
+            <h3 className="font-bold mb-3">Borrowers</h3>
+            <p>Apply for a Loan</p>
+            <p>Loan Calculator</p>
+            <p>Eligibility</p>
           </div>
+
           <div>
-            <h4 className="font-semibold mb-4">Product</h4>
-            <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white">Features</a></li>
-              <li><a href="#" className="hover:text-white">Pricing</a></li>
-              <li><a href="#" className="hover:text-white">Security</a></li>
-            </ul>
+            <h3 className="font-bold mb-3">Investors</h3>
+            <p>Investment Opportunities</p>
+            <p>Returns</p>
+            <p>Portfolio</p>
           </div>
+
           <div>
-            <h4 className="font-semibold mb-4">Company</h4>
-            <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white">About</a></li>
-              <li><a href="#" className="hover:text-white">Blog</a></li>
-              <li><a href="#" className="hover:text-white">Contact</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-semibold mb-4">Legal</h4>
-            <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white">Privacy</a></li>
-              <li><a href="#" className="hover:text-white">Terms</a></li>
-              <li><a href="#" className="hover:text-white">Cookies</a></li>
-            </ul>
+            <h3 className="font-bold mb-3">Company</h3>
+            <p>About</p>
+            <p>Contact</p>
+            <p>Privacy Policy</p>
           </div>
         </div>
-        <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 Fed2Farmer. All rights reserved.</p>
+
+        <div className="border-t border-slate-700 mt-12 pt-6 text-center text-gray-400">
+          © 2026 SecuredLanding. All rights reserved.
         </div>
       </div>
     </footer>
-  )
+  );
 }
