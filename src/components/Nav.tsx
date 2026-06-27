@@ -7,7 +7,7 @@ export default function Nav() {
           <img
             src="/Logo.png"
             alt="Secured Landing"
-            className="h-12 w-12 rounded-full"
+            className="h-10 w-10 object-contain"
           />
           <div>
             <h1 className="text-2xl font-bold text-green-700">
