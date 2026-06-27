@@ -5,8 +5,8 @@ export default function Nav() {
 
         <a href="/" className="flex items-center gap-3">
           <img
-            src="/logo.png"
-            alt="Lords Farms"
+            src="/Logo.png"
+            alt="Secured Landing"
             className="h-12 w-12 rounded-full"
           />
           <div>
