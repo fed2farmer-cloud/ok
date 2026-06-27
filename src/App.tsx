@@ -1,7 +1,7 @@
 function App() {
   return (
-    <div>
-      <h1>Fed2Farmer is working!</h1>
+    <div style={{ color: "black", background: "white", padding: "40px", fontSize: "30px" }}>
+      Fed2Farmer is working!
     </div>
   )
 }
