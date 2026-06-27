@@ -11,7 +11,7 @@ export default function Nav() {
           />
           <div>
             <h1 className="text-2xl font-bold text-green-700">
-              Lords Farms
+              Secured Landing
             </h1>
             <p className="text-xs text-gray-500">
               SecuredLanding
