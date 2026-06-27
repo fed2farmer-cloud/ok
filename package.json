@@ -6,13 +6,11 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "latest",
-    "@rollup/rollup-linux-x64-gnu": "^4.62.2",
     "tailwindcss": "latest"
     "clsx": "latest",
     "react": "latest",
     "react-dom": "latest",
     "tailwind-merge": "latest",
-    "tailwindcss": "latest",
     "typescript": "latest",
     "vite": "5.4.11"
   }
