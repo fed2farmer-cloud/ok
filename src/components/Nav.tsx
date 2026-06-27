@@ -19,7 +19,7 @@ export default function Nav() {
           </div>
         </a>
 
-        <div className="flex gap-6 text-gray-700">
+        <div className="hidden sm:flex gap-6 text-gray-700"
           <a href="#calculator">Calculator</a>
           <a href="#invest">Invest</a>
           <a href="#security">Security</a>
