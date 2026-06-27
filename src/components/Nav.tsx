@@ -1,22 +1,39 @@
 export default function Nav() {
   return (
-    <nav className="w-full bg-white shadow-md z-50">
-      <div className="px-3 py-3">
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
-          <h1 className="text-xl font-bold text-green-600">Fed2Farmer</h1>
+    <nav className="sticky top-0 z-50 bg-white shadow-md">
+      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
 
-          <div className="flex flex-wrap gap-3 text-sm">
-            <a href="#features" className="text-gray-600 hover:text-green-600">Features</a>
-            <a href="#calculator" className="text-gray-600 hover:text-green-600">Calculator</a>
-            <a href="#marketplace" className="text-gray-600 hover:text-green-600">Marketplace</a>
-            <a href="#security" className="text-gray-600 hover:text-green-600">Security</a>
+        <a href="/" className="flex items-center gap-3">
+          <img
+            src="/logo.png"
+            alt="Lords Farms"
+            className="h-12 w-12 rounded-full"
+          />
+          <div>
+            <h1 className="text-2xl font-bold text-green-700">
+              Lords Farms
+            </h1>
+            <p className="text-xs text-gray-500">
+              SecuredLanding
+            </p>
           </div>
+        </a>
 
-          <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm">
-            Get Started
-          </button>
+        <div className="flex gap-6 text-gray-700">
+          <a href="#calculator">Calculator</a>
+          <a href="#invest">Invest</a>
+          <a href="#security">Security</a>
+          <a href="#contact">Contact</a>
         </div>
+
+        <a
+          href="#calculator"
+          className="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700"
+        >
+          Apply Now
+        </a>
+
       </div>
     </nav>
-  )
+  );
 }
