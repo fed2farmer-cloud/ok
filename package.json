@@ -6,7 +6,7 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "latest",
-    "tailwindcss": "latest"
+    "tailwindcss": "latest",
     "clsx": "latest",
     "react": "latest",
     "react-dom": "latest",
