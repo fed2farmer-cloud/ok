@@ -8,6 +8,7 @@
   "dependencies": {
     "@clerk/clerk-react": "latest",
     "tailwindcss": "latest",
+"@tailwindcss/postcss": "latest",
     "@vitejs/plugin-react": "4.3.4",
     "clsx": "latest",
     "react": "latest",
