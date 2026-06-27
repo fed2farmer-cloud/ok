@@ -1,66 +1,63 @@
 export default function Marketplace() {
-  const products = [
+  const investments = [
     {
-      id: 1,
-      name: 'Organic Rice',
-      seller: 'Farm Connect',
-      price: '₹45/kg',
-      rating: 4.8,
-      image: '🌾',
+      title: "Texas Ranch Loan",
+      location: "Texas, USA",
+      amount: "$250,000",
+      rate: "9% APR",
     },
     {
-      id: 2,
-      name: 'Fresh Vegetables',
-      seller: 'Green Valley',
-      price: '₹120/box',
-      rating: 4.6,
-      image: '🥕',
+      title: "California Farm Loan",
+      location: "California, USA",
+      amount: "$500,000",
+      rate: "8.5% APR",
     },
     {
-      id: 3,
-      name: 'Dairy Products',
-      seller: 'Milk Fresh',
-      price: '₹50/liter',
-      rating: 4.9,
-      image: '🥛',
+      title: "Timberland Investment",
+      location: "Oregon, USA",
+      amount: "$175,000",
+      rate: "10% APR",
     },
-  ]
+  ];
 
   return (
-    <section id="marketplace" className="py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Digital Marketplace
-          </h2>
-          <p className="text-xl text-gray-600">
-            Connect with buyers and expand your reach
-          </p>
-        </div>
+    <section id="invest" className="py-20 bg-white">
+      <div className="max-w-7xl mx-auto px-6">
+        <h2 className="text-5xl font-bold text-center mb-4">
+          Investment Opportunities
+        </h2>
+
+        <p className="text-center text-gray-600 mb-12">
+          Invest in land-backed loans secured by recorded first-position liens.
+        </p>
+
         <div className="grid md:grid-cols-3 gap-8">
-          {products.map((product) => (
+          {investments.map((loan, index) => (
             <div
-              key={product.id}
-              className="bg-white border border-gray-200 rounded-lg shadow-md p-6 hover:shadow-lg transition"
+              key={index}
+              className="bg-white rounded-xl shadow-lg p-8 border"
             >
-              <div className="text-5xl mb-4 text-center">{product.image}</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                {product.name}
-              </h3>
-              <p className="text-gray-600 mb-4">{product.seller}</p>
-              <div className="flex justify-between items-center">
-                <span className="text-2xl font-bold text-green-600">
-                  {product.price}
-                </span>
-                <span className="text-sm text-yellow-600">★ {product.rating}</span>
-              </div>
-              <button className="w-full mt-4 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 font-semibold">
-                View Details
+              <h3 className="text-2xl font-bold mb-3">{loan.title}</h3>
+
+              <p className="text-gray-600 mb-2">
+                📍 {loan.location}
+              </p>
+
+              <p className="text-3xl font-bold text-green-700 mb-2">
+                {loan.amount}
+              </p>
+
+              <p className="text-lg text-gray-700 mb-6">
+                Expected Return: {loan.rate}
+              </p>
+
+              <button className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold">
+                Invest Now
               </button>
             </div>
           ))}
         </div>
       </div>
     </section>
-  )
+  );
 }
