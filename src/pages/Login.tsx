@@ -9,7 +9,12 @@ export default function Login() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
 
-    const { error } = await supabase.auth.signInWithPassword({
+    if (!supabase) {
+  setMessage('Supabase is not configured')
+  return
+}
+
+const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
