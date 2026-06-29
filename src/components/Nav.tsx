@@ -22,14 +22,25 @@ export default function Nav() {
           <a href="#invest">Invest</a>
           <a href="#security">Security</a>
           <a href="#contact">Contact</a>
+          <a href="/login">Log In</a>
+          <a href="/signup">Sign Up</a>
         </div>
 
-        <a
-          href="#calculator"
-          className="hidden sm:block bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700"
-        >
-          Apply Now
-        </a>
+        <div className="hidden sm:flex gap-3">
+          <a
+            href="/login"
+            className="border border-green-600 text-green-600 px-4 py-2 rounded-lg hover:bg-green-50"
+          >
+            Log In
+          </a>
+
+          <a
+            href="/signup"
+            className="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700"
+          >
+            Sign Up
+          </a>
+        </div>
       </div>
     </nav>
   );
