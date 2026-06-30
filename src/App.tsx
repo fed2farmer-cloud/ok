@@ -5,7 +5,7 @@ import Hero from './components/Hero'
 import Calculator from './components/Calculator'
 import Marketplace from './components/Marketplace'
 import Security from './components/Security'
-
+import Footer from "./components/Footer";
 function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
