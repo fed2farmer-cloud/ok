@@ -1,4 +1,4 @@
-import { useState } from 'react'
+72pximport { useState } from 'react'
 import Nav from './components/Nav'
 
 function Login() {
@@ -33,3 +33,6 @@ function App() {
     <Hero />
   </div>
 )
+}
+
+export default App
