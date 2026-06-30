@@ -3,15 +3,52 @@ import Hero from './components/Hero'
 import Calculator from './components/Calculator'
 import Marketplace from './components/Marketplace'
 import Security from './components/Security'
-
+import { useState } from 'react'
 function Login() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-green-50">
-      {/* login form goes here */}
+    <div className="min-h-screen flex items-center justify-center bg-green-50 p-6">
+      <form className="bg-white p-6 rounded-xl shadow-md w-full max-w-md">
+        <h1 className="text-2xl font-bold text-green-700 mb-4">Login</h1>
+
+        <input className="w-full border p-3 rounded mb-3" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input className="w-full border p-3 rounded mb-3" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+
+        <button className="w-full bg-green-600 text-white p-3 rounded font-bold">
+          Login
+        </button>
+      </form>
     </div>
   )
 }
 
+function Signup() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [role, setRole] = useState('borrower')
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-green-50 p-6">
+      <form className="bg-white p-6 rounded-xl shadow-md w-full max-w-md">
+        <h1 className="text-2xl font-bold text-green-700 mb-4">Create Account</h1>
+
+        <input className="w-full border p-3 rounded mb-3" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input className="w-full border p-3 rounded mb-3" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+
+        <select className="w-full border p-3 rounded mb-3" value={role} onChange={(e) => setRole(e.target.value)}>
+          <option value="borrower">Borrower</option>
+          <option value="investor">Investor</option>
+        </select>
+
+        <button className="w-full bg-green-600 text-white p-3 rounded font-bold">
+          Sign Up
+        </button>
+      </form>
+    </div>
+  )
+}
 function Signup() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-green-50">
