@@ -28,17 +28,8 @@ function App() {
   if (path === '/signup') return <Signup />
 
     return (
-    <div className="min-h-screen bg-white">
-      <Nav />
-      <h1>HOME WORKING</h1>
-
-      <Hero />
-
-      {/* <Calculator /> */}
-      {/* <Marketplace /> */}
-      {/* <Security /> */}
-    </div>
-  )
-}
-
-export default App
+  <div className="min-h-screen bg-white overflow-x-hidden">
+    <Nav />
+    <Hero />
+  </div>
+)
