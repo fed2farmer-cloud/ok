@@ -7,11 +7,51 @@ import Marketplace from './components/Marketplace'
 import Security from './components/Security'
 
 function Login() {
-  return <h1>LOGIN WORKING</h1>
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-green-50 p-6">
+      <form className="bg-white p-6 rounded-xl shadow-md w-full max-w-md">
+        <h1 className="text-2xl font-bold text-green-700 mb-6">Login</h1>
+
+        <input className="w-full border p-3 rounded mb-4" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+
+        <input className="w-full border p-3 rounded mb-4" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+
+        <button type="submit" className="w-full bg-green-600 text-white p-3 rounded-lg font-bold">
+          Login
+        </button>
+      </form>
+    </div>
+  )
 }
 
 function Signup() {
-  return <h1>SIGNUP WORKING</h1>
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [role, setRole] = useState('borrower')
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-green-50 p-6">
+      <form className="bg-white p-6 rounded-xl shadow-md w-full max-w-md">
+        <h1 className="text-2xl font-bold text-green-700 mb-6">Create Account</h1>
+
+        <input className="w-full border p-3 rounded mb-4" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+
+        <input className="w-full border p-3 rounded mb-4" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+
+        <select className="w-full border p-3 rounded mb-4" value={role} onChange={(e) => setRole(e.target.value)}>
+          <option value="borrower">Borrower</option>
+          <option value="investor">Investor</option>
+        </select>
+
+        <button type="submit" className="w-full bg-green-600 text-white p-3 rounded-lg font-bold">
+          Sign Up
+        </button>
+      </form>
+    </div>
+  )
 }
 
 function App() {
@@ -21,7 +61,7 @@ function App() {
   if (path === '/signup') return <Signup />
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       <Nav />
       <Hero />
       <Calculator />
