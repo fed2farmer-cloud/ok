@@ -95,4 +95,21 @@ function Signup() {
     </div>
   )
 }
+function App() {
+  const path = window.location.pathname
+
+  if (path === '/login') return <Login />
+  if (path === '/signup') return <Signup />
+
+  return (
+    <div className="min-h-screen bg-white overflow-x-hidden">
+      <Nav />
+      <Hero />
+      <Calculator />
+      <Marketplace />
+      <Security />
+    </div>
+  )
+}
+
 export default App
