@@ -6,7 +6,6 @@ import Calculator from './components/Calculator'
 import Marketplace from './components/Marketplace'
 import Security from './components/Security'
 import Footer from './components/Footer'
-import { supabase } from './lib/supabase'
 
 function Login() {
   const [email, setEmail] = useState('')
