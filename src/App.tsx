@@ -1,4 +1,4 @@
-import { useState } from 'react'
+7import { useState } from 'react'
 
 import Nav from './components/Nav'
 import Hero from './components/Hero'
@@ -67,4 +67,9 @@ function App() {
 <Calculator />
 <Marketplace />
 <Security />
-{/* <Footer /> */}
+{/* <Footer /> */>
+    </div>
+  )
+}
+
+export default App
