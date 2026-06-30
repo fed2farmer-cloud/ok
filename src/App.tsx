@@ -5,11 +5,19 @@ import Marketplace from './components/Marketplace'
 import Security from './components/Security'
 
 function Login() {
-  return <h1>LOGIN PAGE WORKING</h1>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-green-50">
+      {/* login form goes here */}
+    </div>
+  )
 }
 
 function Signup() {
-  return <h1>SIGNUP PAGE WORKING</h1>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-green-50">
+      {/* signup form goes here */}
+    </div>
+  )
 }
 
 function App() {
