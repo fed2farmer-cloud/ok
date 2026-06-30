@@ -67,7 +67,7 @@ function App() {
 <Calculator />
 <Marketplace />
 <Security />
-{/* <Footer /> */}
+<Footer />
     </div>
   )
 }
