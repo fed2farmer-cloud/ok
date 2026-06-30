@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Nav from './components/Nav'
-
+import Hero from './components/Hero'
 function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -28,8 +28,8 @@ function App() {
   if (path === '/signup') return <Signup />
 
     return (
-  <div className="min-h-screen bg-white overflow-x-hidden">
-    <Nav />
+  <div>
+    <h1>HOME TEST 123</h1>
     <Hero />
   </div>
 )
