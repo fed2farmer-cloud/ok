@@ -95,3 +95,4 @@ function Signup() {
     </div>
   )
 }
+export default App
