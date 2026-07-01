@@ -1,9 +1,11 @@
+import Nav from "./components/Nav";
+
 function App() {
   return (
-    <div style={{ padding: 40 }}>
-      <h1>APP IS WORKING</h1>
+    <div>
+      <Nav />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
