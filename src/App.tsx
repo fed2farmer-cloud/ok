@@ -3,6 +3,7 @@ import Hero from "./components/Hero";
 import Calculator from "./components/Calculator";
 import Marketplace from "./components/Marketplace";
 import Security from "./components/Security";
+import Footer from "./components/Footer";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <Calculator />
       <Marketplace />
       <Security />
+      <Footer />
     </>
   );
 }
