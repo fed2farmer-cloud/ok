@@ -7,7 +7,7 @@ import Calculator from "./components/Calculator";
 import Marketplace from "./components/Marketplace";
 import Security from "./components/Security";
 import Footer from "./components/Footer";
-
+import AdminDashboard from "./pages/AdminDashboard";
 import Dashboard from "./pages/Dashboard";
 import LoanApplication from "./pages/LoanApplication";
 
@@ -176,6 +176,7 @@ function Signup() {
 function App() {
   return (
     <Routes>
+<Route path="/admin" element={<AdminDashboard />} />
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
