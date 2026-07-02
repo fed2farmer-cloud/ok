@@ -3,16 +3,23 @@ import { useState } from "react";
 export default function LoanApplication() {
   const [form, setForm] = useState({
     fullName: "",
+    businessName: "",
     email: "",
     phone: "",
     propertyAddress: "",
+    apn: "",
+    county: "",
+    state: "",
+    landUse: "",
     acreage: "",
     landValue: "",
     loanAmount: "",
     purpose: "",
   });
 
-  function update(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  function update(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) {
     setForm({
       ...form,
       [e.target.name]: e.target.value,
@@ -28,21 +35,27 @@ export default function LoanApplication() {
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-8">
-
         <h1 className="text-3xl font-bold text-green-700">
           Land Loan Application
         </h1>
 
         <p className="mt-2 text-gray-600">
-          Complete the application below.
+          Enter an APN / parcel number when the land has no street address.
         </p>
 
         <form onSubmit={submit} className="space-y-4 mt-8">
-
           <input
             name="fullName"
             placeholder="Full Name"
             value={form.fullName}
+            onChange={update}
+            className="w-full border p-3 rounded"
+          />
+
+          <input
+            name="businessName"
+            placeholder="Business Name / Farm Name"
+            value={form.businessName}
             onChange={update}
             className="w-full border p-3 rounded"
           />
@@ -66,11 +79,51 @@ export default function LoanApplication() {
 
           <input
             name="propertyAddress"
-            placeholder="Property Address"
+            placeholder="Property Address, if available"
             value={form.propertyAddress}
             onChange={update}
             className="w-full border p-3 rounded"
           />
+
+          <input
+            name="apn"
+            placeholder="APN / Parcel Number"
+            value={form.apn}
+            onChange={update}
+            className="w-full border p-3 rounded"
+          />
+
+          <input
+            name="county"
+            placeholder="County"
+            value={form.county}
+            onChange={update}
+            className="w-full border p-3 rounded"
+          />
+
+          <input
+            name="state"
+            placeholder="State"
+            value={form.state}
+            onChange={update}
+            className="w-full border p-3 rounded"
+          />
+
+          <select
+            name="landUse"
+            value={form.landUse}
+            onChange={update}
+            className="w-full border p-3 rounded"
+          >
+            <option value="">Select Land Use</option>
+            <option value="farm">Farm</option>
+            <option value="ranch">Ranch</option>
+            <option value="vacant_land">Vacant Land</option>
+            <option value="residential">Residential</option>
+            <option value="commercial">Commercial</option>
+            <option value="timber">Timber</option>
+            <option value="other">Other</option>
+          </select>
 
           <input
             name="acreage"
@@ -110,9 +163,7 @@ export default function LoanApplication() {
           >
             Submit Application
           </button>
-
         </form>
-
       </div>
     </div>
   );
