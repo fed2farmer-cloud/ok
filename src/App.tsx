@@ -8,6 +8,8 @@ import Marketplace from "./components/Marketplace";
 import Security from "./components/Security";
 import Footer from "./components/Footer";
 
+import Dashboard from "./pages/Dashboard";
+
 function Home() {
   return (
     <>
@@ -44,18 +46,16 @@ function Login() {
     if (error) {
       setMessage(error.message);
     } else {
-      setMessage("Login successful!");
-
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 1000);
+      window.location.href = "/dashboard";
     }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-green-50 p-6">
       <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold text-green-700 mb-6">Login</h1>
+        <h1 className="text-2xl font-bold text-green-700 mb-6">
+          Login
+        </h1>
 
         <input
           className="w-full border p-3 rounded mb-4"
@@ -80,7 +80,11 @@ function Login() {
           Login
         </button>
 
-        {message && <p className="mt-4 text-center text-sm">{message}</p>}
+        {message && (
+          <p className="mt-4 text-center text-sm">
+            {message}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -106,11 +110,17 @@ function Signup() {
       email,
       password,
       options: {
-        data: { role },
+        data: {
+          role,
+        },
       },
     });
 
-    setMessage(error ? error.message : "Account created. Check your email.");
+    if (error) {
+      setMessage(error.message);
+    } else {
+      setMessage("Account created. Check your email.");
+    }
   }
 
   return (
@@ -152,22 +162,12 @@ function Signup() {
           Sign Up
         </button>
 
-        {message && <p className="mt-4 text-center text-sm">{message}</p>}
+        {message && (
+          <p className="mt-4 text-center text-sm">
+            {message}
+          </p>
+        )}
       </div>
-    </div>
-  );
-}
-
-function Dashboard() {
-  return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <h1 className="text-4xl font-bold text-green-700">
-        Welcome to SecuredLanding
-      </h1>
-
-      <p className="mt-4 text-gray-600">
-        You are now logged in.
-      </p>
     </div>
   );
 }
