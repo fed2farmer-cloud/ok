@@ -9,6 +9,7 @@ import Security from "./components/Security";
 import Footer from "./components/Footer";
 
 import Dashboard from "./pages/Dashboard";
+import LoanApplication from "./pages/LoanApplication";
 
 function Home() {
   return (
@@ -179,6 +180,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/loan-application" element={<LoanApplication />} />
     </Routes>
   );
 }
