@@ -1,4 +1,7 @@
-async function submit(e: React.FormEvent) {
+import { useState } from "react";
+import { supabase } from "../lib/supabase";
+
+export default function LoanApplication() {async function submit(e: React.FormEvent) {
   e.preventDefault();
 
   if (!supabase) {
