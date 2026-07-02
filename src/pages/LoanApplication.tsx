@@ -1,48 +1,113 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
-export default function LoanApplication() {async function submit(e: React.FormEvent) {
-  e.preventDefault();
+export default function LoanApplication() {
+  const [form, setForm] = useState({
+    fullName: "",
+    businessName: "",
+    taxIdLast4: "",
+    email: "",
+    phone: "",
+    propertyAddress: "",
+    apn: "",
+    county: "",
+    state: "",
+    landType: "",
+    acreage: "",
+    landValue: "",
+    loanAmount: "",
+    purpose: "",
+  });
 
-  if (!supabase) {
-    alert("Supabase is not configured.");
-    return;
+  function update(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
+    setForm({ ...form, [e.target.name]: e.target.value });
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
 
-  if (!user) {
-    alert("Please log in.");
-    return;
-  }
+    if (!supabase) {
+      alert("Supabase is not configured.");
+      return;
+    }
 
-  const { error } = await supabase
-    .from("loan_applications")
-    .insert([
-      {
-        full_name: form.fullName,
-        business_name: form.businessName,
-        email: form.email,
-        phone: form.phone,
-        tax_id_last4: form.taxIdLast4,
-        apn: form.apn,
-        property_address: form.propertyAddress,
-        state: form.state,
-        land_type: form.landType,
-        acreage: Number(form.acreage),
-        land_value: Number(form.landValue),
-        loan_amount: Number(form.loanAmount),
-        purpose: form.purpose,
-        status: "Pending",
-        user_id: user.id,
-      },
-    ]);
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (error) {
-    alert(error.message);
-  } else {
+    if (!user) {
+      alert("Please log in first.");
+      return;
+    }
+
+    const { error } = await supabase.from("loan_applications").insert({
+      full_name: form.fullName,
+      business_name: form.businessName,
+      tax_id_last4: form.taxIdLast4,
+      email: form.email,
+      phone: form.phone,
+      property_address: form.propertyAddress,
+      apn: form.apn,
+      state: form.state,
+      land_type: form.landType,
+      acreage: form.acreage ? Number(form.acreage) : null,
+      land_value: form.landValue ? Number(form.landValue) : null,
+      loan_amount: form.loanAmount ? Number(form.loanAmount) : null,
+      purpose: form.purpose,
+      status: "Pending",
+      user_id: user.id,
+    });
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
     alert("Application submitted successfully!");
+    window.location.href = "/dashboard";
   }
+
+  return (
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-8">
+        <h1 className="text-3xl font-bold text-green-700">
+          Land Loan Application
+        </h1>
+
+        <p className="mt-2 text-gray-600">
+          Enter an APN / parcel number when land has no street address.
+        </p>
+
+        <form onSubmit={submit} className="space-y-4 mt-8">
+          <input name="fullName" placeholder="Full Name" value={form.fullName} onChange={update} className="w-full border p-3 rounded" />
+          <input name="businessName" placeholder="Business Name / Farm Name" value={form.businessName} onChange={update} className="w-full border p-3 rounded" />
+          <input name="taxIdLast4" placeholder="Last 4 of SSN or EIN" value={form.taxIdLast4} onChange={update} maxLength={4} className="w-full border p-3 rounded" />
+          <input name="email" type="email" placeholder="Email" value={form.email} onChange={update} className="w-full border p-3 rounded" />
+          <input name="phone" placeholder="Phone Number" value={form.phone} onChange={update} className="w-full border p-3 rounded" />
+          <input name="propertyAddress" placeholder="Property Address, if available" value={form.propertyAddress} onChange={update} className="w-full border p-3 rounded" />
+          <input name="apn" placeholder="APN / Parcel Number" value={form.apn} onChange={update} className="w-full border p-3 rounded" />
+          <input name="county" placeholder="County" value={form.county} onChange={update} className="w-full border p-3 rounded" />
+          <input name="state" placeholder="State" value={form.state} onChange={update} className="w-full border p-3 rounded" />
+
+          <select name="landType" value={form.landType} onChange={update} className="w-full border p-3 rounded">
+            <option value="">Select Land Use</option>
+            <option value="farm">Farm</option>
+            <option value="ranch">Ranch</option>
+            <option value="vacant_land">Vacant Land</option>
+            <option value="residential">Residential</option>
+            <option value="commercial">Commercial</option>
+            <option value="timber">Timber</option>
+            <option value="other">Other</option>
+          </select>
+
+          <input name="acreage" type="number" placeholder="Acres" value={form.acreage} onChange={update} className="w-full border p-3 rounded" />
+          <input name="landValue" type="number" placeholder="Estimated Land Value" value={form.landValue} onChange={update} className="w-full border p-3 rounded" />
+          <input name="loanAmount" type="number" placeholder="Requested Loan Amount" value={form.loanAmount} onChange={update} className="w-full border p-3 rounded" />
+          <textarea name="purpose" placeholder="Purpose of Loan" value={form.purpose} onChange={update} className="w-full border p-3 rounded h-32" />
+
+          <button type="submit" className="w-full bg-green-600 text-white py-3 rounded-lg font-bold">
+            Submit Application
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 }
