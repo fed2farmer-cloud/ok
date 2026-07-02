@@ -41,7 +41,15 @@ function Login() {
       password,
     });
 
-    setMessage(error ? error.message : "Login successful!");
+    if (error) {
+      setMessage(error.message);
+    } else {
+      setMessage("Login successful!");
+
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 1000);
+    }
   }
 
   return (
@@ -150,12 +158,27 @@ function Signup() {
   );
 }
 
+function Dashboard() {
+  return (
+    <div className="min-h-screen bg-gray-100 p-8">
+      <h1 className="text-4xl font-bold text-green-700">
+        Welcome to SecuredLanding
+      </h1>
+
+      <p className="mt-4 text-gray-600">
+        You are now logged in.
+      </p>
+    </div>
+  );
+}
+
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/dashboard" element={<Dashboard />} />
     </Routes>
   );
 }
