@@ -27,6 +27,10 @@ export default function Dashboard() {
     window.location.href = "/";
   }
 
+  function newApplication() {
+    window.location.href = "/loan-application";
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 p-6">
 
@@ -49,7 +53,10 @@ export default function Dashboard() {
             Start a new land-backed loan application.
           </p>
 
-          <button className="mt-4 bg-green-600 text-white px-6 py-3 rounded-lg">
+          <button
+            onClick={newApplication}
+            className="mt-4 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg"
+          >
             New Application
           </button>
         </div>
@@ -59,7 +66,7 @@ export default function Dashboard() {
             My Applications
           </h2>
 
-          <p className="mt-2">
+          <p className="mt-2 text-gray-600">
             No applications yet.
           </p>
         </div>
@@ -69,16 +76,19 @@ export default function Dashboard() {
             Account
           </h2>
 
+          <p className="mt-2 text-gray-600">
+            Signed in as <strong>{email}</strong>
+          </p>
+
           <button
             onClick={logout}
-            className="mt-4 bg-red-600 text-white px-6 py-3 rounded-lg"
+            className="mt-4 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg"
           >
             Logout
           </button>
         </div>
 
       </div>
-
     </div>
   );
 }
