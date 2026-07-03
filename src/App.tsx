@@ -10,7 +10,7 @@ import Footer from "./components/Footer";
 import AdminDashboard from "./pages/AdminDashboard";
 import Dashboard from "./pages/Dashboard";
 import LoanApplication from "./pages/LoanApplication";
-
+import InvestorDashboard from "./pages/InvestorDashboard";
 function Home() {
   return (
     <>
@@ -179,6 +179,10 @@ function App() {
 <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
+<Route
+  path="/investor"
+  element={<InvestorDashboard />}
+/>
       <Route path="/signup" element={<Signup />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/loan-application" element={<LoanApplication />} />
