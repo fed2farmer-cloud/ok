@@ -17,8 +17,10 @@ export default function InvestorDashboard() {
       .select("*")
       .eq("status", "Approved");
 
-    if (!error && data) {
-      setLoans(data);
+    if (error) {
+      alert(error.message);
+    } else {
+      setLoans(data || []);
     }
 
     setLoading(false);
@@ -31,11 +33,11 @@ export default function InvestorDashboard() {
 
     if (!amount) return;
 
-    const { data, error } = await supabase.functions.invoke("quick-action", {
+    const { data, error } = await supabase.functions.invoke("nmi-payment", {
       body: {
         loanId: loan.Id,
         amount: Number(amount),
-        paymentToken: "test-token",
+        paymentToken: "test",
       },
     });
 
@@ -44,8 +46,8 @@ export default function InvestorDashboard() {
       return;
     }
 
-    alert("Investment function responded successfully.");
-    console.log(data);
+    alert(data?.message || "Investment submitted successfully!");
+    await loadLoans();
   }
 
   if (loading) return <h2 className="p-6">Loading...</h2>;
@@ -68,7 +70,7 @@ export default function InvestorDashboard() {
           <p><b>Acres:</b> {loan.acreage}</p>
           <p><b>Land Value:</b> ${Number(loan.land_value || 0).toLocaleString()}</p>
           <p><b>Loan Amount:</b> ${Number(loan.loan_amount || 0).toLocaleString()}</p>
-          <p><b>Purpose:</b> {loan.purpose}</p>
+          <p><b>Purpose:</b> {loan.purpose || loan.loan_purpose}</p>
 
           <div className="mt-4">
             <button
