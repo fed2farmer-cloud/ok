@@ -33,13 +33,20 @@ export default function InvestorDashboard() {
 
     if (!amount) return;
 
-    const { data, error } = await supabase.functions.invoke("nmi-payment", {
-      body: {
-        loanId: loan.Id,
-        amount: Number(amount),
-        paymentToken: "test",
-      },
-    });
+    const {
+  data: { session },
+} = await supabase.auth.getSession();
+
+const { data, error } = await supabase.functions.invoke("nmi-payment", {
+  body: {
+    loanId: loan.Id,
+    amount: Number(amount),
+    paymentToken: "test",
+  },
+  headers: {
+    Authorization: `Bearer ${session?.access_token}`,
+  },
+});
 
     if (error) {
       alert(error.message);
