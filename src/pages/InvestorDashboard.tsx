@@ -10,8 +10,10 @@ export default function InvestorDashboard() {
   }, []);
 
   async function loadLoans() {
+    if (!supabase) return;
+
     const { data, error } = await supabase
-      ?.from("loan_applications")
+      .from("loan_applications")
       .select("*")
       .eq("status", "Approved");
 
@@ -23,33 +25,30 @@ export default function InvestorDashboard() {
   }
 
   async function invest(loan: any) {
+    if (!supabase) return;
+
     const amount = prompt("Investment Amount");
 
     if (!amount) return;
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      alert("Please log in.");
-      return;
-    }
-
-    const { error } = await supabase.from("investments").insert({
-      loan_id: loan.id,
-      investor_id: user.id,
-      amount: Number(amount),
+    const { data, error } = await supabase.functions.invoke("quick-action", {
+      body: {
+        loanId: loan.Id,
+        amount: Number(amount),
+        paymentToken: "test-token",
+      },
     });
 
     if (error) {
       alert(error.message);
-    } else {
-      alert("Investment submitted successfully!");
+      return;
     }
+
+    alert("Investment function responded successfully.");
+    console.log(data);
   }
 
-  if (loading) return <h2>Loading...</h2>;
+  if (loading) return <h2 className="p-6">Loading...</h2>;
 
   return (
     <div className="p-6">
@@ -57,26 +56,19 @@ export default function InvestorDashboard() {
         Investor Dashboard
       </h1>
 
-      {loans.length === 0 && (
-        <p>No approved loan applications available.</p>
-      )}
+      {loans.length === 0 && <p>No approved loan applications available.</p>}
 
       {loans.map((loan) => (
-        <div
-          key={loan.id}
-          className="bg-white rounded-lg shadow p-5 mb-6"
-        >
-          <h2 className="text-xl font-bold">
-            {loan.business_name}
-          </h2>
+        <div key={loan.Id} className="bg-white rounded-lg shadow p-5 mb-6">
+          <h2 className="text-xl font-bold">{loan.business_name}</h2>
 
           <p><b>Applicant:</b> {loan.full_name}</p>
           <p><b>State:</b> {loan.state}</p>
           <p><b>Land Type:</b> {loan.land_type}</p>
-          <p><b>Acres:</b> {loan.acres}</p>
-          <p><b>Land Value:</b> ${loan.land_value}</p>
-          <p><b>Loan Amount:</b> ${loan.loan_amount}</p>
-          <p><b>Purpose:</b> {loan.loan_purpose}</p>
+          <p><b>Acres:</b> {loan.acreage}</p>
+          <p><b>Land Value:</b> ${Number(loan.land_value || 0).toLocaleString()}</p>
+          <p><b>Loan Amount:</b> ${Number(loan.loan_amount || 0).toLocaleString()}</p>
+          <p><b>Purpose:</b> {loan.purpose}</p>
 
           <div className="mt-4">
             <button
