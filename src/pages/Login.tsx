@@ -38,9 +38,37 @@ export default function Login() {
 
     setMessage("Login successful!");
 
-    setTimeout(() => {
-      navigate("/dashboard");
-    }, 1000);
+const {
+  data: { user },
+} = await supabase.auth.getUser();
+
+if (!user) return;
+
+const { data: profile, error: profileError } = await supabase
+  .from("profiles")
+  .select("role")
+  .eq("id", user.id)
+  .single();
+
+if (profileError || !profile) {
+  setMessage("Unable to load user profile.");
+  return;
+}
+
+setTimeout(() => {
+  switch (profile.role) {
+    case "admin":
+      navigate("/admin");
+      break;
+
+    case "investor":
+      navigate("/investor");
+      break;
+
+    default:
+      navigate("/borrower");
+  }
+}, 1000);
   }
 
   return (
