@@ -5,7 +5,6 @@ export default function InvestorDashboard() {
   const [loans, setLoans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [debugInfo, setDebugInfo] = useState("");
 
   useEffect(() => {
     loadLoans();
@@ -20,22 +19,15 @@ export default function InvestorDashboard() {
 
     setLoading(true);
     setError("");
-    setDebugInfo("Loading approved loans...");
 
     try {
-      // Get current session info for debugging
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      console.log("Current session:", session?.user?.email);
-      setDebugInfo(`User: ${session?.user?.email || "No user"}`);
-
-      // Query approved loans - EXACT SAME AS ADMIN DASHBOARD
-      // No filters on investor_id, user_id, or auth.uid()
+      // Query approved loans with specific columns
+      // Capital I in Id - this is the primary key
       const { data, error: queryError } = await supabase
         .from("loan_applications")
-        .select("*")
+        .select(
+          "Id, created_at, full_name, email, phone, state, apn, property_address, land_type, acreage, land_value, loan_amount, purpose, status"
+        )
         .eq("status", "Approved")
         .order("created_at", { ascending: false });
 
@@ -48,18 +40,13 @@ export default function InvestorDashboard() {
         setError(
           `Query Error: ${queryError.message} (Code: ${queryError.code})`
         );
-        setDebugInfo(
-          `Error: ${queryError.message} | Code: ${queryError.code}`
-        );
       } else {
         console.log("✅ Successfully loaded", data?.length || 0, "approved loans");
         setLoans(data || []);
-        setDebugInfo(`Success: Loaded ${data?.length || 0} approved loans`);
       }
     } catch (err: any) {
       console.error("Exception:", err);
       setError(`Exception: ${err.message}`);
-      setDebugInfo(`Exception: ${err.message}`);
     }
 
     setLoading(false);
@@ -115,13 +102,6 @@ export default function InvestorDashboard() {
         Browse and fund available loan opportunities
       </p>
 
-      {/* Debug Info */}
-      {debugInfo && (
-        <div className="mb-4 p-3 bg-blue-50 text-blue-700 rounded text-sm">
-          Debug: {debugInfo}
-        </div>
-      )}
-
       {error && (
         <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg">
           Error: {error}
@@ -153,7 +133,7 @@ export default function InvestorDashboard() {
                 {/* Left Column */}
                 <div>
                   <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                    {loan.business_name || "Business"}
+                    {loan.property_address || "Property"}
                   </h2>
                   <p className="text-sm text-gray-600 mb-4">
                     <b>Borrower:</b> {loan.full_name || "N/A"}
@@ -174,6 +154,9 @@ export default function InvestorDashboard() {
                     <p>
                       <b>State:</b> {loan.state || "N/A"}
                     </p>
+                    <p>
+                      <b>Land Type:</b> {loan.land_type || "N/A"}
+                    </p>
                   </div>
                 </div>
 
@@ -185,9 +168,19 @@ export default function InvestorDashboard() {
                         Loan Purpose
                       </p>
                       <p className="text-gray-800">
-                        {loan.purpose ||
-                          loan.loan_purpose ||
-                          "General agricultural financing"}
+                        {loan.purpose || "General agricultural financing"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Contact
+                      </p>
+                      <p className="text-sm text-gray-700">
+                        {loan.email || "N/A"}
+                      </p>
+                      <p className="text-sm text-gray-700">
+                        {loan.phone || "N/A"}
                       </p>
                     </div>
 
