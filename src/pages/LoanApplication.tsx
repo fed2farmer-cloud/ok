@@ -16,10 +16,13 @@ export default function LoanApplication() {
     acreage: "",
     landValue: "",
     loanAmount: "",
+    repaymentTermMonths: "36",
     purpose: "",
   });
 
-  function update(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
+  function update(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
@@ -31,7 +34,9 @@ export default function LoanApplication() {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       alert("Please log in first.");
@@ -46,11 +51,14 @@ export default function LoanApplication() {
       phone: form.phone,
       property_address: form.propertyAddress,
       apn: form.apn,
+      county: form.county,
       state: form.state,
       land_type: form.landType,
       acreage: form.acreage ? Number(form.acreage) : null,
       land_value: form.landValue ? Number(form.landValue) : null,
       loan_amount: form.loanAmount ? Number(form.loanAmount) : null,
+      repayment_term_months: Number(form.repaymentTermMonths),
+      interest_rate_percent: 9,
       purpose: form.purpose,
       status: "Pending",
       user_id: user.id,
@@ -101,6 +109,19 @@ export default function LoanApplication() {
           <input name="acreage" type="number" placeholder="Acres" value={form.acreage} onChange={update} className="w-full border p-3 rounded" />
           <input name="landValue" type="number" placeholder="Estimated Land Value" value={form.landValue} onChange={update} className="w-full border p-3 rounded" />
           <input name="loanAmount" type="number" placeholder="Requested Loan Amount" value={form.loanAmount} onChange={update} className="w-full border p-3 rounded" />
+
+          <select
+            name="repaymentTermMonths"
+            value={form.repaymentTermMonths}
+            onChange={update}
+            className="w-full border p-3 rounded"
+          >
+            <option value="12">12 months</option>
+            <option value="36">36 months</option>
+            <option value="60">60 months</option>
+            <option value="120">120 months</option>
+          </select>
+
           <textarea name="purpose" placeholder="Purpose of Loan" value={form.purpose} onChange={update} className="w-full border p-3 rounded h-32" />
 
           <button type="submit" className="w-full bg-green-600 text-white py-3 rounded-lg font-bold">
