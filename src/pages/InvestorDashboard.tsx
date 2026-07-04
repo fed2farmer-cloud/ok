@@ -36,6 +36,10 @@ export default function InvestorDashboard() {
     const {
   data: { session },
 } = await supabase.auth.getSession();
+if (!session) {
+  alert("Please log in again.");
+  return;
+}
 
 const { data, error } = await supabase.functions.invoke("nmi-payment", {
   body: {
