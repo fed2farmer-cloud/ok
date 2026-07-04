@@ -15,7 +15,7 @@ export default function InvestorDashboard() {
     const { data, error } = await supabase
       .from("loan_applications")
       .select("*")
-      .eq("status", "Approved");
+      .or('status.eq."Approved",status.eq."approved"');
 
     if (error) {
       alert(error.message);
@@ -76,12 +76,10 @@ const { data, error } = await supabase.functions.invoke("nmi-payment", {
           <h2 className="text-xl font-bold">{loan.business_name}</h2>
 
           <p><b>Applicant:</b> {loan.full_name}</p>
-          <p><b>State:</b> {loan.state}</p>
-          <p><b>Land Type:</b> {loan.land_type}</p>
-          <p><b>Acres:</b> {loan.acreage}</p>
           <p><b>Land Value:</b> ${Number(loan.land_value || 0).toLocaleString()}</p>
-          <p><b>Loan Amount:</b> ${Number(loan.loan_amount || 0).toLocaleString()}</p>
+          <p><b>Requested Loan:</b> ${Number(loan.loan_amount || 0).toLocaleString()}</p>
           <p><b>Purpose:</b> {loan.purpose || loan.loan_purpose}</p>
+          <p><b>Status:</b> {loan.status || "Pending"}</p>
 
           <div className="mt-4">
             <button
