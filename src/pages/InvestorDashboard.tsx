@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 export default function InvestorDashboard() {
   const [loans, setLoans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [investingLoanId, setInvestingLoanId] = useState<number | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadLoans();
@@ -53,39 +56,42 @@ export default function InvestorDashboard() {
   }
 
   async function invest(loan: any) {
-    if (!supabase) return;
+    if (!supabase) {
+      alert("Supabase is not configured.");
+      return;
+    }
 
-    const amount = prompt("Investment Amount ($)");
-
-    if (!amount) return;
-
+    // Check if user is logged in
     const {
       data: { session },
     } = await supabase.auth.getSession();
 
     if (!session) {
-      alert("Please log in again.");
+      alert("Please log in to invest.");
+      navigate("/login");
       return;
     }
 
-    const { data, error } = await supabase.functions.invoke("nmi-payment", {
-      body: {
-        loanId: loan.Id,
+    // Get investment amount from user
+    const amount = prompt("Investment Amount ($)");
+    if (!amount || Number(amount) <= 0) {
+      alert("Please enter a valid investment amount.");
+      return;
+    }
+
+    // Set the loan being invested in
+    setInvestingLoanId(loan.Id);
+
+    // Navigate to NMI payment page with loan details
+    // The payment page will handle token generation and API call
+    navigate("/payment", {
+      state: {
+        loanApplicationId: loan.Id,
         amount: Number(amount),
-        paymentToken: "test",
-      },
-      headers: {
-        Authorization: `Bearer ${session?.access_token}`,
+        borrowerName: loan.full_name,
+        propertyAddress: loan.property_address,
       },
     });
-
-    if (error) {
-      alert("Investment error: " + error.message);
-      return;
-    }
-
-    alert(data?.message || "Investment submitted successfully!");
-    await loadLoans();
   }
 
   if (loading)
@@ -195,9 +201,12 @@ export default function InvestorDashboard() {
 
                     <button
                       onClick={() => invest(loan)}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition mt-4"
+                      disabled={investingLoanId === loan.Id}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition mt-4 disabled:opacity-50"
                     >
-                      Fund Investment
+                      {investingLoanId === loan.Id
+                        ? "Processing..."
+                        : "Fund Investment"}
                     </button>
                   </div>
                 </div>
