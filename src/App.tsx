@@ -6,7 +6,7 @@ import Calculator from "./components/Calculator";
 import Marketplace from "./components/Marketplace";
 import Security from "./components/Security";
 import Footer from "./components/Footer";
-
+import NMIPayment from "./NMIPayment";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -34,7 +34,7 @@ export default function App() {
 
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-
+<Route path="/payment" element={<NMIPayment />} />
       {/* Borrower */}
       <Route path="/borrower" element={<Dashboard />} />
       <Route path="/dashboard" element={<Dashboard />} />
