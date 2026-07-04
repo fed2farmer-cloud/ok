@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 type LoanApplication = {
-  id: number;
+  Id: number;
   created_at: string;
   business_name: string | null;
   full_name: string | null;
@@ -12,6 +12,8 @@ type LoanApplication = {
   land_value: number | null;
   loan_amount: number | null;
   status: string | null;
+  repayment_term_months: number | null;
+  interest_rate_percent: number | null;
 };
 
 export default function Dashboard() {
@@ -100,7 +102,7 @@ export default function Dashboard() {
         ) : (
           <div className="mt-4 grid gap-4">
             {applications.map((app) => (
-              <div key={app.id} className="bg-white rounded-xl shadow p-6">
+              <div key={app.Id} className="bg-white rounded-xl shadow p-6">
                 <div className="flex justify-between gap-4">
                   <h3 className="text-xl font-bold">
                     {app.business_name || app.full_name || "Loan Application"}
@@ -113,6 +115,8 @@ export default function Dashboard() {
 
                 <div className="mt-4 grid gap-2 text-gray-700">
                   <p>Requested Loan: {money(app.loan_amount)}</p>
+<p>Repayment Term: {app.repayment_term_months || 36} months</p>
+<p>Interest Rate: {app.interest_rate_percent || 9}%</p>
                   <p>Land Value: {money(app.land_value)}</p>
                   <p>Land Type: {app.land_type || "Not provided"}</p>
                   <p>Acres: {app.acreage || "Not provided"}</p>
