@@ -5,6 +5,7 @@ export default function InvestorDashboard() {
   const [loans, setLoans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [debugInfo, setDebugInfo] = useState("");
 
   useEffect(() => {
     loadLoans();
@@ -19,20 +20,46 @@ export default function InvestorDashboard() {
 
     setLoading(true);
     setError("");
+    setDebugInfo("Loading approved loans...");
 
-    // Query all loan applications with status = 'Approved' (exact match)
-    const { data, error: queryError } = await supabase
-      .from("loan_applications")
-      .select("*")
-      .eq("status", "Approved")
-      .order("created_at", { ascending: false });
+    try {
+      // Get current session info for debugging
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-    if (queryError) {
-      console.error("Query error:", queryError);
-      setError(queryError.message);
-    } else {
-      console.log("Approved loans loaded:", data);
-      setLoans(data || []);
+      console.log("Current session:", session?.user?.email);
+      setDebugInfo(`User: ${session?.user?.email || "No user"}`);
+
+      // Query approved loans - EXACT SAME AS ADMIN DASHBOARD
+      // No filters on investor_id, user_id, or auth.uid()
+      const { data, error: queryError } = await supabase
+        .from("loan_applications")
+        .select("*")
+        .eq("status", "Approved")
+        .order("created_at", { ascending: false });
+
+      console.log("Query error:", queryError);
+      console.log("Query response:", data);
+      console.log("Records returned:", data?.length || 0);
+
+      if (queryError) {
+        console.error("❌ Query error:", queryError);
+        setError(
+          `Query Error: ${queryError.message} (Code: ${queryError.code})`
+        );
+        setDebugInfo(
+          `Error: ${queryError.message} | Code: ${queryError.code}`
+        );
+      } else {
+        console.log("✅ Successfully loaded", data?.length || 0, "approved loans");
+        setLoans(data || []);
+        setDebugInfo(`Success: Loaded ${data?.length || 0} approved loans`);
+      }
+    } catch (err: any) {
+      console.error("Exception:", err);
+      setError(`Exception: ${err.message}`);
+      setDebugInfo(`Exception: ${err.message}`);
     }
 
     setLoading(false);
@@ -74,14 +101,26 @@ export default function InvestorDashboard() {
     await loadLoans();
   }
 
-  if (loading) return <h2 className="p-6 text-center text-xl">Loading approved loans...</h2>;
+  if (loading)
+    return (
+      <h2 className="p-6 text-center text-xl">Loading approved loans...</h2>
+    );
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <h1 className="text-3xl font-bold text-green-700 mb-2">
         Investor Dashboard
       </h1>
-      <p className="text-gray-600 mb-6">Browse and fund available loan opportunities</p>
+      <p className="text-gray-600 mb-6">
+        Browse and fund available loan opportunities
+      </p>
+
+      {/* Debug Info */}
+      {debugInfo && (
+        <div className="mb-4 p-3 bg-blue-50 text-blue-700 rounded text-sm">
+          Debug: {debugInfo}
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg">
@@ -91,16 +130,25 @@ export default function InvestorDashboard() {
 
       {loans.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
-          <p className="text-gray-600 text-lg">No approved loan applications available at this time.</p>
+          <p className="text-gray-600 text-lg">
+            No approved loan applications available at this time.
+          </p>
+          <p className="text-gray-500 text-sm mt-2">
+            Check back soon for investment opportunities.
+          </p>
         </div>
       ) : (
         <div className="grid gap-6">
           <p className="text-gray-700 font-semibold mb-2">
-            {loans.length} {loans.length === 1 ? "opportunity" : "opportunities"} available to invest
+            {loans.length} {loans.length === 1 ? "opportunity" : "opportunities"}{" "}
+            available to invest
           </p>
 
           {loans.map((loan) => (
-            <div key={loan.Id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6 border-l-4 border-green-600">
+            <div
+              key={loan.Id}
+              className="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6 border-l-4 border-green-600"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left Column */}
                 <div>
@@ -113,10 +161,12 @@ export default function InvestorDashboard() {
 
                   <div className="space-y-2 text-sm">
                     <p>
-                      <b>Requested Loan:</b> ${Number(loan.loan_amount || 0).toLocaleString()}
+                      <b>Requested Loan:</b> $
+                      {Number(loan.loan_amount || 0).toLocaleString()}
                     </p>
                     <p>
-                      <b>Land Value:</b> ${Number(loan.land_value || 0).toLocaleString()}
+                      <b>Land Value:</b> $
+                      {Number(loan.land_value || 0).toLocaleString()}
                     </p>
                     <p>
                       <b>Acres:</b> {loan.acreage || "N/A"}
@@ -135,13 +185,19 @@ export default function InvestorDashboard() {
                         Loan Purpose
                       </p>
                       <p className="text-gray-800">
-                        {loan.purpose || loan.loan_purpose || "General agricultural financing"}
+                        {loan.purpose ||
+                          loan.loan_purpose ||
+                          "General agricultural financing"}
                       </p>
                     </div>
 
                     <div className="bg-green-50 p-3 rounded">
-                      <p className="text-xs font-semibold text-green-700 uppercase">Status</p>
-                      <p className="text-green-700 font-bold">{loan.status || "Approved"}</p>
+                      <p className="text-xs font-semibold text-green-700 uppercase">
+                        Status
+                      </p>
+                      <p className="text-green-700 font-bold">
+                        {loan.status || "Approved"}
+                      </p>
                     </div>
 
                     <button
