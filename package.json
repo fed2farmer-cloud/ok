@@ -18,6 +18,8 @@
   "tailwind-merge": "^2.3.0"
 },
 "devDependencies": {
+  "@types/node": "latest",
+  "@vercel/node": "latest",
   "@vitejs/plugin-react": "^4.3.4",
   "autoprefixer": "^10.4.20",
   "postcss": "^8.4.49",
