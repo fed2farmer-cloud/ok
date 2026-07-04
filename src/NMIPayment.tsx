@@ -1,4 +1,4 @@
-import PaymentForm from "../components/PaymentForm";
+import PaymentForm from "./components/PaymentForm";
 
 export default function NMIPayment() {
   return (
