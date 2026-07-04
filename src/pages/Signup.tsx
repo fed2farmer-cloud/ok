@@ -6,6 +6,7 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState<"borrower" | "investor" | "">("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
@@ -16,7 +17,7 @@ export default function Signup() {
     setLoading(true);
     setMessage("");
 
-    if (!email || !password || !confirmPassword) {
+    if (!email || !password || !confirmPassword || !role) {
       setMessage("Please fill in all fields.");
       setLoading(false);
       return;
@@ -40,15 +41,39 @@ export default function Signup() {
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
+    // Sign up with Supabase
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
     });
 
     setLoading(false);
 
-    if (error) {
-      setMessage(error.message);
+    if (authError) {
+      setMessage(authError.message);
+      return;
+    }
+
+    if (!authData.user) {
+      setMessage("Signup failed. Please try again.");
+      return;
+    }
+
+    // Create user profile with selected role
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .insert([
+        {
+          id: authData.user.id,
+          email: authData.user.email,
+          role: role,
+          created_at: new Date().toISOString(),
+        },
+      ]);
+
+    if (profileError) {
+      setMessage("Account created but profile setup failed. Please contact support.");
+      console.error("Profile creation error:", profileError);
       return;
     }
 
@@ -94,6 +119,38 @@ export default function Signup() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
             />
+
+            <label className="block mb-4">
+              <span className="text-sm font-semibold text-gray-700 mb-2 block">
+                Account Type *
+              </span>
+              <div className="space-y-2">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="borrower"
+                    checked={role === "borrower"}
+                    onChange={(e) => setRole(e.target.value as "borrower")}
+                    className="mr-3 w-4 h-4 text-green-600"
+                    required
+                  />
+                  <span className="text-gray-700">Borrower</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="investor"
+                    checked={role === "investor"}
+                    onChange={(e) => setRole(e.target.value as "investor")}
+                    className="mr-3 w-4 h-4 text-green-600"
+                    required
+                  />
+                  <span className="text-gray-700">Investor</span>
+                </label>
+              </div>
+            </label>
 
             <button
               type="submit"
