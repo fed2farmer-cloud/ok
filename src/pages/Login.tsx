@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 export default function Login() {
@@ -106,6 +106,13 @@ setTimeout(() => {
         >
           {loading ? "Logging in..." : "Login"}
         </button>
+
+        <p className="mt-4 text-center text-sm">
+          Don't have an account?{" "}
+          <Link to="/signup" className="text-green-600 font-bold hover:underline">
+            Create account
+          </Link>
+        </p>
 
         {message && (
           <p className="mt-4 text-center text-sm">
