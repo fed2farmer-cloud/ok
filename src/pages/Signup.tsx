@@ -41,39 +41,20 @@ export default function Signup() {
       return;
     }
 
-    // Sign up with Supabase
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    const { error: authError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          role: role,
+        },
+      },
     });
 
     setLoading(false);
 
     if (authError) {
       setMessage(authError.message);
-      return;
-    }
-
-    if (!authData.user) {
-      setMessage("Signup failed. Please try again.");
-      return;
-    }
-
-    // Create user profile with selected role
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .insert([
-        {
-          id: authData.user.id,
-          email: authData.user.email,
-          role: role,
-          created_at: new Date().toISOString(),
-        },
-      ]);
-
-    if (profileError) {
-      setMessage("Account created but profile setup failed. Please contact support.");
-      console.error("Profile creation error:", profileError);
       return;
     }
 
@@ -124,6 +105,7 @@ export default function Signup() {
               <span className="text-sm font-semibold text-gray-700 mb-2 block">
                 Account Type *
               </span>
+
               <div className="space-y-2">
                 <label className="flex items-center">
                   <input
@@ -137,6 +119,7 @@ export default function Signup() {
                   />
                   <span className="text-gray-700">Borrower</span>
                 </label>
+
                 <label className="flex items-center">
                   <input
                     type="radio"
