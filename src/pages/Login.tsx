@@ -10,9 +10,7 @@ export default function Login() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin(
-    e: React.FormEvent<HTMLFormElement>
-  ) {
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     setLoading(true);
@@ -24,51 +22,62 @@ export default function Login() {
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    setLoading(false);
-
     if (error) {
       setMessage(error.message);
+      setLoading(false);
       return;
     }
 
+    const user = data.user;
+
+    if (!user) {
+      setMessage("Login failed.");
+      setLoading(false);
+      return;
+    }
+
+    let { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profile) {
+      const fallbackRole = user.user_metadata?.role || "investor";
+
+      const { error: insertError } = await supabase.from("profiles").insert({
+        id: user.id,
+        email: user.email,
+        role: fallbackRole,
+      });
+
+      if (insertError) {
+        setMessage("Unable to create user profile.");
+        setLoading(false);
+        return;
+      }
+
+      profile = { role: fallbackRole };
+    }
+
+    setLoading(false);
     setMessage("Login successful!");
 
-const {
-  data: { user },
-} = await supabase.auth.getUser();
-
-if (!user) return;
-
-const { data: profile, error: profileError } = await supabase
-  .from("profiles")
-  .select("role")
-  .eq("id", user.id)
-  .single();
-
-if (profileError || !profile) {
-  setMessage("Unable to load user profile.");
-  return;
-}
-
-setTimeout(() => {
-  switch (profile.role) {
-    case "admin":
-      navigate("/admin");
-      break;
-
-    case "investor":
-      navigate("/investor");
-      break;
-
-    default:
-      navigate("/borrower");
-  }
-}, 1000);
+    switch (profile.role) {
+      case "admin":
+        navigate("/admin");
+        break;
+      case "investor":
+        navigate("/investor");
+        break;
+      default:
+        navigate("/borrower");
+    }
   }
 
   return (
@@ -77,9 +86,7 @@ setTimeout(() => {
         onSubmit={handleLogin}
         className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md"
       >
-        <h1 className="text-3xl font-bold text-green-700 mb-6">
-          Login
-        </h1>
+        <h1 className="text-3xl font-bold text-green-700 mb-6">Login</h1>
 
         <input
           type="email"
@@ -114,11 +121,7 @@ setTimeout(() => {
           </Link>
         </p>
 
-        {message && (
-          <p className="mt-4 text-center text-sm">
-            {message}
-          </p>
-        )}
+        {message && <p className="mt-4 text-center text-sm">{message}</p>}
       </form>
     </div>
   );
