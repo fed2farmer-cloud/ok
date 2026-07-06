@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Home from "./Home";
 import Login from "./Login";
 import Signup from "./Signup";
 import Dashboard from "./Dashboard";
@@ -10,11 +9,12 @@ import InvestorDashboard from "./InvestorDashboard";
 import InvestorWallet from "./InvestorWallet";
 import LoanDocuments from "./LoanDocuments";
 import NMIPayment from "./NMIPayment";
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Login />} />
 
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
