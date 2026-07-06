@@ -76,7 +76,7 @@ export default function Login() {
         navigate("/investor");
         break;
       default:
-        navigate("/borrower");
+        navigate("/borrower-dashboard");
     }
   }
 
