@@ -22,7 +22,7 @@ export default function PaymentForm() {
 
     const { error } = await supabase.from("investments").insert({
       investor_id: user.id,
-      loan_application_id: 2,
+      loan_application_id: 4,
       amount: Number(cleanAmount),
       investor_interest_rate: 9,
       borrower_interest_rate: 10,
