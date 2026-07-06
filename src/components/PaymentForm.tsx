@@ -1,11 +1,41 @@
 import { NmiPayments } from "@nmipayments/nmi-pay-react";
 import { useState } from "react";
+import { supabase } from "../lib/supabase";
 
 export default function PaymentForm() {
   const [amount, setAmount] = useState("10.99");
   const [paymentStatus, setPaymentStatus] = useState("");
 
-  const cleanAmount = Number(amount).toFixed(2);
+  const cleanAmount = Number(amount || 0).toFixed(2);
+
+  async function saveInvestment() {
+    if (!supabase) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setPaymentStatus("Please log in first.");
+      return;
+    }
+
+    const { error } = await supabase.from("investments").insert({
+      investor_id: user.id,
+      loan_application_id: 2,
+      amount: Number(cleanAmount),
+      investor_interest_rate: 9,
+      borrower_interest_rate: 10,
+      company_spread_rate: 1,
+      term_months: 36,
+      status: "active",
+    });
+
+    if (error) {
+      setPaymentStatus(error.message);
+      return;
+    }
+  }
 
   return (
     <div>
@@ -38,27 +68,30 @@ export default function PaymentForm() {
 
           const data = await response.json();
 
-         if (data.success) {
-  setPaymentStatus("Payment successful!");
+          if (data.success) {
+            setPaymentStatus("Payment successful!");
 
-  setTimeout(() => {
-    window.location.href = "/investor-wallet";
-  }, 1500);
+            await saveInvestment();
 
-  return true;
-}
+            setTimeout(() => {
+              window.location.href = "/investor-wallet";
+            }, 1500);
+
+            return true;
+          }
 
           const errorMessage = data.error || "Payment failed";
           setPaymentStatus(errorMessage);
           return errorMessage;
         }}
       />
-<button
-  onClick={() => (window.location.href = "/bitcoin-payment")}
-  className="mt-4 w-full bg-orange-500 text-white py-3 rounded-lg font-bold"
->
-  Pay with Bitcoin
-</button>
+
+      <button
+        onClick={() => (window.location.href = "/bitcoin-payment")}
+        className="mt-4 w-full bg-orange-500 text-white py-3 rounded-lg font-bold"
+      >
+        Pay with Bitcoin
+      </button>
     </div>
   );
 }
