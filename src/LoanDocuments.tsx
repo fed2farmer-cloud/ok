@@ -15,9 +15,7 @@ export default function LoanDocuments() {
   async function loadDocuments() {
     if (!supabase) return;
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       window.location.href = "/login";
@@ -54,9 +52,7 @@ export default function LoanDocuments() {
       return;
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       window.location.href = "/login";
@@ -103,10 +99,6 @@ export default function LoanDocuments() {
         <h1 className="text-3xl font-bold text-green-700">
           Upload Loan Documents
         </h1>
-
-        <p className="mt-2 text-gray-600">
-          Upload supporting documents for your land-backed loan application.
-        </p>
 
         <form onSubmit={uploadDocument} className="mt-6 space-y-4">
           <input
@@ -158,8 +150,19 @@ export default function LoanDocuments() {
                 <p><strong>Loan ID:</strong> {doc.loan_application_id}</p>
                 <p><strong>Type:</strong> {doc.document_type}</p>
                 <p><strong>File:</strong> {doc.file_name}</p>
-                <a href={doc.file_url} target="_blank" className="text-blue-600 underline">
+                <a
+                  href={doc.file_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-blue-600 underline"
+                >
                   View Document
                 </a>
               </div>
-           }
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
