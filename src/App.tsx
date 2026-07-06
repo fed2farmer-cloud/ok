@@ -1,50 +1,42 @@
-import { Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Nav from "./components/Nav";
-import Hero from "./components/Hero";
-import Calculator from "./components/Calculator";
-import Marketplace from "./components/Marketplace";
-import Security from "./components/Security";
-import Footer from "./components/Footer";
-import NMIPayment from "./NMIPayment";
+import Home from "./pages/Home";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import AdminDashboard from "./pages/AdminDashboard";
-import InvestorDashboard from "./pages/InvestorDashboard";
-import LoanApplication from "./pages/LoanApplication";
 import Signup from "./pages/Signup";
 
-function Home() {
-  return (
-    <>
-      <Nav />
-      <Hero />
-      <Calculator />
-      <Marketplace />
-      <Security />
-      <Footer />
-    </>
-  );
-}
+import Dashboard from "./Dashboard";
+import LoanApplication from "./LoanApplication";
+import AdminDashboard from "./AdminDashboard";
+import InvestorDashboard from "./InvestorDashboard";
+import InvestorWallet from "./InvestorWallet";
+import LoanDocuments from "./LoanDocuments";
+import NMIPayment from "./NMIPayment";
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
 
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-<Route path="/payment" element={<NMIPayment />} />
-      {/* Borrower */}
-      <Route path="/borrower" element={<Dashboard />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/loan-application" element={<LoanApplication />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
 
-      {/* Investor */}
-      <Route path="/investor" element={<InvestorDashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/borrower-dashboard" element={<Dashboard />} />
 
-      {/* Admin */}
-      <Route path="/admin" element={<AdminDashboard />} />
-    </Routes>
+        <Route path="/loan-application" element={<LoanApplication />} />
+        <Route path="/loan-documents" element={<LoanDocuments />} />
+
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+
+        <Route path="/investor" element={<InvestorDashboard />} />
+        <Route path="/investor-dashboard" element={<InvestorDashboard />} />
+        <Route path="/investor-wallet" element={<InvestorWallet />} />
+
+        <Route path="/nmi-payment" element={<NMIPayment />} />
+        <Route path="/payment" element={<NMIPayment />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
