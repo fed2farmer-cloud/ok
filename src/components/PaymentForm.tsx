@@ -53,6 +53,12 @@ export default function PaymentForm() {
           return errorMessage;
         }}
       />
+<button
+  onClick={() => (window.location.href = "/bitcoin-payment")}
+  className="mt-4 w-full bg-orange-500 text-white py-3 rounded-lg font-bold"
+>
+  Pay with Bitcoin
+</button>
     </div>
   );
 }
