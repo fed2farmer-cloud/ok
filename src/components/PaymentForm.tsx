@@ -38,10 +38,15 @@ export default function PaymentForm() {
 
           const data = await response.json();
 
-          if (data.success) {
-            setPaymentStatus("Payment successful!");
-            return true;
-          }
+         if (data.success) {
+  setPaymentStatus("Payment successful!");
+
+  setTimeout(() => {
+    window.location.href = "/investor-wallet";
+  }, 1500);
+
+  return true;
+}
 
           const errorMessage = data.error || "Payment failed";
           setPaymentStatus(errorMessage);
