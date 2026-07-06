@@ -1,9 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-
+import Home from "./Home";
+import Login from "./Login";
+import Signup from "./Signup";
 import Dashboard from "./Dashboard";
 import LoanApplication from "./LoanApplication";
 import AdminDashboard from "./AdminDashboard";
@@ -11,7 +10,6 @@ import InvestorDashboard from "./InvestorDashboard";
 import InvestorWallet from "./InvestorWallet";
 import LoanDocuments from "./LoanDocuments";
 import NMIPayment from "./NMIPayment";
-
 export default function App() {
   return (
     <BrowserRouter>
