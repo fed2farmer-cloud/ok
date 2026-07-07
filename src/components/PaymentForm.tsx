@@ -3,6 +3,9 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function PaymentForm() {
+  const params = new URLSearchParams(window.location.search);
+  const loanId = Number(params.get("loan") || 4);
+
   const [amount, setAmount] = useState("10.99");
   const [paymentStatus, setPaymentStatus] = useState("");
 
@@ -11,6 +14,11 @@ export default function PaymentForm() {
   async function saveInvestment() {
     if (!supabase) {
       alert("Supabase is not configured.");
+      return false;
+    }
+
+    if (!loanId) {
+      alert("No loan selected.");
       return false;
     }
 
@@ -24,9 +32,21 @@ export default function PaymentForm() {
       return false;
     }
 
+    const { data: existing } = await supabase
+      .from("investments")
+      .select("id")
+      .eq("investor_id", user.id)
+      .eq("loan_id", loanId)
+      .maybeSingle();
+
+    if (existing) {
+      alert("You have already invested in this loan.");
+      return false;
+    }
+
     const payload = {
       investor_id: user.id,
-      loan_id: selectedLoan.id,
+      loan_id: loanId,
       amount: Number(cleanAmount),
       investor_interest_rate: 9,
       borrower_interest_rate: 10,
@@ -48,6 +68,8 @@ export default function PaymentForm() {
 
   return (
     <div>
+      <p className="mb-2 font-bold">Funding Loan ID: {loanId}</p>
+
       <div className="form-row">
         <label htmlFor="amount">Amount:</label>
         <input
@@ -100,7 +122,7 @@ export default function PaymentForm() {
       />
 
       <button
-        onClick={() => (window.location.href = "/bitcoin-payment")}
+        onClick={() => (window.location.href = `/bitcoin-payment?loan=${loanId}`)}
         className="mt-4 w-full bg-orange-500 text-white py-3 rounded-lg font-bold"
       >
         Pay with Bitcoin
