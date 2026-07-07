@@ -1,16 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./lib/supabase";
 
-type Wallet = {
-  available_balance: number;
-  invested_balance: number;
-  interest_earned: number;
-  principal_returned: number;
-  lifetime_earned: number;
-};
-
 export default function InvestorWallet() {
-  const [wallet, setWallet] = useState<Wallet | null>(null);
   const [investments, setInvestments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,6 +13,10 @@ export default function InvestorWallet() {
     return "$" + Number(value || 0).toLocaleString(undefined, {
       maximumFractionDigits: 2,
     });
+  }
+
+  function monthlyReturn(amount: number, annualRate: number) {
+    return (Number(amount || 0) * (Number(annualRate || 0) / 100)) / 12;
   }
 
   async function loadWallet() {
@@ -36,43 +31,37 @@ export default function InvestorWallet() {
       return;
     }
 
-    let { data: walletData } = await supabase
-      .from("investor_wallets")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
-
-    if (!walletData) {
-      const { data: newWallet, error } = await supabase
-        .from("investor_wallets")
-        .insert({ user_id: user.id })
-        .select()
-        .single();
-
-      if (error) {
-        alert(error.message);
-        setLoading(false);
-        return;
-      }
-
-      walletData = newWallet;
-    }
-
-    setWallet(walletData);
-
-    const { data: investmentData } = await supabase
+    const { data, error } = await supabase
       .from("investments")
       .select("*")
       .eq("investor_id", user.id)
       .order("created_at", { ascending: false });
 
-    setInvestments(investmentData || []);
+    if (error) {
+      alert(error.message);
+    }
+
+    setInvestments(data || []);
     setLoading(false);
   }
 
-  if (loading) {
-    return <div className="p-8 text-xl">Loading investor wallet...</div>;
-  }
+  const totalInvested = investments.reduce(
+    (sum, inv) => sum + Number(inv.amount || 0),
+    0
+  );
+
+  const expectedMonthly = investments.reduce(
+    (sum, inv) =>
+      sum + monthlyReturn(inv.amount, inv.investor_interest_rate || 9),
+    0
+  );
+
+  const expectedTotalInterest = investments.reduce((sum, inv) => {
+    const monthly = monthlyReturn(inv.amount, inv.investor_interest_rate || 9);
+    return sum + monthly * Number(inv.term_months || 36);
+  }, 0);
+
+  if (loading) return <div className="p-8 text-xl">Loading investor wallet...</div>;
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -83,37 +72,27 @@ export default function InvestorWallet() {
       <div className="grid md:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl shadow p-5">
           <p className="text-gray-500">Available Cash</p>
-          <h2 className="text-2xl font-bold">
-            {money(wallet?.available_balance)}
-          </h2>
+          <h2 className="text-2xl font-bold">$0</h2>
         </div>
 
         <div className="bg-white rounded-xl shadow p-5">
           <p className="text-gray-500">Money Invested</p>
-          <h2 className="text-2xl font-bold">
-            {money(wallet?.invested_balance)}
-          </h2>
+          <h2 className="text-2xl font-bold">{money(totalInvested)}</h2>
         </div>
 
         <div className="bg-white rounded-xl shadow p-5">
-          <p className="text-gray-500">Interest Earned</p>
-          <h2 className="text-2xl font-bold">
-            {money(wallet?.interest_earned)}
-          </h2>
+          <p className="text-gray-500">Expected Monthly Return</p>
+          <h2 className="text-2xl font-bold">{money(expectedMonthly)}</h2>
         </div>
 
         <div className="bg-white rounded-xl shadow p-5">
-          <p className="text-gray-500">Principal Returned</p>
-          <h2 className="text-2xl font-bold">
-            {money(wallet?.principal_returned)}
-          </h2>
+          <p className="text-gray-500">Expected Total Interest</p>
+          <h2 className="text-2xl font-bold">{money(expectedTotalInterest)}</h2>
         </div>
 
         <div className="bg-white rounded-xl shadow p-5">
           <p className="text-gray-500">Lifetime Earnings</p>
-          <h2 className="text-2xl font-bold">
-            {money(wallet?.lifetime_earned)}
-          </h2>
+          <h2 className="text-2xl font-bold">{money(expectedTotalInterest)}</h2>
         </div>
       </div>
 
@@ -145,15 +124,25 @@ export default function InvestorWallet() {
           <p>No investments yet.</p>
         ) : (
           <div className="grid gap-4">
-            {investments.map((investment) => (
-              <div key={investment.id} className="border rounded-lg p-4">
-                <p><strong>Loan ID:</strong> {investment.loan_id}</p>
-                <p><strong>Amount:</strong> {money(investment.investment_amount)}</p>
-                <p><strong>Ownership:</strong> {investment.ownership_percent}%</p>
-                <p><strong>Expected Return:</strong> {investment.expected_return_percent}%</p>
-                <p><strong>Status:</strong> {investment.status}</p>
-              </div>
-            ))}
+            {investments.map((investment) => {
+              const amount = Number(investment.amount || 0);
+              const rate = Number(investment.investor_interest_rate || 9);
+              const term = Number(investment.term_months || 36);
+              const monthly = monthlyReturn(amount, rate);
+              const totalInterest = monthly * term;
+
+              return (
+                <div key={investment.id} className="border rounded-lg p-4">
+                  <p><strong>Loan ID:</strong> {investment.loan_id}</p>
+                  <p><strong>Amount Invested:</strong> {money(amount)}</p>
+                  <p><strong>Investor Rate:</strong> {rate}%</p>
+                  <p><strong>Term:</strong> {term} months</p>
+                  <p><strong>Expected Monthly Return:</strong> {money(monthly)}</p>
+                  <p><strong>Expected Total Interest:</strong> {money(totalInterest)}</p>
+                  <p><strong>Status:</strong> {investment.status}</p>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
