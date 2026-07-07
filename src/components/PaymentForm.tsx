@@ -4,47 +4,26 @@ import { supabase } from "../lib/supabase";
 
 export default function PaymentForm() {
   const params = new URLSearchParams(window.location.search);
-  const loanId = Number(params.get("loan") || 4);
 
-  const [amount, setAmount] = useState("10.99");
+  const loanId = Number(params.get("loanId") || params.get("loan") || 0);
+  const startingAmount = params.get("amount") || "";
+
+  const [amount, setAmount] = useState(startingAmount);
   const [paymentStatus, setPaymentStatus] = useState("");
 
   const cleanAmount = Number(amount || 0).toFixed(2);
 
   async function saveInvestment() {
-    if (!supabase) {
-      alert("Supabase is not configured.");
+    if (!supabase) return false;
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert("Please log in first.");
       return false;
     }
 
-    if (!loanId) {
-      alert("No loan selected.");
-      return false;
-    }
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      alert("No logged-in investor user found.");
-      return false;
-    }
-
-    const { data: existing } = await supabase
-      .from("investments")
-      .select("id")
-      .eq("investor_id", user.id)
-      .eq("loan_id", loanId)
-      .maybeSingle();
-
-    if (existing) {
-      alert("You have already invested in this loan.");
-      return false;
-    }
-
-    const payload = {
+    const { error } = await supabase.from("investments").insert({
       investor_id: user.id,
       loan_id: loanId,
       amount: Number(cleanAmount),
@@ -53,16 +32,13 @@ export default function PaymentForm() {
       company_spread_rate: 1,
       term_months: 36,
       status: "active",
-    };
-
-    const { error } = await supabase.from("investments").insert(payload);
+    });
 
     if (error) {
       alert("Investment save failed: " + error.message);
       return false;
     }
 
-    alert("Investment saved successfully.");
     return true;
   }
 
@@ -108,21 +84,18 @@ export default function PaymentForm() {
               return "Payment worked, but investment was not saved.";
             }
 
-            setTimeout(() => {
-              window.location.href = "/investor-wallet";
-            }, 1500);
-
+            window.location.href = "/investor-wallet";
             return true;
           }
 
-          const errorMessage = data.error || "Payment failed";
-          setPaymentStatus(errorMessage);
-          return errorMessage;
+          return data.error || "Payment failed";
         }}
       />
 
       <button
-        onClick={() => (window.location.href = `/bitcoin-payment?loan=${loanId}`)}
+        onClick={() =>
+          (window.location.href = `/bitcoin-payment?loanId=${loanId}&amount=${cleanAmount}`)
+        }
         className="mt-4 w-full bg-orange-500 text-white py-3 rounded-lg font-bold"
       >
         Pay with Bitcoin
