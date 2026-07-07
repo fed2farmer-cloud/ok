@@ -8,6 +8,12 @@ export default function LoanDocuments() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [message, setMessage] = useState("");
 
+  const [apn, setApn] = useState("");
+  const [county, setCounty] = useState("");
+  const [state, setState] = useState("CA");
+  const [landRecord, setLandRecord] = useState<any>(null);
+  const [landLoading, setLandLoading] = useState(false);
+
   useEffect(() => {
     loadDocuments();
   }, []);
@@ -34,6 +40,33 @@ export default function LoanDocuments() {
     }
 
     setDocuments(data || []);
+  }
+
+  async function lookupLandRecord(e: React.FormEvent) {
+    e.preventDefault();
+    setLandRecord(null);
+    setLandLoading(true);
+
+    try {
+      const response = await fetch("/api/land-record", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apn, county, state }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || "Land lookup failed.");
+        return;
+      }
+
+      setLandRecord(data);
+    } catch {
+      alert("Unable to reach land record API.");
+    } finally {
+      setLandLoading(false);
+    }
   }
 
   async function uploadDocument(e: React.FormEvent) {
@@ -97,10 +130,55 @@ export default function LoanDocuments() {
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6">
         <h1 className="text-3xl font-bold text-green-700">
-          Upload Loan Documents
+          Loan Documents & Land Records
         </h1>
 
-        <form onSubmit={uploadDocument} className="mt-6 space-y-4">
+        <div className="mt-8 border rounded-xl p-5 bg-green-50">
+          <h2 className="text-2xl font-bold text-green-700">
+            Land Record Lookup
+          </h2>
+
+          <form onSubmit={lookupLandRecord} className="mt-4 space-y-4">
+            <input
+              placeholder="APN / Parcel Number"
+              value={apn}
+              onChange={(e) => setApn(e.target.value)}
+              className="w-full border p-3 rounded"
+              required
+            />
+
+            <input
+              placeholder="County"
+              value={county}
+              onChange={(e) => setCounty(e.target.value)}
+              className="w-full border p-3 rounded"
+              required
+            />
+
+            <input
+              placeholder="State"
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              className="w-full border p-3 rounded"
+              required
+            />
+
+            <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">
+              {landLoading ? "Searching..." : "Search Land Records"}
+            </button>
+          </form>
+
+          {landRecord && (
+            <div className="mt-5 bg-white border rounded p-4 text-sm">
+              <h3 className="font-bold text-lg mb-2">Land API Result</h3>
+              <pre className="whitespace-pre-wrap overflow-x-auto">
+                {JSON.stringify(landRecord, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+
+        <form onSubmit={uploadDocument} className="mt-8 space-y-4">
           <input
             type="number"
             placeholder="Loan Application ID"
@@ -123,6 +201,7 @@ export default function LoanDocuments() {
             <option value="tax_return">Tax Return</option>
             <option value="proof_of_income">Proof of Income</option>
             <option value="llc_documents">LLC Documents</option>
+            <option value="land_api_record">Land API Record</option>
             <option value="other">Other</option>
           </select>
 
