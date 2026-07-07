@@ -26,7 +26,7 @@ export default function PaymentForm() {
 
     const payload = {
       investor_id: user.id,
-      loan_id: 4,
+      loan_id: selectedLoan.id,
       amount: Number(cleanAmount),
       investor_interest_rate: 9,
       borrower_interest_rate: 10,
