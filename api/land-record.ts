@@ -1,32 +1,30 @@
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Method not allowed",
-    });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   const { apn, county, state } = req.body;
 
-  if (!apn || !county || !state) {
-    return res.status(400).json({
-      error: "APN, county and state are required.",
+  try {
+    const response = await fetch("https://YOUR_REPORTALL_ENDPOINT", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.REPORTALL_API_KEY}`,
+      },
+      body: JSON.stringify({
+        apn,
+        county,
+        state,
+      }),
+    });
+
+    const data = await response.json();
+
+    return res.status(200).json(data);
+  } catch (err: any) {
+    return res.status(500).json({
+      error: err.message,
     });
   }
-
-  // Temporary response until ReportAll API is connected
-  return res.status(200).json({
-    success: true,
-    property: {
-      apn,
-      county,
-      state,
-      owner: "Demo Owner",
-      acreage: 20,
-      assessedValue: 400000,
-      estimatedMarketValue: 500000,
-      lienStatus: "No known liens",
-      ownershipVerified: true,
-      maxLoanAmount: 250000,
-    },
-  });
 }
