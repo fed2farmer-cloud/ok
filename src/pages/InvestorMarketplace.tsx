@@ -41,22 +41,20 @@ export default function InvestorMarketplace() {
     const amount = Number(amounts[loan.id] || 0);
     const remaining = Number(loan.amount_remaining || loan.funding_goal || 0);
 
-    if (!amount || amount <= 0) {
-      alert("Enter an investment amount.");
+    if (!amount || amount < 100) {
+      alert("Minimum investment is $100.");
       return;
     }
 
     if (amount > remaining) {
-      alert("Investment amount cannot be more than the amount remaining.");
+      alert("Investment cannot be more than the amount remaining.");
       return;
     }
 
-    navigate(`/payment?loanId=${loan.id}&amount=${amount}`);
+    navigate(`/payment?loanId=${loan.loan_application_id}&amount=${amount}`);
   }
 
-  if (loading) {
-    return <div className="p-8 text-xl">Loading Marketplace...</div>;
-  }
+  if (loading) return <div className="p-8 text-xl">Loading Marketplace...</div>;
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -72,15 +70,15 @@ export default function InvestorMarketplace() {
         <p>No investment opportunities available.</p>
       ) : (
         loans.map((loan) => {
-          const fundingGoal = Number(loan.funding_goal || loan.loan_amount || 0);
+          const goal = Number(loan.funding_goal || loan.loan_amount || 0);
           const funded = Number(loan.amount_funded || 0);
-          const remaining = Number(loan.amount_remaining || fundingGoal - funded);
-          const percent = fundingGoal > 0 ? Math.min((funded / fundingGoal) * 100, 100) : 0;
+          const remaining = Number(loan.amount_remaining || goal - funded);
+          const percent = goal > 0 ? Math.min((funded / goal) * 100, 100) : 0;
 
           return (
             <div key={loan.id} className="bg-white rounded-xl shadow p-6 mb-6">
               <h2 className="text-2xl font-bold text-green-700">
-                {loan.business_name}
+                {loan.business_name || "Land Investment"}
               </h2>
 
               <div className="grid md:grid-cols-2 gap-4 mt-4">
@@ -116,30 +114,28 @@ export default function InvestorMarketplace() {
 
                 <div className="flex justify-between text-sm mt-1">
                   <span>{money(funded)} funded</span>
-                  <span>{money(fundingGoal)} goal</span>
+                  <span>{money(goal)} goal</span>
                 </div>
               </div>
 
-              <div className="mt-5">
-                <input
-                  type="number"
-                  min="1"
-                  max={remaining}
-                  placeholder="Investment amount"
-                  value={amounts[loan.id] || ""}
-                  onChange={(e) =>
-                    setAmounts({ ...amounts, [loan.id]: e.target.value })
-                  }
-                  className="w-full border p-3 rounded mb-3"
-                />
+              <input
+                type="number"
+                min="100"
+                max={remaining}
+                placeholder="Enter investment amount"
+                value={amounts[loan.id] || ""}
+                onChange={(e) =>
+                  setAmounts({ ...amounts, [loan.id]: e.target.value })
+                }
+                className="mt-5 w-full border p-3 rounded"
+              />
 
-                <button
-                  onClick={() => investNow(loan)}
-                  className="w-full bg-green-600 text-white py-3 rounded-lg font-bold"
-                >
-                  Invest Now
-                </button>
-              </div>
+              <button
+                onClick={() => investNow(loan)}
+                className="mt-3 w-full bg-green-600 text-white py-3 rounded-lg font-bold"
+              >
+                Invest Now
+              </button>
             </div>
           );
         })
