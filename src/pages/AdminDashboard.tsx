@@ -53,10 +53,11 @@ export default function AdminDashboard() {
       return;
     }
 
-    setApplications(data || []);
+    const loans = data || [];
+    setApplications(loans);
 
     const formData: Record<number, any> = {};
-    (data || []).forEach((loan: any) => {
+    loans.forEach((loan: any) => {
       formData[loan.Id] = {
         borrower_interest_rate: loan.borrower_interest_rate ?? 10,
         investor_interest_rate: loan.investor_interest_rate ?? 9,
@@ -79,11 +80,8 @@ export default function AdminDashboard() {
 
   function monthlyPayment(amount: number, annualRate: number, months: number) {
     if (!amount || !months) return 0;
-
     const monthlyRate = annualRate / 100 / 12;
-
     if (monthlyRate === 0) return amount / months;
-
     return amount * monthlyRate / (1 - Math.pow(1 + monthlyRate, -months));
   }
 
@@ -100,23 +98,71 @@ export default function AdminDashboard() {
   async function saveLoanTerms(id: number) {
     if (!supabase) return;
 
+    const loan = applications.find((item) => item.Id === id);
     const values = editing[id];
 
-    const { error } = await supabase
+    if (!loan || !values) {
+      alert("Loan data not found.");
+      return;
+    }
+
+    const borrowerRate = Number(values.borrower_interest_rate || 10);
+    const investorRate = Number(values.investor_interest_rate || 9);
+    const spreadRate = Number((borrowerRate - investorRate).toFixed(2));
+    const loanAmount = Number(loan.loan_amount || 0);
+    const amountFunded = Number(loan.amount_funded || 0);
+    const amountRemaining = Math.max(loanAmount - amountFunded, 0);
+
+    const { error: loanError } = await supabase
       .from("loan_applications")
       .update({
-        borrower_interest_rate: Number(values.borrower_interest_rate),
-        investor_interest_rate: Number(values.investor_interest_rate),
-        company_spread_rate: Number(values.company_spread_rate),
+        borrower_interest_rate: borrowerRate,
+        investor_interest_rate: investorRate,
+        company_spread_rate: spreadRate,
+        amount_funded: amountFunded,
+        amount_remaining: amountRemaining,
         risk_score: values.risk_score,
         underwriter_notes: values.underwriter_notes,
         published_to_marketplace: values.published_to_marketplace,
       })
       .eq("Id", id);
 
-    if (error) {
-      alert(error.message);
+    if (loanError) {
+      alert(loanError.message);
       return;
+    }
+
+    if (values.published_to_marketplace) {
+      const marketplacePayload = {
+        loan_application_id: id,
+        business_name: loan.business_name || "No Business Name",
+        borrower_name: loan.full_name || "",
+        apn: loan.apn || "",
+        state: loan.state || "",
+        acreage: Number(loan.acreage || 0),
+        land_value: Number(loan.land_value || 0),
+        loan_amount: loanAmount,
+        borrower_interest_rate: borrowerRate,
+        investor_interest_rate: investorRate,
+        company_spread_rate: spreadRate,
+        repayment_term_months: Number(loan.repayment_term_months || 36),
+        risk_score: values.risk_score,
+        funding_goal: loanAmount,
+        amount_funded: amountFunded,
+        amount_remaining: amountRemaining,
+        status: amountRemaining <= 0 ? "Funded" : "Open",
+      };
+
+      const { error: marketError } = await supabase
+        .from("marketplace_loans")
+        .upsert(marketplacePayload, {
+          onConflict: "loan_application_id",
+        });
+
+      if (marketError) {
+        alert("Loan saved, but marketplace publish failed: " + marketError.message);
+        return;
+      }
     }
 
     alert("Loan review saved.");
