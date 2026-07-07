@@ -11,6 +11,7 @@ import InvestorWallet from "./InvestorWallet";
 import LoanDocuments from "./LoanDocuments";
 import NMIPayment from "./NMIPayment";
 import BitcoinPayment from "./BitcoinPayment";
+import InvestorMarketplace from "./pages/InvestorMarketplace";
 
 import Nav from "./components/Nav";
 import Hero from "./components/Hero";
@@ -55,6 +56,10 @@ export default function App() {
 
         <Route path="/payment" element={<NMIPayment />} />
         <Route path="/nmi-payment" element={<NMIPayment />} />
+<Route
+  path="/marketplace"
+  element={<InvestorMarketplace />}
+/>
         <Route path="/bitcoin-payment" element={<BitcoinPayment />} />
       </Routes>
     </BrowserRouter>
