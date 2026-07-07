@@ -9,18 +9,22 @@ export default function PaymentForm() {
   const cleanAmount = Number(amount || 0).toFixed(2);
 
   async function saveInvestment() {
-    if (!supabase) return;
+    if (!supabase) {
+      alert("Supabase is not configured.");
+      return false;
+    }
 
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      setPaymentStatus("Please log in first.");
-      return;
+    if (userError || !user) {
+      alert("No logged-in investor user found.");
+      return false;
     }
 
-    const { error } = await supabase.from("investments").insert({
+    const payload = {
       investor_id: user.id,
       loan_application_id: 4,
       amount: Number(cleanAmount),
@@ -29,12 +33,17 @@ export default function PaymentForm() {
       company_spread_rate: 1,
       term_months: 36,
       status: "active",
-    });
+    };
+
+    const { error } = await supabase.from("investments").insert(payload);
 
     if (error) {
-      setPaymentStatus(error.message);
-      return;
+      alert("Investment save failed: " + error.message);
+      return false;
     }
+
+    alert("Investment saved successfully.");
+    return true;
   }
 
   return (
@@ -71,7 +80,11 @@ export default function PaymentForm() {
           if (data.success) {
             setPaymentStatus("Payment successful!");
 
-            await saveInvestment();
+            const saved = await saveInvestment();
+
+            if (!saved) {
+              return "Payment worked, but investment was not saved.";
+            }
 
             setTimeout(() => {
               window.location.href = "/investor-wallet";
