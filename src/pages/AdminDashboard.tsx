@@ -14,7 +14,9 @@ export default function AdminDashboard() {
   async function checkAdmin() {
     if (!supabase) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       window.location.href = "/login";
@@ -132,40 +134,38 @@ export default function AdminDashboard() {
       return;
     }
 
-    if (values.published_to_marketplace) {
-      const marketplacePayload = {
-        loan_application_id: id,
-        business_name: loan.business_name || "No Business Name",
-        borrower_name: loan.full_name || "",
-        apn: loan.apn || "",
-        state: loan.state || "",
-        acreage: Number(loan.acreage || 0),
-        land_value: Number(loan.land_value || 0),
-        loan_amount: loanAmount,
-        borrower_interest_rate: borrowerRate,
-        investor_interest_rate: investorRate,
-        company_spread_rate: spreadRate,
-        repayment_term_months: Number(loan.repayment_term_months || 36),
-        risk_score: values.risk_score,
-        funding_goal: loanAmount,
-        amount_funded: amountFunded,
-        amount_remaining: amountRemaining,
-        status: amountRemaining <= 0 ? "Funded" : "Open",
-      };
+    const marketplacePayload = {
+      loan_application_id: id,
+      business_name: loan.business_name || "No Business Name",
+      borrower_name: loan.full_name || "",
+      apn: loan.apn || "",
+      state: loan.state || "",
+      acreage: Number(loan.acreage || 0),
+      land_value: Number(loan.land_value || 0),
+      loan_amount: loanAmount,
+      borrower_interest_rate: borrowerRate,
+      investor_interest_rate: investorRate,
+      company_spread_rate: spreadRate,
+      repayment_term_months: Number(loan.repayment_term_months || 36),
+      risk_score: values.risk_score,
+      funding_goal: loanAmount,
+      amount_funded: amountFunded,
+      amount_remaining: amountRemaining,
+      status: amountRemaining <= 0 ? "Funded" : "Open",
+    };
 
-      const { error: marketError } = await supabase
-        .from("marketplace_loans")
-        .upsert(marketplacePayload, {
-          onConflict: "loan_application_id",
-        });
+    const { error: marketError } = await supabase
+      .from("marketplace_loans")
+      .upsert(marketplacePayload, {
+        onConflict: "loan_application_id",
+      });
 
-      if (marketError) {
-        alert("Loan saved, but marketplace publish failed: " + marketError.message);
-        return;
-      }
+    if (marketError) {
+      alert("Marketplace publish failed: " + marketError.message);
+      return;
     }
 
-    alert("Loan review saved.");
+    alert("Loan review saved and published to marketplace.");
     loadApplications();
   }
 
