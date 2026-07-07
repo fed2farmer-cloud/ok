@@ -14,16 +14,31 @@ export default function PaymentForm() {
   const cleanAmount = Number(amount || 0).toFixed(2);
 
   async function saveInvestment() {
-    if (!supabase) return false;
+    if (!supabase) {
+      alert("Supabase is not configured.");
+      return false;
+    }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    if (!loanId) {
+      alert("No loan selected.");
+      return false;
+    }
+
+    if (Number(cleanAmount) < 100) {
+      alert("Minimum investment is $100.");
+      return false;
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       alert("Please log in first.");
       return false;
     }
 
-    const { error } = await supabase.from("investments").insert({
+    const { error: investError } = await supabase.from("investments").insert({
       investor_id: user.id,
       loan_id: loanId,
       amount: Number(cleanAmount),
@@ -34,10 +49,54 @@ export default function PaymentForm() {
       status: "active",
     });
 
-    if (error) {
-      alert("Investment save failed: " + error.message);
+    if (investError) {
+      alert("Investment save failed: " + investError.message);
       return false;
     }
+
+    const { data: marketplaceLoan, error: loanFetchError } = await supabase
+      .from("marketplace_loans")
+      .select("*")
+      .eq("loan_application_id", loanId)
+      .single();
+
+    if (loanFetchError || !marketplaceLoan) {
+      alert("Investment saved, but marketplace loan was not found.");
+      return true;
+    }
+
+    const newFunded =
+      Number(marketplaceLoan.amount_funded || 0) + Number(cleanAmount);
+
+    const fundingGoal = Number(
+      marketplaceLoan.funding_goal || marketplaceLoan.loan_amount || 0
+    );
+
+    const newRemaining = Math.max(fundingGoal - newFunded, 0);
+    const newStatus = newRemaining <= 0 ? "Funded" : "Open";
+
+    const { error: updateMarketError } = await supabase
+      .from("marketplace_loans")
+      .update({
+        amount_funded: newFunded,
+        amount_remaining: newRemaining,
+        status: newStatus,
+      })
+      .eq("loan_application_id", loanId);
+
+    if (updateMarketError) {
+      alert("Investment saved, but marketplace update failed.");
+      return true;
+    }
+
+    await supabase
+      .from("loan_applications")
+      .update({
+        amount_funded: newFunded,
+        amount_remaining: newRemaining,
+        status: newStatus === "Funded" ? "Funded" : "Approved",
+      })
+      .eq("Id", loanId);
 
     return true;
   }
@@ -52,13 +111,15 @@ export default function PaymentForm() {
           id="amount"
           type="number"
           step="0.01"
-          min="1.00"
+          min="100"
+          placeholder="Enter investment amount"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
+          className="w-full border rounded p-3"
         />
       </div>
 
-      {paymentStatus && <div>{paymentStatus}</div>}
+      {paymentStatus && <div className="mt-3">{paymentStatus}</div>}
 
       <NmiPayments
         tokenizationKey={import.meta.env.VITE_NMI_TOKENIZATION_KEY}
@@ -84,7 +145,10 @@ export default function PaymentForm() {
               return "Payment worked, but investment was not saved.";
             }
 
-            window.location.href = "/investor-wallet";
+            setTimeout(() => {
+              window.location.href = "/investor-wallet";
+            }, 1500);
+
             return true;
           }
 
