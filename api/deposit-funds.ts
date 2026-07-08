@@ -33,8 +33,7 @@ export default async function handler(req: any, res: any) {
       return res.status(401).json({ error: "Invalid user token." });
     }
 
-    const { amount } = req.body;
-    const depositAmount = Number(amount);
+    const depositAmount = Number(req.body?.amount);
 
     if (!depositAmount || depositAmount < 1) {
       return res.status(400).json({ error: "Enter a valid deposit amount." });
@@ -58,11 +57,15 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    let { data: wallet } = await supabase
+    let { data: wallet, error: walletError } = await supabase
       .from("investor_wallets")
       .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
+
+    if (walletError) {
+      return res.status(500).json({ error: walletError.message });
+    }
 
     if (!wallet) {
       const { data: newWallet, error: createWalletError } = await supabase
@@ -84,26 +87,81 @@ export default async function handler(req: any, res: any) {
       wallet = newWallet;
     }
 
-    const newBalance =
-      Number(wallet.available_balance || 0) + depositAmount;
+    const { data: reserve } = await supabase
+      .from("platform_reserve_account")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
 
-    const { data: updatedWallet, error: updateError } = await supabase
+    const reservePercent = Number(reserve?.target_percent || 1);
+    const reserveAmount = Number(
+      ((depositAmount * reservePercent) / 100).toFixed(2)
+    );
+    const walletDepositAmount = Number((depositAmount - reserveAmount).toFixed(2));
+
+    const newWalletBalance =
+      Number(wallet.available_balance || 0) + walletDepositAmount;
+
+    const { data: updatedWallet, error: updateWalletError } = await supabase
       .from("investor_wallets")
       .update({
-        available_balance: newBalance,
+        available_balance: newWalletBalance,
         updated_at: new Date().toISOString(),
       })
       .eq("user_id", user.id)
       .select()
       .single();
 
-    if (updateError) {
-      return res.status(500).json({ error: updateError.message });
+    if (updateWalletError) {
+      return res.status(500).json({ error: updateWalletError.message });
+    }
+
+    await supabase.from("wallet_transactions").insert({
+      user_id: user.id,
+      transaction_type: "deposit",
+      amount: walletDepositAmount,
+      loan_id: null,
+      status: "completed",
+      description: `Investor deposit from connected bank. Reserve withheld: $${reserveAmount}`,
+    });
+
+    await supabase.from("accounting_ledger").insert([
+      {
+        user_id: user.id,
+        loan_id: null,
+        transaction_type: "deposit",
+        debit_account: "Platform Cash",
+        credit_account: "Investor Wallet Liability",
+        amount: walletDepositAmount,
+        description: "Investor deposit credited to wallet.",
+      },
+      {
+        user_id: user.id,
+        loan_id: null,
+        transaction_type: "reserve_allocation",
+        debit_account: "Platform Cash",
+        credit_account: "Platform Reserve",
+        amount: reserveAmount,
+        description: "Reserve allocation from investor deposit.",
+      },
+    ]);
+
+    if (reserve && reserveAmount > 0) {
+      await supabase
+        .from("platform_reserve_account")
+        .update({
+          balance: Number(reserve.balance || 0) + reserveAmount,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", reserve.id);
     }
 
     return res.status(200).json({
       success: true,
-      message: "Deposit added to wallet.",
+      message: "Deposit completed and recorded.",
+      deposit_amount: depositAmount,
+      wallet_credit: walletDepositAmount,
+      reserve_amount: reserveAmount,
       wallet: updatedWallet,
     });
   } catch (error: any) {
