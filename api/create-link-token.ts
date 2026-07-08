@@ -1,18 +1,48 @@
-import { Configuration, PlaidApi, PlaidEnvironments, Products, CountryCode } from "plaid";
+import {
+  Configuration,
+  PlaidApi,
+  PlaidEnvironments,
+  Products,
+  CountryCode,
+} from "plaid";
 
-const configuration = new Configuration({
-  basePath: PlaidEnvironments[process.env.PLAID_ENV as keyof typeof PlaidEnvironments] || PlaidEnvironments.sandbox,
-  baseOptions: {
-    headers: {
-      "PLAID-CLIENT-ID": process.env.PLAID_CLIENT_ID!,
-      "PLAID-SECRET": process.env.PLAID_SECRET!,
+export default async function handler(req: any, res: any) {
+  if (req.method !== "GET" && req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const clientId = process.env.PLAID_CLIENT_ID;
+  const secret = process.env.PLAID_SECRET;
+  const plaidEnv = process.env.PLAID_ENV || "sandbox";
+
+  if (!clientId) {
+    return res.status(500).json({
+      error: "Missing PLAID_CLIENT_ID in Vercel Environment Variables",
+    });
+  }
+
+  if (!secret) {
+    return res.status(500).json({
+      error: "Missing PLAID_SECRET in Vercel Environment Variables",
+    });
+  }
+
+  const basePath =
+    PlaidEnvironments[plaidEnv as keyof typeof PlaidEnvironments] ||
+    PlaidEnvironments.sandbox;
+
+  const configuration = new Configuration({
+    basePath,
+    baseOptions: {
+      headers: {
+        "PLAID-CLIENT-ID": clientId,
+        "PLAID-SECRET": secret,
+      },
     },
-  },
-});
+  });
 
-const plaidClient = new PlaidApi(configuration);
+  const plaidClient = new PlaidApi(configuration);
 
-export default async function handler(_req: any, res: any) {
   try {
     const response = await plaidClient.linkTokenCreate({
       user: {
@@ -24,11 +54,11 @@ export default async function handler(_req: any, res: any) {
       language: "en",
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       link_token: response.data.link_token,
     });
   } catch (error: any) {
-    res.status(500).json({
+    return res.status(500).json({
       error: error.response?.data || error.message,
     });
   }
