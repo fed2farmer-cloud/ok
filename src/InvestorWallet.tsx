@@ -4,6 +4,7 @@ import PlaidConnectButton from "./components/PlaidConnectButton";
 
 export default function InvestorWallet() {
   const [investments, setInvestments] = useState<any[]>([]);
+  const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,6 +20,8 @@ export default function InvestorWallet() {
   async function loadWallet() {
     if (!supabase) return;
 
+    setLoading(true);
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -27,6 +30,30 @@ export default function InvestorWallet() {
       window.location.href = "/login";
       return;
     }
+
+    let { data: walletData } = await supabase
+      .from("investor_wallets")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!walletData) {
+      const { data: newWallet, error } = await supabase
+        .from("investor_wallets")
+        .insert({ user_id: user.id })
+        .select()
+        .single();
+
+      if (error) {
+        alert(error.message);
+        setLoading(false);
+        return;
+      }
+
+      walletData = newWallet;
+    }
+
+    setWallet(walletData);
 
     const { data, error } = await supabase
       .from("investments")
@@ -42,6 +69,51 @@ export default function InvestorWallet() {
 
     setInvestments(data || []);
     setLoading(false);
+  }
+
+  async function handleDeposit() {
+    if (!supabase) return;
+
+    const amount = prompt("Enter deposit amount:");
+
+    if (!amount) return;
+
+    const depositAmount = Number(amount);
+
+    if (!depositAmount || depositAmount < 1) {
+      alert("Enter a valid deposit amount.");
+      return;
+    }
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      alert("Please log in.");
+      return;
+    }
+
+    const response = await fetch("/api/deposit-funds", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        amount: depositAmount,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      alert(result.error || "Deposit failed.");
+      return;
+    }
+
+    alert("Deposit completed successfully.");
+    await loadWallet();
   }
 
   const totalInvested = investments.reduce(
@@ -75,7 +147,9 @@ export default function InvestorWallet() {
       <div className="grid md:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl shadow p-5">
           <p className="text-gray-500">Available Cash</p>
-          <h2 className="text-2xl font-bold">$0</h2>
+          <h2 className="text-2xl font-bold">
+            {money(wallet?.available_balance)}
+          </h2>
         </div>
 
         <div className="bg-white rounded-xl shadow p-5">
@@ -85,17 +159,23 @@ export default function InvestorWallet() {
 
         <div className="bg-white rounded-xl shadow p-5">
           <p className="text-gray-500">Expected Monthly Return</p>
-          <h2 className="text-2xl font-bold">{money(expectedMonthlyReturn)}</h2>
+          <h2 className="text-2xl font-bold">
+            {money(expectedMonthlyReturn)}
+          </h2>
         </div>
 
         <div className="bg-white rounded-xl shadow p-5">
           <p className="text-gray-500">Expected Total Interest</p>
-          <h2 className="text-2xl font-bold">{money(expectedTotalInterest)}</h2>
+          <h2 className="text-2xl font-bold">
+            {money(expectedTotalInterest)}
+          </h2>
         </div>
 
         <div className="bg-white rounded-xl shadow p-5">
           <p className="text-gray-500">Lifetime Earnings</p>
-          <h2 className="text-2xl font-bold">{money(expectedTotalInterest)}</h2>
+          <h2 className="text-2xl font-bold">
+            {money(expectedTotalInterest)}
+          </h2>
         </div>
       </div>
 
@@ -104,6 +184,13 @@ export default function InvestorWallet() {
 
         <div className="flex flex-wrap gap-3">
           <PlaidConnectButton />
+
+          <button
+            onClick={handleDeposit}
+            className="bg-green-600 text-white px-5 py-3 rounded-lg font-bold"
+          >
+            Deposit Funds
+          </button>
 
           <button className="bg-blue-600 text-white px-5 py-3 rounded-lg font-bold">
             Withdraw Funds
