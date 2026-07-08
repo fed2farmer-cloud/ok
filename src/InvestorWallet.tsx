@@ -4,6 +4,7 @@ import PlaidConnectButton from "./components/PlaidConnectButton";
 
 export default function InvestorWallet() {
   const [investments, setInvestments] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -15,6 +16,11 @@ export default function InvestorWallet() {
     return "$" + Number(value || 0).toLocaleString(undefined, {
       maximumFractionDigits: 2,
     });
+  }
+
+  function formatDate(value: string) {
+    if (!value) return "—";
+    return new Date(value).toLocaleDateString();
   }
 
   async function loadWallet() {
@@ -55,19 +61,33 @@ export default function InvestorWallet() {
 
     setWallet(walletData);
 
-    const { data, error } = await supabase
+    const { data: investmentData, error: investmentError } = await supabase
       .from("investments")
       .select("*")
       .eq("investor_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (error) {
-      alert(error.message);
+    if (investmentError) {
+      alert(investmentError.message);
       setLoading(false);
       return;
     }
 
-    setInvestments(data || []);
+    setInvestments(investmentData || []);
+
+    const { data: transactionData, error: transactionError } = await supabase
+      .from("wallet_transactions")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (transactionError) {
+      alert(transactionError.message);
+      setLoading(false);
+      return;
+    }
+
+    setTransactions(transactionData || []);
     setLoading(false);
   }
 
@@ -134,6 +154,14 @@ export default function InvestorWallet() {
     return sum + (amount * (rate / 100)) / 12;
   }, 0);
 
+  const averageRate =
+    investments.length === 0
+      ? 0
+      : investments.reduce(
+          (sum, item) => sum + Number(item.investor_interest_rate || 9),
+          0
+        ) / investments.length;
+
   if (loading) {
     return <div className="p-8 text-xl">Loading investor wallet...</div>;
   }
@@ -149,6 +177,13 @@ export default function InvestorWallet() {
           <p className="text-gray-500">Available Cash</p>
           <h2 className="text-2xl font-bold">
             {money(wallet?.available_balance)}
+          </h2>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-5">
+          <p className="text-gray-500">Pending Balance</p>
+          <h2 className="text-2xl font-bold">
+            {money(wallet?.pending_balance)}
           </h2>
         </div>
 
@@ -172,10 +207,8 @@ export default function InvestorWallet() {
         </div>
 
         <div className="bg-white rounded-xl shadow p-5">
-          <p className="text-gray-500">Lifetime Earnings</p>
-          <h2 className="text-2xl font-bold">
-            {money(expectedTotalInterest)}
-          </h2>
+          <p className="text-gray-500">Average Investor Rate</p>
+          <h2 className="text-2xl font-bold">{averageRate.toFixed(2)}%</h2>
         </div>
       </div>
 
@@ -203,6 +236,40 @@ export default function InvestorWallet() {
             Browse Investments
           </button>
         </div>
+      </div>
+
+      <div className="mt-8 bg-white rounded-xl shadow p-6 overflow-x-auto">
+        <h2 className="text-2xl font-bold mb-4">Wallet Transactions</h2>
+
+        {transactions.length === 0 ? (
+          <p>No wallet transactions yet.</p>
+        ) : (
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b">
+                <th className="p-2">Date</th>
+                <th className="p-2">Type</th>
+                <th className="p-2">Description</th>
+                <th className="p-2">Amount</th>
+                <th className="p-2">Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {transactions.map((tx) => (
+                <tr key={tx.id} className="border-b">
+                  <td className="p-2">{formatDate(tx.created_at)}</td>
+                  <td className="p-2 capitalize">
+                    {tx.transaction_type || "transaction"}
+                  </td>
+                  <td className="p-2">{tx.description || "—"}</td>
+                  <td className="p-2 font-bold">{money(tx.amount)}</td>
+                  <td className="p-2 capitalize">{tx.status || "completed"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <div className="mt-8 bg-white rounded-xl shadow p-6">
