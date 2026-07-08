@@ -12,7 +12,7 @@ const configuration = new Configuration({
 
 const plaidClient = new PlaidApi(configuration);
 
-export default async function handler(req: any, res: any) {
+export default async function handler(_req: any, res: any) {
   try {
     const response = await plaidClient.linkTokenCreate({
       user: {
