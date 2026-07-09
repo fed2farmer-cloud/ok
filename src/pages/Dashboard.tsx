@@ -19,35 +19,60 @@ type LoanApplication = {
 export default function Dashboard() {
   const [email, setEmail] = useState("");
   const [applications, setApplications] = useState<LoanApplication[]>([]);
+  const [marketplaceLoans, setMarketplaceLoans] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<any[]>([]);
 
   useEffect(() => {
-    async function loadDashboard() {
-      if (!supabase) return;
+    loadDashboard();
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    const timer = setInterval(() => {
+      loadDashboard();
+    }, 15000);
 
-      if (!user) {
-        window.location.href = "/login";
-        return;
-      }
+    return () => clearInterval(timer);
+  }, []);
 
-      setEmail(user.email || "");
+  async function loadDashboard() {
+    if (!supabase) return;
 
-      const { data, error } = await supabase
-        .from("loan_applications")
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+
+    setEmail(user.email || "");
+
+    const { data: appData } = await supabase
+      .from("loan_applications")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    setApplications(appData || []);
+
+    const appIds = (appData || []).map((app: any) => app.Id);
+
+    if (appIds.length > 0) {
+      const { data: marketData } = await supabase
+        .from("marketplace_loans")
+        .select("*")
+        .in("loan_application_id", appIds);
+
+      setMarketplaceLoans(marketData || []);
+
+      const { data: docData } = await supabase
+        .from("loan_documents")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (!error && data) {
-        setApplications(data);
-      }
+      setDocuments(docData || []);
     }
-
-    loadDashboard();
-  }, []);
+  }
 
   async function logout() {
     if (!supabase) return;
@@ -55,9 +80,31 @@ export default function Dashboard() {
     window.location.href = "/";
   }
 
-  function money(value: number | null) {
-    if (!value) return "$0";
-    return "$" + Number(value).toLocaleString();
+  function money(value: any) {
+    return "$" + Number(value || 0).toLocaleString(undefined, {
+      maximumFractionDigits: 2,
+    });
+  }
+
+  function getMarketplaceLoan(applicationId: number) {
+    return marketplaceLoans.find(
+      (loan) => Number(loan.loan_application_id) === Number(applicationId)
+    );
+  }
+
+  function getDocuments(applicationId: number) {
+    return documents.filter(
+      (doc) => Number(doc.loan_application_id) === Number(applicationId)
+    );
+  }
+
+  function progressPercent(loan: any, app: LoanApplication) {
+    const goal = Number(loan?.funding_goal || app.loan_amount || 0);
+    const funded = Number(loan?.amount_funded || 0);
+
+    if (!goal) return 0;
+
+    return Math.min((funded / goal) * 100, 100);
   }
 
   return (
@@ -84,12 +131,21 @@ export default function Dashboard() {
           Start a new land-backed loan application.
         </p>
 
-        <button
-          onClick={() => (window.location.href = "/loan-application")}
-          className="mt-4 bg-green-600 text-white px-6 py-3 rounded-lg"
-        >
-          New Application
-        </button>
+        <div className="flex flex-wrap gap-3 mt-4">
+          <button
+            onClick={() => (window.location.href = "/loan-application")}
+            className="bg-green-600 text-white px-6 py-3 rounded-lg"
+          >
+            New Application
+          </button>
+
+          <button
+            onClick={() => (window.location.href = "/loan-documents")}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg"
+          >
+            Upload Loan Documents
+          </button>
+        </div>
       </div>
 
       <div className="mt-8">
@@ -101,35 +157,131 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="mt-4 grid gap-4">
-            {applications.map((app) => (
-              <div key={app.Id} className="bg-white rounded-xl shadow p-6">
-                <div className="flex justify-between gap-4">
-                  <h3 className="text-xl font-bold">
-                    {app.business_name || app.full_name || "Loan Application"}
-                  </h3>
+            {applications.map((app) => {
+              const marketLoan = getMarketplaceLoan(app.Id);
+              const docs = getDocuments(app.Id);
 
-                  <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-bold">
-                    {app.status || "Pending"}
-                  </span>
-                </div>
+              const goal = Number(
+                marketLoan?.funding_goal || app.loan_amount || 0
+              );
+              const funded = Number(marketLoan?.amount_funded || 0);
+              const remaining = Number(
+                marketLoan?.amount_remaining || Math.max(goal - funded, 0)
+              );
+              const percent = progressPercent(marketLoan, app);
 
-                <div className="mt-4 grid gap-2 text-gray-700">
-                  <p>Requested Loan: {money(app.loan_amount)}</p>
-<p>Repayment Term: {app.repayment_term_months || 36} months</p>
-<p>Interest Rate: {app.interest_rate_percent || 9}%</p>
-                  <p>Land Value: {money(app.land_value)}</p>
-                  <p>Land Type: {app.land_type || "Not provided"}</p>
-                  <p>Acres: {app.acreage || "Not provided"}</p>
-                  <p>State: {app.state || "Not provided"}</p>
-                  <p>
-                    Submitted:{" "}
-                    {app.created_at
-                      ? new Date(app.created_at).toLocaleDateString()
-                      : "Unknown"}
-                  </p>
+              return (
+                <div key={app.Id} className="bg-white rounded-xl shadow p-6">
+                  <div className="flex justify-between gap-4">
+                    <h3 className="text-xl font-bold">
+                      {app.business_name || app.full_name || "Loan Application"}
+                    </h3>
+
+                    <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-bold">
+                      {marketLoan?.status || app.status || "Pending"}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid md:grid-cols-2 gap-4 text-gray-700">
+                    <div>
+                      <p><strong>Requested Loan:</strong> {money(app.loan_amount)}</p>
+                      <p><strong>Repayment Term:</strong> {app.repayment_term_months || 36} months</p>
+                      <p><strong>Interest Rate:</strong> {app.interest_rate_percent || 9}%</p>
+                      <p><strong>Land Value:</strong> {money(app.land_value)}</p>
+                    </div>
+
+                    <div>
+                      <p><strong>Land Type:</strong> {app.land_type || "Not provided"}</p>
+                      <p><strong>Acres:</strong> {app.acreage || "Not provided"}</p>
+                      <p><strong>State:</strong> {app.state || "Not provided"}</p>
+                      <p>
+                        <strong>Submitted:</strong>{" "}
+                        {app.created_at
+                          ? new Date(app.created_at).toLocaleDateString()
+                          : "Unknown"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 bg-gray-50 border rounded-lg p-4">
+                    <h4 className="text-lg font-bold text-green-700">
+                      Loan Funding Progress
+                    </h4>
+
+                    {marketLoan ? (
+                      <>
+                        <div className="mt-3 flex justify-between text-sm">
+                          <span>{money(funded)} funded</span>
+                          <span>{percent.toFixed(2)}%</span>
+                        </div>
+
+                        <div className="w-full bg-gray-200 rounded-full h-4 mt-2">
+                          <div
+                            className="bg-green-600 h-4 rounded-full"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+
+                        <div className="grid md:grid-cols-3 gap-3 mt-4">
+                          <div>
+                            <p className="text-gray-500">Funding Goal</p>
+                            <p className="font-bold">{money(goal)}</p>
+                          </div>
+
+                          <div>
+                            <p className="text-gray-500">Amount Funded</p>
+                            <p className="font-bold">{money(funded)}</p>
+                          </div>
+
+                          <div>
+                            <p className="text-gray-500">Remaining</p>
+                            <p className="font-bold">{money(remaining)}</p>
+                          </div>
+                        </div>
+
+                        {marketLoan.status === "Funded" && (
+                          <p className="mt-4 text-green-700 font-bold">
+                            Funding complete. Your loan is ready for the next
+                            disbursement step.
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="mt-2 text-gray-600">
+                        This loan has not been published to the investor
+                        marketplace yet.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-6 bg-gray-50 border rounded-lg p-4">
+                    <h4 className="text-lg font-bold">Submitted Documents</h4>
+
+                    {docs.length === 0 ? (
+                      <p className="mt-2 text-gray-600">
+                        No documents uploaded yet.
+                      </p>
+                    ) : (
+                      <div className="mt-3 grid gap-2">
+                        {docs.map((doc) => (
+                          <div
+                            key={doc.id}
+                            className="border bg-white rounded p-3"
+                          >
+                            <p>
+                              <strong>{doc.document_type}</strong>
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {doc.file_name}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
