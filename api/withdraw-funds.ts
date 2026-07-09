@@ -75,18 +75,20 @@ export default async function handler(req: any, res: any) {
 
     const availableBalance = Number(wallet.available_balance || 0);
 
-    if (availableBalance < amount) {
+    if (amount > availableBalance) {
       return res.status(400).json({
-        error: `Insufficient funds. Available balance: $${availableBalance}`,
+        error: `Insufficient funds. Available balance is $${availableBalance.toFixed(
+          2
+        )}.`,
       });
     }
 
-    const newBalance = availableBalance - amount;
+    const newAvailableBalance = Number((availableBalance - amount).toFixed(2));
 
     const { data: updatedWallet, error: updateWalletError } = await supabase
       .from("investor_wallets")
       .update({
-        available_balance: newBalance,
+        available_balance: newAvailableBalance,
         updated_at: new Date().toISOString(),
       })
       .eq("user_id", user.id)
@@ -97,15 +99,32 @@ export default async function handler(req: any, res: any) {
       return res.status(500).json({ error: updateWalletError.message });
     }
 
-    await supabase.from("wallet_transactions").insert({
-      user_id: user.id,
-      transaction_type: "withdrawal",
-      amount,
-      status: "pending",
-      description: `Withdrawal requested to ${bankAccount.bank_name || "bank"} ${
-        bankAccount.account_mask ? "••••" + bankAccount.account_mask : ""
-      }.`,
-    });
+    const bankName =
+      bankAccount.bank_name ||
+      bankAccount.institution_name ||
+      "Linked bank account";
+
+    const accountMask =
+      bankAccount.account_mask ||
+      bankAccount.account_number?.slice(-4) ||
+      bankAccount.plaid_account_id?.slice(-4) ||
+      "";
+
+    const { error: transactionError } = await supabase
+      .from("wallet_transactions")
+      .insert({
+        user_id: user.id,
+        transaction_type: "withdrawal",
+        amount: -Math.abs(amount),
+        status: "pending",
+        description: `Withdrawal to ${bankName}${
+          accountMask ? " ••••" + accountMask : ""
+        }.`,
+      });
+
+    if (transactionError) {
+      return res.status(500).json({ error: transactionError.message });
+    }
 
     await supabase.from("accounting_ledger").insert({
       user_id: user.id,
@@ -113,12 +132,15 @@ export default async function handler(req: any, res: any) {
       debit_account: "Investor Wallet Liability",
       credit_account: "Platform Cash",
       amount,
-      description: "Investor withdrawal requested.",
+      description: `Investor withdrawal requested to ${bankName}${
+        accountMask ? " ••••" + accountMask : ""
+      }.`,
     });
 
     return res.status(200).json({
       success: true,
       message: "Withdrawal requested.",
+      withdrawal_amount: amount,
       wallet: updatedWallet,
     });
   } catch (error: any) {
