@@ -7,13 +7,31 @@ export default function InvestorMarketplace() {
   const [loading, setLoading] = useState(true);
   const [loans, setLoans] = useState<any[]>([]);
   const [amounts, setAmounts] = useState<Record<number, string>>({});
+  const [wallet, setWallet] = useState<any>(null);
+  const [processingId, setProcessingId] = useState<number | null>(null);
 
   useEffect(() => {
-    loadLoans();
+    loadPage();
   }, []);
 
-  async function loadLoans() {
+  async function loadPage() {
     if (!supabase) return;
+
+    setLoading(true);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      const { data: walletData } = await supabase
+        .from("investor_wallets")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      setWallet(walletData);
+    }
 
     const { data, error } = await supabase
       .from("marketplace_loans")
@@ -37,9 +55,10 @@ export default function InvestorMarketplace() {
     });
   }
 
-  function investNow(loan: any) {
+  async function investNow(loan: any) {
     const amount = Number(amounts[loan.id] || 0);
     const remaining = Number(loan.amount_remaining || loan.funding_goal || 0);
+    const walletBalance = Number(wallet?.available_balance || 0);
 
     if (!amount || amount < 100) {
       alert("Minimum investment is $100.");
@@ -51,7 +70,60 @@ export default function InvestorMarketplace() {
       return;
     }
 
-    navigate(`/payment?loanId=${loan.loan_application_id}&amount=${amount}`);
+    if (walletBalance < amount) {
+      alert(
+        `Wallet balance is too low. Available: ${money(
+          walletBalance
+        )}. You can deposit funds or pay another way.`
+      );
+
+      navigate(`/payment?loanId=${loan.loan_application_id}&amount=${amount}`);
+      return;
+    }
+
+    const confirmInvestment = confirm(
+      `Invest ${money(amount)} from your wallet into ${
+        loan.business_name || "this loan"
+      }?`
+    );
+
+    if (!confirmInvestment) return;
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      alert("Please log in again.");
+      navigate("/login");
+      return;
+    }
+
+    setProcessingId(loan.id);
+
+    const response = await fetch("/api/invest-from-wallet", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        loan_id: loan.loan_application_id,
+        amount,
+      }),
+    });
+
+    const result = await response.json();
+    setProcessingId(null);
+
+    if (!response.ok) {
+      alert(result.error || "Investment failed.");
+      return;
+    }
+
+    alert("Investment funded from wallet.");
+    setAmounts({ ...amounts, [loan.id]: "" });
+    await loadPage();
   }
 
   if (loading) return <div className="p-8 text-xl">Loading Marketplace...</div>;
@@ -62,9 +134,16 @@ export default function InvestorMarketplace() {
         Investment Marketplace
       </h1>
 
-      <p className="text-gray-600 mb-6">
+      <p className="text-gray-600 mb-4">
         Invest in land-backed loans reviewed by SecuredLanding.
       </p>
+
+      <div className="bg-white rounded-xl shadow p-4 mb-6">
+        <p className="text-gray-500">Available Wallet Cash</p>
+        <h2 className="text-2xl font-bold">
+          {money(wallet?.available_balance)}
+        </h2>
+      </div>
 
       {loans.length === 0 ? (
         <p>No investment opportunities available.</p>
@@ -132,9 +211,10 @@ export default function InvestorMarketplace() {
 
               <button
                 onClick={() => investNow(loan)}
-                className="mt-3 w-full bg-green-600 text-white py-3 rounded-lg font-bold"
+                disabled={processingId === loan.id}
+                className="mt-3 w-full bg-green-600 text-white py-3 rounded-lg font-bold disabled:bg-gray-400"
               >
-                Invest Now
+                {processingId === loan.id ? "Processing..." : "Invest From Wallet"}
               </button>
             </div>
           );
