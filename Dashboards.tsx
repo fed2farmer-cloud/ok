@@ -142,10 +142,9 @@ export default function Dashboard() {
        * later adds loan_application_id.
        */
       const { data: documentData, error: documentError } = await supabase
-        .from("loan_documents")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+  .from("loan_documents")
+  .select("*")
+  .order("created_at", { ascending: false });
 
       if (documentError) {
         console.error("Loan document error:", documentError);
