@@ -4,28 +4,29 @@ import { supabase } from "../lib/supabase";
 type LoanApplication = {
   Id?: number;
   id?: number;
-  user_id?: string;
-  created_at: string | null;
-  business_name: string | null;
-  full_name: string | null;
-  state: string | null;
-  land_type: string | null;
-  acreage: number | null;
-  land_value: number | null;
-  loan_amount: number | null;
-  status: string | null;
-  repayment_term_months: number | null;
-  interest_rate_percent: number | null;
+  user_id?: string | null;
+  created_at?: string | null;
+  business_name?: string | null;
+  full_name?: string | null;
+  state?: string | null;
+  land_type?: string | null;
+  acreage?: number | null;
+  land_value?: number | null;
+  loan_amount?: number | null;
+  status?: string | null;
+  repayment_term_months?: number | null;
+  interest_rate_percent?: number | null;
 };
 
 type MarketplaceLoan = {
   id: number;
-  loan_application_id: number | null;
+  loan_application_id?: number | null;
   business_name?: string | null;
   funding_goal?: number | null;
   loan_amount?: number | null;
   amount_funded?: number | null;
   amount_remaining?: number | null;
+  investor_interest_rate?: number | null;
   status?: string | null;
   created_at?: string | null;
 };
@@ -35,27 +36,32 @@ type LoanDocument = {
   user_id?: string | null;
   loan_id?: number | null;
   loan_application_id?: number | null;
+  application_id?: number | null;
   document_type?: string | null;
   file_name?: string | null;
   file_url?: string | null;
   public_url?: string | null;
   storage_path?: string | null;
+  status?: string | null;
   created_at?: string | null;
 };
 
 export default function Dashboard() {
   const [email, setEmail] = useState("");
+  const [currentUserId, setCurrentUserId] = useState("");
+
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [marketplaceLoans, setMarketplaceLoans] = useState<MarketplaceLoan[]>(
     []
   );
   const [documents, setDocuments] = useState<LoanDocument[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  function applicationId(application: LoanApplication) {
+  function getApplicationId(application: LoanApplication) {
     return Number(application.Id ?? application.id ?? 0);
   }
 
@@ -89,6 +95,7 @@ export default function Dashboard() {
         return;
       }
 
+      setCurrentUserId(user.id);
       setEmail(user.email || "");
 
       const { data: applicationData, error: applicationError } = await supabase
@@ -107,7 +114,7 @@ export default function Dashboard() {
       setApplications(borrowerApplications);
 
       const applicationIds = borrowerApplications
-        .map(applicationId)
+        .map((application) => getApplicationId(application))
         .filter((id) => Number.isFinite(id) && id > 0);
 
       if (applicationIds.length === 0) {
@@ -117,11 +124,6 @@ export default function Dashboard() {
         return;
       }
 
-      /*
-       * Load marketplace records that belong to this borrower's applications.
-       * The loan application table uses "Id" in your current database, while
-       * marketplace_loans uses "loan_application_id".
-       */
       const { data: marketplaceData, error: marketplaceError } = await supabase
         .from("marketplace_loans")
         .select("*")
@@ -137,14 +139,14 @@ export default function Dashboard() {
       );
 
       /*
-       * Your uploaded-document screen currently saves the application number
-       * as loan_id. Loading by user_id also keeps this compatible if the table
-       * later adds loan_application_id.
+       * Only load documents belonging to the signed-in borrower.
+       * Your upload page must save user_id when creating loan_documents.
        */
       const { data: documentData, error: documentError } = await supabase
-  .from("loan_documents")
-  .select("*")
-  .order("created_at", { ascending: false });
+        .from("loan_documents")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
       if (documentError) {
         console.error("Loan document error:", documentError);
@@ -154,7 +156,10 @@ export default function Dashboard() {
       setLastUpdated(new Date());
     } catch (error: any) {
       console.error("Dashboard loading error:", error);
-      setErrorMessage(error?.message || "Unable to load the dashboard.");
+
+      setErrorMessage(
+        error?.message || "Unable to load the borrower dashboard."
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -189,7 +194,7 @@ export default function Dashboard() {
     });
   }
 
-  function date(value?: string | null) {
+  function formatDate(value?: string | null) {
     if (!value) return "Unknown";
 
     const parsedDate = new Date(value);
@@ -202,26 +207,37 @@ export default function Dashboard() {
   }
 
   function getMarketplaceLoan(application: LoanApplication) {
-    const appId = applicationId(application);
+    const applicationId = getApplicationId(application);
 
     return marketplaceLoans.find(
-      (loan) => Number(loan.loan_application_id) === appId
+      (loan) =>
+        Number(loan.loan_application_id || 0) === Number(applicationId)
     );
   }
 
   function getDocuments(application: LoanApplication) {
-    const appId = applicationId(application);
+    const applicationId = getApplicationId(application);
 
     return documents.filter((document) => {
-      const linkedLoanId = Number(
-        document.loan_application_id ?? document.loan_id ?? 0
+      const linkedApplicationId = Number(
+        document.loan_application_id ??
+          document.loan_id ??
+          document.application_id ??
+          0
       );
 
-      return linkedLoanId === appId;
+      const belongsToApplication = linkedApplicationId === applicationId;
+
+      const belongsToCurrentUser =
+        !document.user_id ||
+        document.user_id === currentUserId ||
+        document.user_id === application.user_id;
+
+      return belongsToApplication && belongsToCurrentUser;
     });
   }
 
-  function fundingValues(
+  function getFundingValues(
     application: LoanApplication,
     marketplaceLoan?: MarketplaceLoan
   ) {
@@ -254,52 +270,83 @@ export default function Dashboard() {
   }
 
   function statusClasses(status?: string | null) {
-    const normalizedStatus = String(status || "Pending").toLowerCase();
+    const normalized = String(status || "Pending").toLowerCase();
 
     if (
-      normalizedStatus === "funded" ||
-      normalizedStatus === "approved" ||
-      normalizedStatus === "active"
+      normalized === "funded" ||
+      normalized === "approved" ||
+      normalized === "active" ||
+      normalized === "completed"
     ) {
       return "bg-green-100 text-green-800";
     }
 
     if (
-      normalizedStatus === "denied" ||
-      normalizedStatus === "rejected" ||
-      normalizedStatus === "defaulted"
+      normalized === "open" ||
+      normalized === "published" ||
+      normalized === "funding"
     ) {
-      return "bg-red-100 text-red-800";
+      return "bg-blue-100 text-blue-800";
     }
 
     if (
-      normalizedStatus === "open" ||
-      normalizedStatus === "published" ||
-      normalizedStatus === "funding"
+      normalized === "denied" ||
+      normalized === "rejected" ||
+      normalized === "defaulted" ||
+      normalized === "failed"
     ) {
-      return "bg-blue-100 text-blue-800";
+      return "bg-red-100 text-red-800";
     }
 
     return "bg-yellow-100 text-yellow-800";
   }
 
-  const totalRequested = useMemo(
-    () =>
-      applications.reduce(
-        (total, application) => total + Number(application.loan_amount || 0),
-        0
-      ),
-    [applications]
-  );
+  function documentStatusClasses(status?: string | null) {
+    const normalized = String(status || "submitted").toLowerCase();
 
-  const totalFunded = useMemo(
-    () =>
-      marketplaceLoans.reduce(
-        (total, loan) => total + Number(loan.amount_funded || 0),
-        0
-      ),
-    [marketplaceLoans]
-  );
+    if (
+      normalized === "approved" ||
+      normalized === "verified" ||
+      normalized === "accepted"
+    ) {
+      return "bg-green-100 text-green-800";
+    }
+
+    if (
+      normalized === "rejected" ||
+      normalized === "denied" ||
+      normalized === "failed"
+    ) {
+      return "bg-red-100 text-red-800";
+    }
+
+    return "bg-yellow-100 text-yellow-800";
+  }
+
+  function documentName(document: LoanDocument) {
+    return (
+      document.document_type
+        ?.replaceAll("_", " ")
+        .replaceAll("-", " ") || "Loan document"
+    );
+  }
+
+  const totalRequested = useMemo(() => {
+    return applications.reduce(
+      (total, application) =>
+        total + Number(application.loan_amount || 0),
+      0
+    );
+  }, [applications]);
+
+  const totalFunded = useMemo(() => {
+    return marketplaceLoans.reduce(
+      (total, loan) => total + Number(loan.amount_funded || 0),
+      0
+    );
+  }, [marketplaceLoans]);
+
+  const totalDocuments = useMemo(() => documents.length, [documents]);
 
   if (loading) {
     return (
@@ -354,10 +401,12 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl bg-white p-5 shadow">
             <p className="text-sm text-gray-500">Applications</p>
-            <p className="mt-1 text-2xl font-bold">{applications.length}</p>
+            <p className="mt-1 text-2xl font-bold">
+              {applications.length}
+            </p>
           </div>
 
           <div className="rounded-xl bg-white p-5 shadow">
@@ -372,6 +421,11 @@ export default function Dashboard() {
             <p className="mt-1 text-2xl font-bold text-green-700">
               {money(totalFunded)}
             </p>
+          </div>
+
+          <div className="rounded-xl bg-white p-5 shadow">
+            <p className="text-sm text-gray-500">Documents Uploaded</p>
+            <p className="mt-1 text-2xl font-bold">{totalDocuments}</p>
           </div>
         </div>
 
@@ -415,14 +469,16 @@ export default function Dashboard() {
           ) : (
             <div className="mt-4 grid gap-6">
               {applications.map((application) => {
-                const appId = applicationId(application);
-                const marketplaceLoan = getMarketplaceLoan(application);
-                const applicationDocuments = getDocuments(application);
+                const applicationId = getApplicationId(application);
 
-                const { goal, funded, remaining, percentage } = fundingValues(
-                  application,
-                  marketplaceLoan
-                );
+                const marketplaceLoan =
+                  getMarketplaceLoan(application);
+
+                const applicationDocuments =
+                  getDocuments(application);
+
+                const { goal, funded, remaining, percentage } =
+                  getFundingValues(application, marketplaceLoan);
 
                 const displayedStatus =
                   marketplaceLoan?.status ||
@@ -431,7 +487,7 @@ export default function Dashboard() {
 
                 return (
                   <div
-                    key={appId}
+                    key={applicationId}
                     className="rounded-xl bg-white p-5 shadow sm:p-6"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -443,7 +499,7 @@ export default function Dashboard() {
                         </h3>
 
                         <p className="mt-1 text-sm text-gray-500">
-                          Application ID: {appId}
+                          Application ID: {applicationId}
                         </p>
                       </div>
 
@@ -497,7 +553,7 @@ export default function Dashboard() {
 
                         <p>
                           <strong>Submitted:</strong>{" "}
-                          {date(application.created_at)}
+                          {formatDate(application.created_at)}
                         </p>
                       </div>
                     </div>
@@ -511,6 +567,7 @@ export default function Dashboard() {
                         <>
                           <div className="mt-4 flex justify-between gap-4 text-sm">
                             <span>{money(funded)} funded</span>
+
                             <span className="font-bold">
                               {percentage.toFixed(2)}%
                             </span>
@@ -534,13 +591,17 @@ export default function Dashboard() {
                               <p className="text-sm text-gray-500">
                                 Funding Goal
                               </p>
-                              <p className="font-bold">{money(goal)}</p>
+
+                              <p className="font-bold">
+                                {money(goal)}
+                              </p>
                             </div>
 
                             <div className="rounded-lg bg-white p-3">
                               <p className="text-sm text-gray-500">
                                 Amount Funded
                               </p>
+
                               <p className="font-bold text-green-700">
                                 {money(funded)}
                               </p>
@@ -550,7 +611,10 @@ export default function Dashboard() {
                               <p className="text-sm text-gray-500">
                                 Amount Remaining
                               </p>
-                              <p className="font-bold">{money(remaining)}</p>
+
+                              <p className="font-bold">
+                                {money(remaining)}
+                              </p>
                             </div>
                           </div>
 
@@ -558,13 +622,13 @@ export default function Dashboard() {
                           String(marketplaceLoan.status).toLowerCase() ===
                             "funded" ? (
                             <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 font-bold text-green-700">
-                              Funding complete. Your loan is ready for the
-                              disbursement-review stage.
+                              Funding complete. Your loan is ready for the next
+                              disbursement step.
                             </div>
                           ) : (
                             <p className="mt-4 text-sm text-gray-600">
-                              Your funding information automatically refreshes
-                              every 15 seconds.
+                              Funding information refreshes automatically every
+                              15 seconds.
                             </p>
                           )}
                         </>
@@ -572,21 +636,29 @@ export default function Dashboard() {
                         <div className="mt-3 rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-yellow-800">
                           This application has not been linked to a marketplace
                           listing. The marketplace record must use loan
-                          application ID <strong>{appId}</strong>.
+                          application ID <strong>{applicationId}</strong>.
                         </div>
                       )}
                     </div>
 
                     <div className="mt-6 rounded-lg border bg-gray-50 p-4">
                       <div className="flex flex-wrap items-center justify-between gap-3">
-                        <h4 className="text-lg font-bold">
-                          Submitted Documents
-                        </h4>
+                        <div>
+                          <h4 className="text-lg font-bold">
+                            Submitted Documents
+                          </h4>
+
+                          <p className="mt-1 text-sm text-gray-500">
+                            {applicationDocuments.length} document
+                            {applicationDocuments.length === 1 ? "" : "s"} linked
+                            to this application.
+                          </p>
+                        </div>
 
                         <button
                           type="button"
                           onClick={() => {
-                            window.location.href = `/loan-documents?loanId=${appId}`;
+                            window.location.href = `/loan-documents?loanId=${applicationId}`;
                           }}
                           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white"
                         >
@@ -595,37 +667,51 @@ export default function Dashboard() {
                       </div>
 
                       {applicationDocuments.length === 0 ? (
-                        <p className="mt-3 text-gray-600">
-                          No documents uploaded for this application yet.
-                        </p>
+                        <div className="mt-3 rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-yellow-800">
+                          No documents uploaded for application{" "}
+                          <strong>{applicationId}</strong>.
+                        </div>
                       ) : (
-                        <div className="mt-3 grid gap-3">
+                        <div className="mt-4 grid gap-3">
                           {applicationDocuments.map((document) => {
                             const documentUrl =
-                              document.file_url || document.public_url || "";
+                              document.file_url ||
+                              document.public_url ||
+                              "";
+
+                            const documentStatus =
+                              document.status || "Submitted";
 
                             return (
                               <div
                                 key={document.id}
-                                className="rounded-lg border bg-white p-3"
+                                className="rounded-lg border bg-white p-4"
                               >
                                 <div className="flex flex-wrap items-start justify-between gap-3">
-                                  <div>
-                                    <p className="font-bold capitalize">
-                                      {document.document_type
-                                        ?.replaceAll("_", " ")
-                                        .replaceAll("-", " ") ||
-                                        "Loan document"}
-                                    </p>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <p className="font-bold capitalize">
+                                        {documentName(document)}
+                                      </p>
 
-                                    <p className="mt-1 break-all text-sm text-gray-600">
+                                      <span
+                                        className={`rounded-full px-2 py-1 text-xs font-bold ${documentStatusClasses(
+                                          documentStatus
+                                        )}`}
+                                      >
+                                        {documentStatus}
+                                      </span>
+                                    </div>
+
+                                    <p className="mt-2 break-all text-sm text-gray-600">
                                       {document.file_name ||
                                         document.storage_path ||
                                         "Uploaded file"}
                                     </p>
 
                                     <p className="mt-1 text-xs text-gray-500">
-                                      Uploaded: {date(document.created_at)}
+                                      Uploaded:{" "}
+                                      {formatDate(document.created_at)}
                                     </p>
                                   </div>
 
@@ -636,7 +722,7 @@ export default function Dashboard() {
                                       rel="noreferrer"
                                       className="rounded-lg bg-gray-800 px-4 py-2 text-sm font-bold text-white"
                                     >
-                                      View
+                                      View Document
                                     </a>
                                   )}
                                 </div>
