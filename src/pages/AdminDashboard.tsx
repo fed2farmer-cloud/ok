@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { BarChart } from "../components/PortfolioCharts";
 import { supabase } from "../lib/supabase";
 
 type LoanApplication = {
@@ -26,6 +27,9 @@ type LoanApplication = {
   risk_score?: string | null;
   underwriter_notes?: string | null;
   published_to_marketplace?: boolean | null;
+  borrower_video_path?: string | null;
+  borrower_video_status?: string | null;
+  county?: string | null;
 };
 
 type LoanDocument = {
@@ -52,6 +56,62 @@ type EditingValues = {
   underwriter_notes: string;
   published_to_marketplace: boolean;
 };
+
+/** Inline video player with approve/reject controls for admin */
+function AdminVideoPlayer({
+  storagePath,
+  loanId,
+  onReviewed,
+}: {
+  storagePath: string;
+  loanId: number;
+  onReviewed: () => void;
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.storage
+      .from("borrower-videos")
+      .createSignedUrl(storagePath, 3600)
+      .then(({ data }) => { if (data?.signedUrl) setUrl(data.signedUrl); });
+  }, [storagePath]);
+
+  async function review(status: string) {
+    if (!supabase) return;
+    setSaving(true);
+    await supabase
+      .from("loan_applications")
+      .update({ borrower_video_status: status, borrower_video_admin_notes: notes, borrower_video_reviewed_at: new Date().toISOString() })
+      .eq("id", loanId);
+    setSaving(false);
+    onReviewed();
+  }
+
+  return (
+    <div className="mt-4 space-y-3">
+      {url ? (
+        <video src={url} controls className="w-full rounded-xl" preload="metadata" />
+      ) : (
+        <p className="text-sm text-slate-400">Loading video…</p>
+      )}
+      <textarea
+        rows={2}
+        placeholder="Admin notes for borrower"
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        className="w-full rounded-xl border border-slate-300 p-3 text-sm"
+      />
+      <div className="flex gap-2">
+        <button disabled={saving} onClick={() => review("approved")} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-40">Approve Video</button>
+        <button disabled={saving} onClick={() => review("more_information")} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-bold text-white disabled:opacity-40">Request Changes</button>
+        <button disabled={saving} onClick={() => review("rejected")} className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-40">Reject</button>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -492,6 +552,63 @@ export default function AdminDashboard() {
           ))}
         </section>
 
+        {/* Analytics Charts */}
+        <section className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-base font-bold text-slate-900">Loan Volume by Status</h2>
+            <p className="mt-0.5 text-xs text-slate-400">Total requested ($) grouped by current status</p>
+            <div className="mt-5">
+              <BarChart
+                height={160}
+                valueFormatter={(v) =>
+                  v >= 1_000_000
+                    ? `$${(v / 1_000_000).toFixed(1)}M`
+                    : `$${(v / 1_000).toFixed(0)}K`
+                }
+                data={(() => {
+                  const map: Record<string, number> = {};
+                  applications.forEach((a) => {
+                    const s = String(a.status || "Pending");
+                    map[s] = (map[s] ?? 0) + Number(a.loan_amount || 0);
+                  });
+                  const COLORS: Record<string, string> = {
+                    Pending: "#f0c84a",
+                    Approved: "#4da855",
+                    Funded: "#3b82f6",
+                    Denied: "#ef4444",
+                  };
+                  return Object.entries(map).map(([label, value]) => ({
+                    label,
+                    value,
+                    color: COLORS[label] ?? "#94a3b8",
+                  }));
+                })()}
+              />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-base font-bold text-slate-900">Monthly Applications</h2>
+            <p className="mt-0.5 text-xs text-slate-400">Application count per month (last 6)</p>
+            <div className="mt-5">
+              <BarChart
+                height={160}
+                valueFormatter={(v) => String(v)}
+                data={(() => {
+                  const map: Record<string, number> = {};
+                  applications.forEach((a) => {
+                    const d = new Date(a.created_at ?? "");
+                    if (Number.isNaN(d.getTime())) return;
+                    const key = d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+                    map[key] = (map[key] ?? 0) + 1;
+                  });
+                  return Object.entries(map).slice(-6).map(([label, value]) => ({ label, value }));
+                })()}
+              />
+            </div>
+          </div>
+        </section>
+
         <section className="mt-8 space-y-6">
           {applications.length === 0 ? (
             <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">No loan applications found.</div>
@@ -615,6 +732,17 @@ export default function AdminDashboard() {
                         </div>
                       )}
                     </div>
+
+                    {/* Borrower video review */}
+                    {loan.borrower_video_path && (
+                      <div className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                        <h3 className="text-lg font-black text-slate-950">Borrower Introduction Video</h3>
+                        <p className="mt-1 text-sm text-slate-500">
+                          Status: <span className="font-bold capitalize">{String(loan.borrower_video_status || "submitted").replace(/_/g, " ")}</span>
+                        </p>
+                        <AdminVideoPlayer storagePath={loan.borrower_video_path} loanId={loan.id} onReviewed={() => void loadApplications(true)} />
+                      </div>
+                    )}
 
                     <div className="mt-7 flex flex-wrap gap-3">
                       <button disabled={isSaving} onClick={() => void saveLoanTerms(loan.id)} className="rounded-xl bg-violet-600 px-5 py-3 font-bold text-white disabled:bg-slate-400">{isSaving ? "Saving…" : "Save review"}</button>

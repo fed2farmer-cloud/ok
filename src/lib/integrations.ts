@@ -30,8 +30,23 @@ export function verifyPlaidAccount(publicToken: string, dealId: string) {
   return postToRailway("/api/plaid/exchange-public-token", { publicToken, dealId });
 }
 
-export function orderReportAllPropertyReport(dealId: string, county: string, state: string, ownerName: string) {
-  return postToRailway("/api/reportall/property-report", { dealId, county, state, ownerName });
+/** Order a ReportAll property report. Uses Vercel API function directly. */
+export async function orderReportAllPropertyReport(
+  dealId: string,
+  county: string,
+  state: string,
+  ownerName: string,
+  apn?: string
+) {
+  const response = await fetch("/api/reportall-property-report", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ dealId, county, state, ownerName, apn }),
+  });
+  if (!response.ok) {
+    throw new Error(`ReportAll request failed: ${response.status}`);
+  }
+  return response.json();
 }
 
 export function createInvestorReservation(dealId: string, investorName: string, amount: number) {

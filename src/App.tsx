@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { ToastProvider } from "./context/ToastContext";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -11,6 +12,8 @@ import InvestorMarketplace from "./pages/InvestorMarketplace";
 import LordFarmsDeal from "./pages/LordFarmsDeal";
 import Invest from "./pages/Invest";
 import InvestmentDetails from "./pages/InvestmentDetails";
+import Messages from "./pages/Messages";
+import KYCPage from "./pages/KYCPage";
 
 import LoanDocuments from "./LoanDocuments";
 import InvestorWallet from "./InvestorWallet";
@@ -19,32 +22,37 @@ import BitcoinPayment from "./BitcoinPayment";
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
+    <ToastProvider>
+      <Routes>
+        <Route path="/" element={<Home />} />
 
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
 
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/borrower" element={<Dashboard />} />
-      <Route path="/investor" element={<InvestorDashboard />} />
-      <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/borrower" element={<Dashboard />} />
+        <Route path="/investor" element={<InvestorDashboard />} />
+        <Route path="/admin" element={<AdminDashboard />} />
 
-      <Route path="/loan-application" element={<LoanApplication />} />
-      <Route path="/loan-documents" element={<LoanDocuments />} />
+        <Route path="/loan-application" element={<LoanApplication />} />
+        <Route path="/loan-documents" element={<LoanDocuments />} />
 
-      <Route path="/marketplace" element={<InvestorMarketplace />} />
-      <Route path="/investor-wallet" element={<InvestorWallet />} />
+        <Route path="/marketplace" element={<InvestorMarketplace />} />
+        <Route path="/investor-wallet" element={<InvestorWallet />} />
 
-      <Route path="/payment" element={<NMIPayment />} />
-      <Route path="/bitcoin-payment" element={<BitcoinPayment />} />
+        <Route path="/payment" element={<NMIPayment />} />
+        <Route path="/bitcoin-payment" element={<BitcoinPayment />} />
 
-      {/* Showcase / marketing pages */}
-      <Route path="/lords-farms" element={<LordFarmsDeal />} />
-      <Route path="/invest" element={<Invest />} />
-      <Route path="/investment-details" element={<InvestmentDetails />} />
+        <Route path="/messages" element={<Messages />} />
+        <Route path="/kyc" element={<KYCPage />} />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Showcase / marketing pages */}
+        <Route path="/lords-farms" element={<LordFarmsDeal />} />
+        <Route path="/invest" element={<Invest />} />
+        <Route path="/investment-details" element={<InvestmentDetails />} />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </ToastProvider>
   );
 }
