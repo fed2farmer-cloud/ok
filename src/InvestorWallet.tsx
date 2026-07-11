@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { NmiPayments } from "@nmipayments/nmi-pay-react";
 import { supabase } from "./lib/supabase";
 import PlaidConnectButton from "./components/PlaidConnectButton";
+import AppLayout from "./components/AppLayout";
+import { useToast } from "./context/ToastContext";
 
 export default function InvestorWallet() {
+  const navigate = useNavigate();
+  const { addToast } = useToast();
   const [wallet, setWallet] = useState<any>(null);
   const [investments, setInvestments] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -11,18 +17,36 @@ export default function InvestorWallet() {
 
   const [depositBankId, setDepositBankId] = useState("");
   const [depositAmount, setDepositAmount] = useState("");
-
   const [withdrawBankId, setWithdrawBankId] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
+
+  // NMI card deposit state
+  const [cardDepositAmount, setCardDepositAmount] = useState("");
+  const [cardPayStatus, setCardPayStatus] = useState("");
+  const [showCardDeposit, setShowCardDeposit] = useState(false);
 
   useEffect(() => {
     loadWallet();
   }, []);
 
-  function money(value: any) {
-    return "$" + Number(value || 0).toLocaleString(undefined, {
-      maximumFractionDigits: 2,
+  // Realtime wallet updates
+  useEffect(() => {
+    if (!supabase) return;
+    let cleanup: (() => void) | undefined;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user || !supabase) return;
+      const ch = supabase
+        .channel("wallet-realtime")
+        .on("postgres_changes", { event: "*", schema: "public", table: "investor_wallets", filter: `user_id=eq.${user.id}` },
+          (p) => setWallet(p.new))
+        .subscribe();
+      cleanup = () => { supabase?.removeChannel(ch); };
     });
+    return () => cleanup?.();
+  }, []);
+
+  function money(value: any) {
+    return Number(value || 0).toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
   }
 
   function formatDate(value: string) {
@@ -33,456 +57,329 @@ export default function InvestorWallet() {
   function bankLabel(account: any) {
     const bank = account.bank_name || account.institution_name || "Bank";
     const name = account.account_name || account.account_subtype || "Account";
-    const mask =
-      account.account_mask ||
-      account.account_number?.slice(-4) ||
-      account.plaid_account_id?.slice(-4) ||
-      "";
-    return `${bank} - ${name}${mask ? " ••••" + mask : ""}`;
+    const mask = account.account_mask || account.account_number?.slice(-4) || "";
+    return `${bank} – ${name}${mask ? " ••••" + mask : ""}`;
   }
 
   async function getToken() {
     if (!supabase) return null;
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
     return session?.access_token || null;
   }
 
   async function loadWallet() {
     if (!supabase) return;
-
     setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { navigate("/login"); return; }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      window.location.href = "/login";
-      return;
-    }
-
-    let { data: walletData } = await supabase
-      .from("investor_wallets")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
+    let { data: walletData } = await supabase.from("investor_wallets").select("*").eq("user_id", user.id).maybeSingle();
     if (!walletData) {
-      const { data: newWallet, error } = await supabase
-        .from("investor_wallets")
-        .insert({ user_id: user.id })
-        .select()
-        .single();
-
-      if (error) {
-        alert(error.message);
-        setLoading(false);
-        return;
-      }
-
-      walletData = newWallet;
+      const { data: nw } = await supabase.from("investor_wallets").insert({ user_id: user.id }).select().single();
+      walletData = nw;
     }
-
     setWallet(walletData);
 
-    const { data: investmentData } = await supabase
-      .from("investments")
-      .select("*")
-      .eq("investor_id", user.id)
-      .order("created_at", { ascending: false });
-
+    const { data: investmentData } = await supabase.from("investments").select("*").eq("investor_id", user.id).order("created_at", { ascending: false });
     setInvestments(investmentData || []);
 
-    const { data: transactionData } = await supabase
-      .from("wallet_transactions")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    setTransactions(transactionData || []);
+    const { data: txData } = await supabase.from("wallet_transactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    setTransactions(txData || []);
 
     const token = await getToken();
-
     if (token) {
-      const response = await fetch("/api/bank-accounts", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        setBankAccounts(result.accounts || []);
-      }
+      const res = await fetch("/api/bank-accounts", { headers: { Authorization: `****** ` } });
+      const result = await res.json();
+      if (res.ok) setBankAccounts(result.accounts || []);
     }
-
     setLoading(false);
   }
 
   async function handleDeposit(e: React.FormEvent) {
     e.preventDefault();
-
     const token = await getToken();
-
-    if (!token) {
-      alert("Please log in.");
+    if (!token || !depositBankId || !depositAmount || Number(depositAmount) < 1) {
+      addToast("error", "Invalid deposit", "Select a bank account and enter a valid amount.");
       return;
     }
-
-    if (!depositBankId) {
-      alert("Select a bank account.");
-      return;
-    }
-
-    if (!depositAmount || Number(depositAmount) < 1) {
-      alert("Enter a valid deposit amount.");
-      return;
-    }
-
-    const response = await fetch("/api/deposit-funds", {
+    const res = await fetch("/api/deposit-funds", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        bank_account_id: depositBankId,
-        amount: Number(depositAmount),
-      }),
+      headers: { "Content-Type": "application/json", Authorization: `****** ` },
+      body: JSON.stringify({ bank_account_id: depositBankId, amount: Number(depositAmount) }),
     });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      alert(result.error || "Deposit failed.");
-      return;
-    }
-
-    alert("Deposit completed.");
+    const result = await res.json();
+    if (!res.ok) { addToast("error", "Deposit failed", result.error); return; }
+    addToast("success", "Deposit complete", `${money(depositAmount)} added to your wallet.`);
     setDepositAmount("");
     await loadWallet();
   }
 
   async function handleWithdraw(e: React.FormEvent) {
     e.preventDefault();
-
     const token = await getToken();
-
-    if (!token) {
-      alert("Please log in.");
+    if (!token || !withdrawBankId || !withdrawAmount || Number(withdrawAmount) < 1) {
+      addToast("error", "Invalid withdrawal", "Select a bank account and enter a valid amount.");
       return;
     }
-
-    if (!withdrawBankId) {
-      alert("Select a bank account.");
-      return;
-    }
-
-    if (!withdrawAmount || Number(withdrawAmount) < 1) {
-      alert("Enter a valid withdrawal amount.");
-      return;
-    }
-
     if (Number(withdrawAmount) > Number(wallet?.available_balance || 0)) {
-      alert("Withdrawal amount exceeds available cash.");
+      addToast("error", "Insufficient balance", `Available: ${money(wallet?.available_balance)}`);
       return;
     }
-
-    const response = await fetch("/api/withdraw-funds", {
+    const res = await fetch("/api/withdraw-funds", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        bank_account_id: withdrawBankId,
-        amount: Number(withdrawAmount),
-      }),
+      headers: { "Content-Type": "application/json", Authorization: `****** ` },
+      body: JSON.stringify({ bank_account_id: withdrawBankId, amount: Number(withdrawAmount) }),
     });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      alert(result.error || "Withdrawal failed.");
-      return;
-    }
-
-    alert("Withdrawal requested.");
+    const result = await res.json();
+    if (!res.ok) { addToast("error", "Withdrawal failed", result.error); return; }
+    addToast("success", "Withdrawal requested");
     setWithdrawAmount("");
     await loadWallet();
   }
 
-  const totalInvested = investments.reduce(
-    (sum, item) => sum + Number(item.amount || 0),
-    0
-  );
+  async function handleCardDeposit(paymentToken: string) {
+    const amount = Number(cardDepositAmount || 0);
+    if (amount < 10) { setCardPayStatus("Minimum card deposit is $10."); return "Minimum $10"; }
 
-  const expectedMonthlyReturn = investments.reduce((sum, item) => {
-    const amount = Number(item.amount || 0);
-    const rate = Number(item.investor_interest_rate || 9);
-    return sum + (amount * rate) / 100 / 12;
-  }, 0);
+    const res = await fetch("/api/process-payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentToken, amount }),
+    });
+    const data = await res.json();
 
-  const expectedTotalInterest = investments.reduce((sum, item) => {
-    const amount = Number(item.amount || 0);
-    const rate = Number(item.investor_interest_rate || 9);
-    const months = Number(item.term_months || 36);
-    return sum + amount * (rate / 100) * (months / 12);
-  }, 0);
+    if (!data.success) {
+      setCardPayStatus(data.error || "Card payment failed.");
+      return data.error || "Payment failed";
+    }
 
-  const averageRate =
-    investments.length === 0
-      ? 0
-      : investments.reduce(
-          (sum, item) => sum + Number(item.investor_interest_rate || 9),
-          0
-        ) / investments.length;
+    // Credit wallet
+    const token = await getToken();
+    if (token) {
+      await fetch("/api/deposit-funds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `****** ` },
+        body: JSON.stringify({ amount, source: "card", description: `Card deposit $${amount}` }),
+      });
+    }
+
+    addToast("success", "Card deposit successful", `${money(amount)} added to your wallet.`);
+    setCardPayStatus("Payment successful!");
+    setCardDepositAmount("");
+    setShowCardDeposit(false);
+    await loadWallet();
+    return true;
+  }
+
+  const totalInvested = investments.reduce((s, i) => s + Number(i.amount || 0), 0);
+  const monthlyReturn = investments.reduce((s, i) => s + (Number(i.amount || 0) * Number(i.investor_interest_rate || 9)) / 100 / 12, 0);
+  const totalPortfolio = Number(wallet?.available_balance || 0) + totalInvested;
 
   if (loading) {
-    return <div className="p-8 text-xl">Loading investor wallet...</div>;
+    return (
+      <AppLayout>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500" />
+        </div>
+      </AppLayout>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <h1 className="text-3xl font-bold text-green-700 mb-6">
-        Investor Wallet
-      </h1>
-
-      <div className="grid md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl shadow p-5">
-          <p className="text-gray-500">Available Cash</p>
-          <h2 className="text-2xl font-bold">
-            {money(wallet?.available_balance)}
-          </h2>
-        </div>
-
-        <div className="bg-white rounded-xl shadow p-5">
-          <p className="text-gray-500">Pending Balance</p>
-          <h2 className="text-2xl font-bold">
-            {money(wallet?.pending_balance)}
-          </h2>
-        </div>
-
-        <div className="bg-white rounded-xl shadow p-5">
-          <p className="text-gray-500">Money Invested</p>
-          <h2 className="text-2xl font-bold">{money(totalInvested)}</h2>
-        </div>
-
-        <div className="bg-white rounded-xl shadow p-5">
-          <p className="text-gray-500">Expected Monthly Return</p>
-          <h2 className="text-2xl font-bold">
-            {money(expectedMonthlyReturn)}
-          </h2>
-        </div>
-
-        <div className="bg-white rounded-xl shadow p-5">
-          <p className="text-gray-500">Expected Total Interest</p>
-          <h2 className="text-2xl font-bold">
-            {money(expectedTotalInterest)}
-          </h2>
-        </div>
-
-        <div className="bg-white rounded-xl shadow p-5">
-          <p className="text-gray-500">Average Investor Rate</p>
-          <h2 className="text-2xl font-bold">{averageRate.toFixed(2)}%</h2>
-        </div>
-      </div>
-
-      <div className="mt-8 bg-white rounded-xl shadow p-6">
-        <h2 className="text-2xl font-bold mb-4">Connected Bank Accounts</h2>
-
-        {bankAccounts.length === 0 ? (
-          <p>No connected bank accounts yet.</p>
-        ) : (
-          <div className="grid gap-3">
-            {bankAccounts.map((account) => (
-              <div key={account.id} className="border rounded-lg p-4">
-                <p className="font-bold">✅ {bankLabel(account)}</p>
-                <p className="text-sm text-gray-600">
-                  Verified: {account.is_verified ? "Yes" : "No"}
+    <AppLayout>
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        {/* Header */}
+        <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-7 text-white shadow-2xl sm:p-10">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-300">Investor Wallet</p>
+          <h1 className="mt-3 text-3xl font-black tracking-tight">Capital Command Center</h1>
+          <div className="mt-5 grid grid-cols-2 gap-5 sm:grid-cols-4">
+            {[
+              ["Available Cash", money(wallet?.available_balance), "emerald"],
+              ["Invested", money(totalInvested), ""],
+              ["Pending", money(wallet?.pending_balance), "amber"],
+              ["Portfolio Total", money(totalPortfolio), "blue"],
+            ].map(([label, value, color]) => (
+              <div key={label as string}>
+                <p className="text-xs text-slate-400">{label}</p>
+                <p className={`mt-1 text-xl font-black ${color === "emerald" ? "text-emerald-400" : color === "amber" ? "text-amber-400" : color === "blue" ? "text-blue-400" : "text-white"}`}>
+                  {value}
                 </p>
               </div>
             ))}
           </div>
-        )}
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button onClick={() => navigate("/marketplace")} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-500">Browse Marketplace</button>
+            <button onClick={() => navigate("/investor")} className="rounded-xl bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/20">View Portfolio</button>
+          </div>
+        </section>
 
-        <div className="mt-4">
-          <PlaidConnectButton />
+        {/* Stats */}
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Positions</p>
+            <p className="mt-2 text-2xl font-black text-slate-950">{investments.length}</p>
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Est. Monthly Yield</p>
+            <p className="mt-2 text-2xl font-black text-emerald-700">{money(monthlyReturn)}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Transactions</p>
+            <p className="mt-2 text-2xl font-black text-slate-950">{transactions.length}</p>
+          </div>
         </div>
-      </div>
 
-      <div className="grid md:grid-cols-2 gap-6 mt-8">
-        <form
-          onSubmit={handleDeposit}
-          className="bg-white rounded-xl shadow p-6"
-        >
-          <h2 className="text-2xl font-bold mb-4 text-green-700">
-            Deposit Funds
-          </h2>
+        {/* Deposit / Withdraw / Card Deposit */}
+        <div className="mt-6 grid gap-6 lg:grid-cols-3">
+          {/* Bank Deposit */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-base font-bold text-slate-900">Deposit via Bank (Plaid/ACH)</h2>
+            <form onSubmit={handleDeposit} className="mt-4 space-y-3">
+              <select value={depositBankId} onChange={(e) => setDepositBankId(e.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500">
+                <option value="">Select bank account</option>
+                {bankAccounts.map((a) => <option key={a.id} value={a.id}>{bankLabel(a)}</option>)}
+              </select>
+              <input type="number" min="1" step="0.01" placeholder="Amount" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500" />
+              <button type="submit" className="w-full rounded-xl bg-emerald-600 py-2.5 font-bold text-white hover:bg-emerald-700">Deposit to Wallet</button>
+            </form>
+            <div className="mt-4">
+              <PlaidConnectButton />
+            </div>
+          </div>
 
-          <select
-            value={depositBankId}
-            onChange={(e) => setDepositBankId(e.target.value)}
-            className="w-full border p-3 rounded mb-4"
-          >
-            <option value="">Select bank account</option>
-            {bankAccounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {bankLabel(account)}
-              </option>
-            ))}
-          </select>
+          {/* Withdraw */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-base font-bold text-slate-900">Withdraw to Bank</h2>
+            <p className="mt-1 text-xs text-slate-500">Available: <strong>{money(wallet?.available_balance)}</strong></p>
+            <form onSubmit={handleWithdraw} className="mt-4 space-y-3">
+              <select value={withdrawBankId} onChange={(e) => setWithdrawBankId(e.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500">
+                <option value="">Select bank account</option>
+                {bankAccounts.map((a) => <option key={a.id} value={a.id}>{bankLabel(a)}</option>)}
+              </select>
+              <input type="number" min="1" step="0.01" placeholder="Amount" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500" />
+              <button type="submit" className="w-full rounded-xl bg-blue-600 py-2.5 font-bold text-white hover:bg-blue-700">Withdraw to Bank</button>
+            </form>
+          </div>
 
-          <input
-            type="number"
-            min="1"
-            step="0.01"
-            placeholder="Deposit amount"
-            value={depositAmount}
-            onChange={(e) => setDepositAmount(e.target.value)}
-            className="w-full border p-3 rounded mb-4"
-          />
+          {/* NMI Card Deposit — works from zero balance */}
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+            <h2 className="text-base font-bold text-slate-900">Deposit via Credit/Debit Card</h2>
+            <p className="mt-1 text-xs text-slate-500">Fund your wallet instantly with a card — no bank account required.</p>
+            {!showCardDeposit ? (
+              <button onClick={() => setShowCardDeposit(true)} className="mt-4 w-full rounded-xl bg-amber-500 py-2.5 font-bold text-white hover:bg-amber-600">
+                Add Funds with Card
+              </button>
+            ) : (
+              <div className="mt-4 space-y-3">
+                <input
+                  type="number"
+                  min="10"
+                  step="0.01"
+                  placeholder="Amount (min $10)"
+                  value={cardDepositAmount}
+                  onChange={(e) => setCardDepositAmount(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-amber-500"
+                />
+                {cardPayStatus && (
+                  <p className={`text-xs font-semibold ${cardPayStatus.includes("success") ? "text-emerald-600" : "text-rose-600"}`}>{cardPayStatus}</p>
+                )}
+                <NmiPayments
+                  tokenizationKey={import.meta.env.VITE_NMI_TOKENIZATION_KEY}
+                  paymentMethods={["card"]}
+                  onPay={handleCardDeposit}
+                />
+                <button type="button" onClick={() => setShowCardDeposit(false)} className="w-full rounded-xl border border-slate-300 py-2 text-sm font-medium text-slate-600">Cancel</button>
+              </div>
+            )}
+          </div>
+        </div>
 
-          <button className="w-full bg-green-600 text-white py-3 rounded-lg font-bold">
-            Deposit to Wallet
-          </button>
-        </form>
-
-        <form
-          onSubmit={handleWithdraw}
-          className="bg-white rounded-xl shadow p-6"
-        >
-          <h2 className="text-2xl font-bold mb-4 text-blue-700">
-            Withdraw Funds
-          </h2>
-
-          <p className="mb-3 text-gray-600">
-            Available Cash:{" "}
-            <strong>{money(wallet?.available_balance)}</strong>
-          </p>
-
-          <select
-            value={withdrawBankId}
-            onChange={(e) => setWithdrawBankId(e.target.value)}
-            className="w-full border p-3 rounded mb-4"
-          >
-            <option value="">Select bank account</option>
-            {bankAccounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {bankLabel(account)}
-              </option>
-            ))}
-          </select>
-
-          <input
-            type="number"
-            min="1"
-            step="0.01"
-            placeholder="Withdrawal amount"
-            value={withdrawAmount}
-            onChange={(e) => setWithdrawAmount(e.target.value)}
-            className="w-full border p-3 rounded mb-4"
-          />
-
-          <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">
-            Withdraw to Bank
-          </button>
-        </form>
-      </div>
-
-      <div className="mt-8 bg-white rounded-xl shadow p-6">
-        <button
-          onClick={() => (window.location.href = "/marketplace")}
-          className="bg-gray-800 text-white px-5 py-3 rounded-lg font-bold"
-        >
-          Browse Investments
-        </button>
-      </div>
-
-      <div className="mt-8 bg-white rounded-xl shadow p-6 overflow-x-auto">
-        <h2 className="text-2xl font-bold mb-4">Wallet Transactions</h2>
-
-        {transactions.length === 0 ? (
-          <p>No wallet transactions yet.</p>
-        ) : (
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b">
-                <th className="p-2">Date</th>
-                <th className="p-2">Type</th>
-                <th className="p-2">Description</th>
-                <th className="p-2">Amount</th>
-                <th className="p-2">Status</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {transactions.map((tx) => (
-                <tr key={tx.id} className="border-b">
-                  <td className="p-2">{formatDate(tx.created_at)}</td>
-                  <td className="p-2 capitalize">
-                    {tx.transaction_type || "transaction"}
-                  </td>
-                  <td className="p-2">{tx.description || "—"}</td>
-                  <td className="p-2 font-bold">{money(tx.amount)}</td>
-                  <td className="p-2 capitalize">
-                    {tx.status || "completed"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      <div className="mt-8 bg-white rounded-xl shadow p-6">
-        <h2 className="text-2xl font-bold mb-4">My Investments</h2>
-
-        {investments.length === 0 ? (
-          <p>No investments yet.</p>
-        ) : (
-          <div className="grid gap-4">
-            {investments.map((investment) => {
-              const amount = Number(investment.amount || 0);
-              const rate = Number(investment.investor_interest_rate || 9);
-              const months = Number(investment.term_months || 36);
-              const monthlyReturn = (amount * (rate / 100)) / 12;
-              const totalInterest = amount * (rate / 100) * (months / 12);
-
-              return (
-                <div key={investment.id} className="border rounded-lg p-4">
-                  <p>
-                    <strong>Loan ID:</strong> {investment.loan_id}
-                  </p>
-                  <p>
-                    <strong>Amount Invested:</strong> {money(amount)}
-                  </p>
-                  <p>
-                    <strong>Investor Rate:</strong> {rate}%
-                  </p>
-                  <p>
-                    <strong>Term:</strong> {months} months
-                  </p>
-                  <p>
-                    <strong>Expected Monthly Return:</strong>{" "}
-                    {money(monthlyReturn)}
-                  </p>
-                  <p>
-                    <strong>Expected Total Interest:</strong>{" "}
-                    {money(totalInterest)}
-                  </p>
-                  <p>
-                    <strong>Status:</strong> {investment.status}
-                  </p>
+        {/* Bank accounts */}
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-base font-bold text-slate-900">Connected Bank Accounts</h2>
+          {bankAccounts.length === 0 ? (
+            <div className="mt-4 flex flex-col items-start gap-3">
+              <p className="text-sm text-slate-500">No accounts connected. Link a bank account to deposit or withdraw via ACH.</p>
+              <PlaidConnectButton />
+            </div>
+          ) : (
+            <div className="mt-4 grid gap-3">
+              {bankAccounts.map((a) => (
+                <div key={a.id} className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
+                  <div>
+                    <p className="font-semibold text-slate-800">{bankLabel(a)}</p>
+                    <p className="text-xs text-slate-500">Verified: {a.is_verified ? "✓ Yes" : "Pending"}</p>
+                  </div>
+                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">Connected</span>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Transactions */}
+        <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 px-6 py-4">
+            <h2 className="text-base font-bold text-slate-900">Transaction History</h2>
+          </div>
+          {transactions.length === 0 ? (
+            <p className="p-6 text-sm text-slate-400">No transactions yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50">
+                    {["Date", "Type", "Description", "Amount", "Status"].map((h) => (
+                      <th key={h} className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map((tx) => (
+                    <tr key={tx.id} className="border-b border-slate-100 last:border-0">
+                      <td className="px-5 py-3 text-slate-500">{formatDate(tx.created_at)}</td>
+                      <td className="px-5 py-3 capitalize text-slate-700">{String(tx.transaction_type || tx.type || "—").replace(/_/g, " ")}</td>
+                      <td className="px-5 py-3 text-slate-500">{tx.description || "—"}</td>
+                      <td className={`px-5 py-3 font-black ${Number(tx.amount) >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                        {Number(tx.amount) >= 0 ? "+" : ""}{money(tx.amount)}
+                      </td>
+                      <td className="px-5 py-3 capitalize text-slate-500">{tx.status || "completed"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Investments */}
+        {investments.length > 0 && (
+          <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 px-6 py-4">
+              <h2 className="text-base font-bold text-slate-900">My Investments</h2>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {investments.map((inv) => {
+                const amount = Number(inv.amount || 0);
+                const rate = Number(inv.investor_interest_rate || 9);
+                const months = Number(inv.term_months || 36);
+                return (
+                  <div key={inv.id} className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
+                    <div>
+                      <p className="font-semibold text-slate-800">Loan #{inv.loan_id}</p>
+                      <p className="text-xs text-slate-500">{rate}% · {months} months</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-black text-emerald-700">{money(amount)}</p>
+                      <span className={`text-xs font-bold capitalize ${inv.status === "active" ? "text-emerald-600" : "text-slate-500"}`}>{inv.status}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
-    </div>
+    </AppLayout>
   );
 }

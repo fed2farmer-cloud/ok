@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import AppLayout from "../components/AppLayout";
 
 export default function LoanApplication() {
   const [form, setForm] = useState({
@@ -74,9 +75,10 @@ export default function LoanApplication() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-green-700">
+    <AppLayout>
+      <div className="mx-auto max-w-3xl py-8 px-4">
+      <div className="bg-white rounded-xl shadow-lg p-8">
+        <h1 className="text-3xl font-bold text-slate-900">
           Land Loan Application
         </h1>
 
@@ -124,11 +126,12 @@ export default function LoanApplication() {
 
           <textarea name="purpose" placeholder="Purpose of Loan" value={form.purpose} onChange={update} className="w-full border p-3 rounded h-32" />
 
-          <button type="submit" className="w-full bg-green-600 text-white py-3 rounded-lg font-bold">
+                    <button type="submit" className="w-full bg-slate-900 hover:bg-amber-500 text-white py-3 rounded-xl font-bold transition">
             Submit Application
           </button>
         </form>
       </div>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { supabase } from "./lib/supabase";
+import AppLayout from "./components/AppLayout";
 
 type LoanApplication = {
   Id?: number;
@@ -345,8 +346,9 @@ export default function LoanDocuments() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 sm:p-6">
-      <div className="mx-auto max-w-3xl rounded-xl bg-white p-5 shadow sm:p-6">
+    <AppLayout>
+      <div className="mx-auto max-w-3xl py-8 px-4">
+        <div className="rounded-xl bg-white p-5 shadow sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold text-green-700">
@@ -639,6 +641,7 @@ export default function LoanDocuments() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

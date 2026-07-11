@@ -1,4 +1,5 @@
 import { useState } from "react";
+import AppLayout from "./components/AppLayout";
 
 export default function BitcoinPayment() {
   const [amount, setAmount] = useState("10.99");
@@ -28,42 +29,44 @@ export default function BitcoinPayment() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-xl mx-auto bg-white rounded-xl shadow p-6">
-        <h1 className="text-3xl font-bold text-orange-600">
-          Bitcoin Payment
-        </h1>
+    <AppLayout>
+      <div className="mx-auto max-w-xl px-4 py-8">
+        <div className="rounded-2xl bg-white shadow-lg p-8">
+          <h1 className="text-3xl font-bold text-orange-600">
+            Bitcoin Payment
+          </h1>
 
-        <p className="mt-2 text-gray-600">
-          Pay your investment amount using Bitcoin.
-        </p>
+          <p className="mt-2 text-gray-600">
+            Pay your investment amount using Bitcoin.
+          </p>
 
-        <label className="block mt-6 font-bold">Amount</label>
-        <input
-          type="number"
-          step="0.01"
-          min="1"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="w-full border p-3 rounded mt-2"
-        />
+          <label className="block mt-6 font-bold">Amount</label>
+          <input
+            type="number"
+            step="0.01"
+            min="1"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="w-full border p-3 rounded mt-2"
+          />
 
-        <button
-          onClick={createBitcoinInvoice}
-          className="mt-6 w-full bg-orange-500 text-white py-3 rounded-lg font-bold"
-        >
-          Create Bitcoin Invoice
-        </button>
+          <button
+            onClick={createBitcoinInvoice}
+            className="mt-6 w-full bg-orange-500 text-white py-3 rounded-lg font-bold"
+          >
+            Create Bitcoin Invoice
+          </button>
 
-        <button
-          onClick={() => (window.location.href = "/investor-wallet")}
-          className="mt-3 w-full bg-gray-700 text-white py-3 rounded-lg font-bold"
-        >
-          Back to Investor Wallet
-        </button>
+          <button
+            onClick={() => (window.location.href = "/investor-wallet")}
+            className="mt-3 w-full bg-gray-700 text-white py-3 rounded-lg font-bold"
+          >
+            Back to Investor Wallet
+          </button>
 
-        {message && <p className="mt-4 text-center">{message}</p>}
+          {message && <p className="mt-4 text-center">{message}</p>}
+        </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

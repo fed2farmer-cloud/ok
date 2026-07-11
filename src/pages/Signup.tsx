@@ -63,116 +63,131 @@ export default function Signup() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-green-50 p-6">
-      <form
-        onSubmit={handleSignup}
-        className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md"
-      >
-        <h1 className="text-3xl font-bold text-green-700 mb-6">
-          Create Account
-        </h1>
+    <div className="min-h-screen bg-slate-950 flex flex-col">
+      {/* Header */}
+      <header className="px-6 py-4 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2">
+          <span className="text-2xl font-serif font-bold text-white tracking-tight">Secured<span className="text-amber-400">Landing</span></span>
+        </Link>
+        <Link to="/login" className="text-sm text-slate-400 hover:text-white transition">
+          Sign in →
+        </Link>
+      </header>
 
-        {!signupSuccess ? (
-          <>
-            <input
-              type="email"
-              placeholder="Email"
-              className="w-full border rounded-lg p-3 mb-4"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+      {/* Card */}
+      <main className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-2xl p-8">
+            <div className="text-center mb-8">
+              <h1 className="text-2xl font-serif font-bold text-slate-900">Create your account</h1>
+              <p className="mt-1 text-sm text-slate-500">Join SecuredLanding — land-backed lending marketplace</p>
+            </div>
 
-            <input
-              type="password"
-              placeholder="Password"
-              className="w-full border rounded-lg p-3 mb-4"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <form onSubmit={handleSignup} className="space-y-5">
+              {!signupSuccess ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email address</label>
+                    <input
+                      type="email"
+                      placeholder="you@example.com"
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
 
-            <input
-              type="password"
-              placeholder="Confirm Password"
-              className="w-full border rounded-lg p-3 mb-6"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
+                    <input
+                      type="password"
+                      placeholder="At least 8 characters"
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
 
-            <label className="block mb-4">
-              <span className="text-sm font-semibold text-gray-700 mb-2 block">
-                Account Type *
-              </span>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Confirm password</label>
+                    <input
+                      type="password"
+                      placeholder="Re-enter your password"
+                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="borrower"
-                    checked={role === "borrower"}
-                    onChange={(e) => setRole(e.target.value as "borrower")}
-                    className="mr-3 w-4 h-4 text-green-600"
-                    required
-                  />
-                  <span className="text-gray-700">Borrower</span>
-                </label>
+                  <div>
+                    <span className="block text-sm font-semibold text-slate-700 mb-2">Account type</span>
+                    <div className="grid grid-cols-2 gap-3">
+                      {(["borrower", "investor"] as const).map((r) => (
+                        <label
+                          key={r}
+                          className={`flex items-center gap-3 cursor-pointer rounded-xl border-2 px-4 py-3 transition ${
+                            role === r ? "border-amber-400 bg-amber-50" : "border-slate-200 hover:border-slate-300"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="role"
+                            value={r}
+                            checked={role === r}
+                            onChange={(e) => setRole(e.target.value as "borrower")}
+                            className="sr-only"
+                            required
+                          />
+                          <span className="text-lg">{r === "borrower" ? "🏡" : "📈"}</span>
+                          <span className="font-semibold text-slate-800 capitalize">{r}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
 
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="investor"
-                    checked={role === "investor"}
-                    onChange={(e) => setRole(e.target.value as "investor")}
-                    className="mr-3 w-4 h-4 text-green-600"
-                    required
-                  />
-                  <span className="text-gray-700">Investor</span>
-                </label>
-              </div>
-            </label>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full rounded-xl bg-slate-900 hover:bg-amber-500 px-5 py-3 font-bold text-white transition disabled:cursor-not-allowed disabled:bg-slate-300"
+                  >
+                    {loading ? "Creating account…" : "Create Account"}
+                  </button>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 disabled:opacity-50"
-            >
-              {loading ? "Creating Account..." : "Sign Up"}
-            </button>
+                  <p className="text-center text-sm text-slate-500">
+                    Already have an account?{" "}
+                    <Link to="/login" className="font-semibold text-amber-600 hover:underline">
+                      Sign in
+                    </Link>
+                  </p>
+                </>
+              ) : (
+                <div className="text-center py-4">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-3xl">✓</span>
+                  </div>
+                  <p className="text-lg font-semibold text-slate-900 mb-2">Account created!</p>
+                  <p className="text-sm text-slate-500 mb-6">
+                    Check your email for a confirmation link to activate your account.
+                  </p>
+                  <Link
+                    to="/login"
+                    className="inline-block rounded-xl bg-slate-900 hover:bg-amber-500 px-6 py-2.5 font-bold text-white transition"
+                  >
+                    Back to Sign In
+                  </Link>
+                </div>
+              )}
 
-            <p className="mt-4 text-center text-sm">
-              Already have an account?{" "}
-              <Link to="/login" className="text-green-600 font-bold hover:underline">
-                Login
-              </Link>
-            </p>
-          </>
-        ) : (
-          <div className="text-center">
-            <p className="text-green-600 font-semibold mb-4">
-              ✓ Account created successfully!
-            </p>
-            <p className="text-sm text-gray-700 mb-6">
-              Please check your email for a confirmation link to verify your account.
-            </p>
-            <Link
-              to="/login"
-              className="inline-block bg-green-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700"
-            >
-              Back to Login
-            </Link>
+              {message && !signupSuccess && (
+                <p className="text-center text-sm text-red-600">{message}</p>
+              )}
+            </form>
           </div>
-        )}
-
-        {message && !signupSuccess && (
-          <p className="mt-4 text-center text-sm text-red-600">
-            {message}
-          </p>
-        )}
-      </form>
+        </div>
+      </main>
     </div>
   );
 }
