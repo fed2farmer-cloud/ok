@@ -8,6 +8,9 @@ import InvestorDashboard from "./pages/InvestorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import LoanApplication from "./pages/LoanApplication";
 import InvestorMarketplace from "./pages/InvestorMarketplace";
+import LordFarmsDeal from "./pages/LordFarmsDeal";
+import Invest from "./pages/Invest";
+import InvestmentDetails from "./pages/InvestmentDetails";
 
 import LoanDocuments from "./LoanDocuments";
 import InvestorWallet from "./InvestorWallet";
@@ -35,6 +38,11 @@ export default function App() {
 
       <Route path="/payment" element={<NMIPayment />} />
       <Route path="/bitcoin-payment" element={<BitcoinPayment />} />
+
+      {/* Showcase / marketing pages */}
+      <Route path="/lords-farms" element={<LordFarmsDeal />} />
+      <Route path="/invest" element={<Invest />} />
+      <Route path="/investment-details" element={<InvestmentDetails />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

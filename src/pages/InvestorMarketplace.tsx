@@ -538,6 +538,20 @@ export default function InvestorMarketplace() {
                         ? "Loan Fully Funded"
                         : "Invest From Wallet"}
                   </button>
+
+                  {remaining > 0 && investmentAmount >= 100 && !exceedsRemaining && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          `/payment?loanId=${loan.loan_application_id}&amount=${investmentAmount}`
+                        )
+                      }
+                      className="mt-2 w-full rounded-lg bg-blue-600 py-3 font-bold text-white hover:bg-blue-700"
+                    >
+                      Pay with Card (NMI)
+                    </button>
+                  )}
                 </div>
               );
             })}

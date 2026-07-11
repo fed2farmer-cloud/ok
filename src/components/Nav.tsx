@@ -1,3 +1,12 @@
+export function Logo() {
+  return (
+    <a href="/" className="flex items-center gap-3">
+      <img src="/Logo.png" alt="SecuredLanding" className="h-8 w-8 object-contain" />
+      <span className="font-display text-lg font-semibold text-paper-50">SecuredLanding</span>
+    </a>
+  );
+}
+
 export default function Nav() {
   return (
     <nav className="sticky top-0 z-50 bg-white shadow-md">
