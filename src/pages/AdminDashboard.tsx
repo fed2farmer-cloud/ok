@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BarChart } from "../components/PortfolioCharts";
 import { supabase } from "../lib/supabase";
+import AppLayout from "../components/AppLayout";
 
 type LoanApplication = {
   id: number;
@@ -241,6 +242,20 @@ export default function AdminDashboard() {
   useEffect(() => {
     void checkAdmin();
   }, [checkAdmin]);
+
+  // Realtime: live admin analytics totals
+  useEffect(() => {
+    if (!supabase) return;
+    const ch = supabase
+      .channel("admin-applications-rt")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "loan_applications" },
+        () => void loadApplications(true)
+      )
+      .subscribe();
+    return () => { supabase?.removeChannel(ch); };
+  }, [loadApplications]);
 
   function updateEdit(id: number, field: keyof EditingValues, value: string | boolean) {
     setEditing((current) => ({
@@ -505,31 +520,20 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950 text-white shadow-xl">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <button type="button" onClick={() => navigate("/")} className="flex items-center gap-3 text-left">
-            <img src="/Logo.png" alt="SecuredLanding" className="h-11 w-11 rounded-xl bg-white object-contain p-1" />
-            <div>
-              <p className="text-lg font-black tracking-tight">SecuredLanding</p>
-              <p className="text-xs text-slate-300">Administration & Underwriting</p>
-            </div>
-          </button>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => void Promise.all([loadApplications(true), loadDocuments()])} className="rounded-lg bg-white/10 px-4 py-2 text-sm font-bold hover:bg-white/20">
-              {refreshing ? "Refreshing…" : "Refresh"}
-            </button>
-            <button onClick={() => navigate("/")} className="rounded-lg bg-white px-4 py-2 text-sm font-bold text-slate-950">Home</button>
-            <button onClick={logout} className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-bold hover:bg-rose-700">Logout</button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <AppLayout>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-7 text-white shadow-2xl sm:p-10">
           <p className="text-sm font-bold uppercase tracking-[0.22em] text-emerald-300">Operations center</p>
           <h1 className="mt-3 max-w-3xl text-3xl font-black tracking-tight sm:text-5xl">Underwrite with clarity. Manage every dollar with confidence.</h1>
           <p className="mt-4 max-w-2xl text-slate-300">Review collateral, documents, rates, marketplace status and funding progress from one secure command center.</p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              onClick={() => void Promise.all([loadApplications(true), loadDocuments()])}
+              className="rounded-xl bg-white/10 px-5 py-2.5 text-sm font-bold hover:bg-white/20"
+            >
+              {refreshing ? "Refreshing…" : "Refresh Data"}
+            </button>
+          </div>
         </section>
 
         {(errorMessage || message) && (
@@ -757,7 +761,7 @@ export default function AdminDashboard() {
             })
           )}
         </section>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 }
