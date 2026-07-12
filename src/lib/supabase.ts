@@ -13,7 +13,7 @@ const SESSION_REFRESH_BUFFER_MS = 60_000
 function sessionNeedsRefresh(session: Session | null) {
   if (!session?.access_token) return true
   if (!session.expires_at) return true
-  return session.expires_at * 1000 <= Date.now() + SESSION_REFRESH_BUFFER_MS
+  return session.expires_at * 1000 < Date.now() + SESSION_REFRESH_BUFFER_MS
 }
 
 export async function getCurrentAuthContext(): Promise<{

@@ -159,7 +159,7 @@ export default function LoanDocuments() {
       throw error;
     }
 
-    return (data as LoanApplication | null) || null;
+    return data as LoanApplication | null;
   }
 
   async function loadDocuments(userId?: string) {
@@ -295,12 +295,12 @@ export default function LoanDocuments() {
 
     try {
       const { user } = await getCurrentAuthContext();
-      const localApplication = applications.find(
+      const cachedApplication = applications.find(
         (application) => getApplicationId(application) === selectedLoanId
       );
 
-      const ownedApplication = localApplication
-        ? localApplication
+      const ownedApplication = cachedApplication
+        ? cachedApplication
         : await getOwnedApplication(user.id, selectedLoanId);
 
       if (!ownedApplication) {
@@ -308,7 +308,7 @@ export default function LoanDocuments() {
         return;
       }
 
-      if (!localApplication) {
+      if (!cachedApplication) {
         setApplications((current) => [ownedApplication, ...current]);
       }
 

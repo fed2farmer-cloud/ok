@@ -98,10 +98,11 @@ export default function KYCWorkflow({ expanded: initExpanded = false }: KYCWorkf
     userId: string
   ): Promise<string> {
     if (!supabase) throw new Error("Supabase unavailable");
+    if (!globalThis.crypto?.randomUUID) {
+      throw new Error("Secure file upload is unavailable in this browser. Please try again in a modern browser.");
+    }
     const ext = file.name.split(".").pop() ?? "bin";
-    const objectId =
-      globalThis.crypto?.randomUUID?.() ??
-      `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const objectId = globalThis.crypto.randomUUID();
     const path = `${userId}/${prefix}/${objectId}.${ext}`;
     const { error } = await supabase.storage.from(bucket).upload(path, file, {
       cacheControl: "3600",
