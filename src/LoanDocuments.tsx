@@ -1,5 +1,9 @@
 import { FormEvent, useEffect, useState } from "react";
-import { supabase } from "./lib/supabase";
+import {
+  getCurrentAuthContext,
+  getSupabaseErrorMessage,
+  supabase,
+} from "./lib/supabase";
 import AppLayout from "./components/AppLayout";
 
 type LoanApplication = {
@@ -86,12 +90,12 @@ export default function LoanDocuments() {
     setLoading(true);
     setErrorMessage("");
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+    let userId = "";
 
-    if (userError || !user) {
+    try {
+      const { user } = await getCurrentAuthContext();
+      userId = user.id;
+    } catch {
       window.location.href = "/login";
       return;
     }
@@ -102,11 +106,17 @@ export default function LoanDocuments() {
     const { data: applicationData, error: applicationError } = await supabase
       .from("loan_applications")
       .select("id, business_name, full_name, loan_amount")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (applicationError) {
-      setErrorMessage(applicationError.message);
+      console.error("Loan application load failed:", applicationError);
+      setErrorMessage(
+        getSupabaseErrorMessage(
+          applicationError,
+          "Unable to load your loan applications."
+        )
+      );
       setLoading(false);
       return;
     }
@@ -116,14 +126,40 @@ export default function LoanDocuments() {
 
     setApplications(borrowerApplications);
 
-    if (requestedLoanId) {
+    if (
+      requestedLoanId &&
+      borrowerApplications.some(
+        (application) => getApplicationId(application) === requestedLoanId
+      )
+    ) {
       setLoanId(requestedLoanId);
     } else if (borrowerApplications.length === 1) {
       setLoanId(String(getApplicationId(borrowerApplications[0])));
+    } else if (requestedLoanId) {
+      setErrorMessage(
+        "The selected loan application is not available in your account. Please choose a loan below."
+      );
     }
 
-    await loadDocuments(user.id);
+    await loadDocuments(userId);
     setLoading(false);
+  }
+
+  async function getOwnedApplication(userId: string, applicationId: string) {
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+      .from("loan_applications")
+      .select("id, business_name, full_name, loan_amount")
+      .eq("id", applicationId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    return (data as LoanApplication | null) || null;
   }
 
   async function loadDocuments(userId?: string) {
@@ -132,16 +168,13 @@ export default function LoanDocuments() {
     let resolvedUserId = userId;
 
     if (!resolvedUserId) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
+      try {
+        const { user } = await getCurrentAuthContext();
+        resolvedUserId = user.id;
+      } catch {
         window.location.href = "/login";
         return;
       }
-
-      resolvedUserId = user.id;
     }
 
     const { data, error } = await supabase
@@ -151,7 +184,10 @@ export default function LoanDocuments() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      setErrorMessage(error.message);
+      console.error("Loan document load failed:", error);
+      setErrorMessage(
+        getSupabaseErrorMessage(error, "Unable to load your documents.")
+      );
       return;
     }
 
@@ -236,15 +272,6 @@ export default function LoanDocuments() {
       return;
     }
 
-    const validApplication = applications.some(
-      (application) => getApplicationId(application) === selectedLoanId
-    );
-
-    if (!validApplication) {
-      setErrorMessage("This loan application does not belong to your account.");
-      return;
-    }
-
     const maximumFileSize = 15 * 1024 * 1024;
 
     if (file.size > maximumFileSize) {
@@ -267,15 +294,25 @@ export default function LoanDocuments() {
     setUploading(true);
 
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      const { user } = await getCurrentAuthContext();
 
-      if (userError || !user) {
-        window.location.href = "/login";
+      const ownedApplication =
+        applications.find(
+          (application) => getApplicationId(application) === selectedLoanId
+        ) || (await getOwnedApplication(user.id, selectedLoanId));
+
+      if (!ownedApplication) {
+        setErrorMessage("This loan application does not belong to your account.");
         return;
       }
+
+      setApplications((current) =>
+        current.some(
+          (application) => getApplicationId(application) === selectedLoanId
+        )
+          ? current
+          : [ownedApplication, ...current]
+      );
 
       const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
 
@@ -329,7 +366,10 @@ export default function LoanDocuments() {
 
       await loadDocuments(user.id);
     } catch (error: any) {
-      setErrorMessage(error?.message || "Document upload failed.");
+      console.error("Loan document upload failed:", error);
+      setErrorMessage(
+        getSupabaseErrorMessage(error, "Document upload failed.")
+      );
     } finally {
       setUploading(false);
     }

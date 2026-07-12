@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
+import {
+  getCurrentAuthContext,
+  getSupabaseErrorMessage,
+  supabase,
+} from "../lib/supabase";
 import { useToast } from "../context/ToastContext";
 
 export type KYCStatus =
@@ -87,15 +91,18 @@ export default function KYCWorkflow({ expanded: initExpanded = false }: KYCWorkf
     setLoading(false);
   }
 
-  async function uploadFile(bucket: string, file: File, prefix: string): Promise<string> {
+  async function uploadFile(
+    bucket: string,
+    file: File,
+    prefix: string,
+    userId: string
+  ): Promise<string> {
     if (!supabase) throw new Error("Supabase unavailable");
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Not authenticated");
     const ext = file.name.split(".").pop() ?? "bin";
-    const path = `${user.id}/${prefix}/${Date.now()}.${ext}`;
+    const path = `${userId}/${prefix}/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from(bucket).upload(path, file, {
       cacheControl: "3600",
-      upsert: true,
+      upsert: false,
       contentType: file.type,
     });
     if (error) throw error;
@@ -115,12 +122,13 @@ export default function KYCWorkflow({ expanded: initExpanded = false }: KYCWorkf
     setSaving(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const { user } = await getCurrentAuthContext();
 
       const [idPath, selfiePath] = await Promise.all([
-        uploadFile("kyc-documents", idFile, "id"),
-        selfieFile ? uploadFile("kyc-documents", selfieFile, "selfie") : Promise.resolve(null),
+        uploadFile("kyc-documents", idFile, "id", user.id),
+        selfieFile
+          ? uploadFile("kyc-documents", selfieFile, "selfie", user.id)
+          : Promise.resolve(null),
       ]);
 
       const payload = {
@@ -137,16 +145,28 @@ export default function KYCWorkflow({ expanded: initExpanded = false }: KYCWorkf
       };
 
       if (kyc) {
-        await supabase.from("kyc_submissions").update(payload).eq("id", kyc.id);
+        const { error } = await supabase
+          .from("kyc_submissions")
+          .update(payload)
+          .eq("id", kyc.id);
+
+        if (error) throw error;
       } else {
-        await supabase.from("kyc_submissions").insert(payload);
+        const { error } = await supabase.from("kyc_submissions").insert(payload);
+
+        if (error) throw error;
       }
 
       addToast("success", "KYC submitted", "Your identity is under review. We'll notify you within 1–2 business days.");
       await loadKYC();
       setExpanded(false);
     } catch (err: any) {
-      addToast("error", "Submission failed", err?.message);
+      console.error("KYC submission failed:", err);
+      addToast(
+        "error",
+        "Submission failed",
+        getSupabaseErrorMessage(err, "KYC submission failed.")
+      );
     } finally {
       setSaving(false);
     }
