@@ -306,7 +306,7 @@ function getDocumentLoanId(document: LoanDocument): string {
         .from("loan_documents")
         .insert({
           user_id: user.id,
-          loan_application_id: selectedLoanId,
+          loan_application_id: Number(selectedLoanId),
           document_type: documentType,
           file_name: file.name,
           storage_path: filePath,
