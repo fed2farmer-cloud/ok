@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { useToast } from "../context/ToastContext";
 
 interface VideoUploadProps {
-  loanApplicationId: number;
+  loanApplicationId: string;
   existingPath?: string | null;
   existingStatus?: string | null;
   onUploaded?: (path: string) => void;

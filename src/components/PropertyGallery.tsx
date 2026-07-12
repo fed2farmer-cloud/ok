@@ -11,7 +11,7 @@ interface Photo {
 }
 
 interface PropertyGalleryProps {
-  loanApplicationId: number;
+  loanApplicationId: string;
   readOnly?: boolean;
 }
 

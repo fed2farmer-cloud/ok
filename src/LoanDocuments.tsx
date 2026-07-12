@@ -3,8 +3,7 @@ import { supabase } from "./lib/supabase";
 import AppLayout from "./components/AppLayout";
 
 type LoanApplication = {
-  Id?: number;
-  id?: number;
+  id: string;
   business_name?: string | null;
   full_name?: string | null;
   loan_amount?: number | null;
@@ -13,7 +12,9 @@ type LoanApplication = {
 type LoanDocument = {
   id: string;
   user_id: string;
-  loan_application_id: number;
+  loan_id?: string | null;
+  loan_application_id?: string | null;
+  application_id?: string | null;
   document_type: string;
   file_name: string;
   storage_path?: string | null;
@@ -46,7 +47,11 @@ export default function LoanDocuments() {
   }, []);
 
   function getApplicationId(application: LoanApplication) {
-    return Number(application.Id ?? application.id ?? 0);
+    return application.id;
+  }
+
+  function getDocumentLoanId(document: LoanDocument) {
+    return document.loan_application_id ?? document.loan_id ?? document.application_id ?? "";
   }
 
   function formatMoney(value: unknown) {
@@ -96,7 +101,7 @@ export default function LoanDocuments() {
 
     const { data: applicationData, error: applicationError } = await supabase
       .from("loan_applications")
-      .select("Id, id, business_name, full_name, loan_amount")
+      .select("id, business_name, full_name, loan_amount")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -219,9 +224,9 @@ export default function LoanDocuments() {
     setMessage("");
     setErrorMessage("");
 
-    const numericLoanId = Number(loanId);
+    const selectedLoanId = loanId.trim();
 
-    if (!numericLoanId) {
+    if (!selectedLoanId) {
       setErrorMessage("Select a loan application.");
       return;
     }
@@ -232,7 +237,7 @@ export default function LoanDocuments() {
     }
 
     const validApplication = applications.some(
-      (application) => getApplicationId(application) === numericLoanId
+      (application) => getApplicationId(application) === selectedLoanId
     );
 
     if (!validApplication) {
@@ -276,7 +281,7 @@ export default function LoanDocuments() {
 
       const filePath = [
         user.id,
-        String(numericLoanId),
+        selectedLoanId,
         `${Date.now()}-${safeFileName}`,
       ].join("/");
 
@@ -296,7 +301,7 @@ export default function LoanDocuments() {
         .from("loan_documents")
         .insert({
           user_id: user.id,
-          loan_application_id: numericLoanId,
+          loan_application_id: selectedLoanId,
           document_type: documentType,
           file_name: file.name,
           storage_path: filePath,
@@ -332,8 +337,7 @@ export default function LoanDocuments() {
 
   const visibleDocuments = loanId
     ? documents.filter(
-        (document) =>
-          Number(document.loan_application_id) === Number(loanId)
+        (document) => getDocumentLoanId(document) === loanId
       )
     : documents;
 
@@ -599,7 +603,7 @@ export default function LoanDocuments() {
                     <div>
                       <p>
                         <strong>Loan application:</strong>{" "}
-                        {document.loan_application_id}
+                        {getDocumentLoanId(document)}
                       </p>
 
                       <p className="capitalize">

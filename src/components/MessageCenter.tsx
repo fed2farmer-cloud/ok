@@ -8,12 +8,12 @@ interface Message {
   sender_role: string;
   body: string;
   created_at: string;
-  loan_application_id: number | null;
+  loan_application_id: string | null;
   read: boolean;
 }
 
 interface Thread {
-  loan_application_id: number;
+  loan_application_id: string;
   loan_name: string;
   last_message: string;
   unread: number;
@@ -25,7 +25,7 @@ export default function MessageCenter() {
   const [userId, setUserId] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("");
   const [threads, setThreads] = useState<Thread[]>([]);
-  const [activeThread, setActiveThread] = useState<number | null>(null);
+  const [activeThread, setActiveThread] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
@@ -76,13 +76,13 @@ export default function MessageCenter() {
       .order("created_at", { ascending: false });
 
     // Group into threads
-    const threadMap = new Map<number, Thread>();
+    const threadMap = new Map<string, Thread>();
     for (const m of (data ?? []) as any[]) {
-      const lid = m.loan_application_id ?? 0;
+      const lid = m.loan_application_id ?? "";
       if (!threadMap.has(lid)) {
         threadMap.set(lid, {
           loan_application_id: lid,
-          loan_name: `Loan #${lid}`,
+          loan_name: lid ? `Loan #${lid}` : "General",
           last_message: m.body,
           unread: (!m.read && m.sender_id !== uid) ? 1 : 0,
           updated_at: m.created_at,
@@ -96,7 +96,7 @@ export default function MessageCenter() {
     setLoading(false);
   }
 
-  async function openThread(loanId: number) {
+  async function openThread(loanId: string) {
     if (!supabase) return;
     setActiveThread(loanId);
     setMessages([]);

@@ -32,7 +32,7 @@ export default async function handler(req: any, res: any) {
       return res.status(401).json({ error: "Unauthorized." });
     }
 
-    const loanId = Number(req.body?.loan_id);
+    const loanId = String(req.body?.loan_id ?? "").trim();
     const investAmount = Number(req.body?.amount);
 
     if (!loanId) {
@@ -158,7 +158,7 @@ export default async function handler(req: any, res: any) {
         amount_remaining: newAmountRemaining,
         status: loanStatus === "Funded" ? "Funded" : "Approved",
       })
-      .eq("Id", loanId);
+      .eq("id", loanId);
 
     const { data: investment, error: investmentError } = await supabase
       .from("investments")

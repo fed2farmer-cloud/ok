@@ -5,7 +5,7 @@ import { supabase } from "../lib/supabase";
 import AppLayout from "../components/AppLayout";
 
 type LoanApplication = {
-  id: number;
+  id: string;
   user_id?: string | null;
   created_at?: string | null;
   business_name?: string | null;
@@ -35,9 +35,9 @@ type LoanApplication = {
 
 type LoanDocument = {
   id: string;
-  loan_application_id?: number | null;
-  loan_id?: number | null;
-  application_id?: number | null;
+  loan_application_id?: string | null;
+  loan_id?: string | null;
+  application_id?: string | null;
   document_type?: string | null;
   file_name?: string | null;
   storage_path?: string | null;
@@ -65,7 +65,7 @@ function AdminVideoPlayer({
   onReviewed,
 }: {
   storagePath: string;
-  loanId: number;
+  loanId: string;
   onReviewed: () => void;
 }) {
   const [url, setUrl] = useState<string | null>(null);
@@ -119,12 +119,12 @@ export default function AdminDashboard() {
 
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [documents, setDocuments] = useState<LoanDocument[]>([]);
-  const [editing, setEditing] = useState<Record<number, EditingValues>>({});
+  const [editing, setEditing] = useState<Record<string, EditingValues>>({});
   const [documentNotes, setDocumentNotes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [allowed, setAllowed] = useState(false);
-  const [savingId, setSavingId] = useState<number | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [reviewingDocumentId, setReviewingDocumentId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -164,7 +164,7 @@ export default function AdminDashboard() {
     const loans = (data as LoanApplication[] | null) || [];
     setApplications(loans);
 
-    const nextEditing: Record<number, EditingValues> = {};
+    const nextEditing: Record<string, EditingValues> = {};
     loans.forEach((loan) => {
       nextEditing[loan.id] = {
         borrower_interest_rate: String(loan.borrower_interest_rate ?? 10),
@@ -257,7 +257,11 @@ export default function AdminDashboard() {
     return () => { supabase?.removeChannel(ch); };
   }, [loadApplications]);
 
-  function updateEdit(id: number, field: keyof EditingValues, value: string | boolean) {
+  function getDocumentLoanId(document: LoanDocument) {
+    return document.loan_application_id ?? document.loan_id ?? document.application_id ?? "";
+  }
+
+  function updateEdit(id: string, field: keyof EditingValues, value: string | boolean) {
     setEditing((current) => ({
       ...current,
       [id]: {
@@ -267,13 +271,13 @@ export default function AdminDashboard() {
     }));
   }
 
-  function getLoanDocuments(loanId: number) {
+  function getLoanDocuments(loanId: string) {
     return documents.filter((document) =>
-      Number(document.loan_application_id ?? document.loan_id ?? document.application_id ?? 0) === loanId
+      getDocumentLoanId(document) === loanId
     );
   }
 
-  async function saveLoanTerms(id: number) {
+  async function saveLoanTerms(id: string) {
     if (!supabase) return;
     setMessage("");
     setErrorMessage("");
@@ -362,7 +366,7 @@ export default function AdminDashboard() {
     }
   }
 
-  async function updateStatus(id: number, status: string) {
+  async function updateStatus(id: string, status: string) {
     if (!supabase) return;
     setMessage("");
     setErrorMessage("");

@@ -5,7 +5,7 @@ import AppLayout from "../components/AppLayout";
 
 type MarketplaceLoan = {
   id: number;
-  loan_application_id: number;
+  loan_application_id: string;
   business_name?: string | null;
   borrower_name?: string | null;
   apn?: string | null;
