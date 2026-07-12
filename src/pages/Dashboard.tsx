@@ -8,8 +8,7 @@ import RepaymentSchedule from "../components/RepaymentSchedule";
 import KYCWorkflow from "../components/KYCWorkflow";
 
 type LoanApplication = {
-  Id?: number;
-  id?: number;
+  id: string;
   user_id?: string | null;
   created_at?: string | null;
   business_name?: string | null;
@@ -32,7 +31,7 @@ type LoanApplication = {
 
 type MarketplaceLoan = {
   id: number;
-  loan_application_id?: number | null;
+  loan_application_id?: string | null;
   business_name?: string | null;
   funding_goal?: number | null;
   loan_amount?: number | null;
@@ -46,9 +45,9 @@ type MarketplaceLoan = {
 type LoanDocument = {
   id: string;
   user_id?: string | null;
-  loan_id?: number | null;
-  loan_application_id?: number | null;
-  application_id?: number | null;
+  loan_id?: string | null;
+  loan_application_id?: string | null;
+  application_id?: string | null;
   document_type?: string | null;
   file_name?: string | null;
   file_url?: string | null;
@@ -68,10 +67,14 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [expandedLoan, setExpandedLoan] = useState<number | null>(null);
+  const [expandedLoan, setExpandedLoan] = useState<string | null>(null);
 
   function getApplicationId(application: LoanApplication) {
-    return Number(application.Id ?? application.id ?? 0);
+    return application.id;
+  }
+
+  function getDocumentLoanId(document: LoanDocument) {
+    return document.loan_application_id ?? document.loan_id ?? document.application_id ?? "";
   }
 
   const loadDashboard = useCallback(async (silent = false) => {
@@ -99,7 +102,7 @@ export default function Dashboard() {
 
       const applicationIds = borrowerApplications
         .map((a) => getApplicationId(a))
-        .filter((id) => Number.isFinite(id) && id > 0);
+        .filter(Boolean);
 
       if (applicationIds.length === 0) {
         setMarketplaceLoans([]);
@@ -159,13 +162,13 @@ export default function Dashboard() {
 
   function getMarketplaceLoan(application: LoanApplication) {
     const id = getApplicationId(application);
-    return marketplaceLoans.find((l) => Number(l.loan_application_id || 0) === id);
+    return marketplaceLoans.find((l) => (l.loan_application_id ?? "") === id);
   }
 
   function getDocuments(application: LoanApplication) {
     const id = getApplicationId(application);
     return documents.filter((d) => {
-      const lid = Number(d.loan_application_id ?? d.loan_id ?? d.application_id ?? 0);
+      const lid = getDocumentLoanId(d);
       const ownedByUser = !d.user_id || d.user_id === currentUserId || d.user_id === application.user_id;
       return lid === id && ownedByUser;
     });

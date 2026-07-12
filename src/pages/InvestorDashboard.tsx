@@ -7,7 +7,7 @@ import KYCWorkflow from "../components/KYCWorkflow";
 
 interface Investment {
   id: string;
-  loan_id: number;
+  loan_id: string;
   amount: number;
   investor_interest_rate: number;
   term_months: number;

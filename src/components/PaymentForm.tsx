@@ -5,7 +5,7 @@ import { supabase } from "../lib/supabase";
 export default function PaymentForm() {
   const params = new URLSearchParams(window.location.search);
 
-  const loanId = Number(params.get("loanId") || params.get("loan") || 0);
+  const loanId = params.get("loanId") || params.get("loan") || "";
   const startingAmount = params.get("amount") || "";
 
   const [amount, setAmount] = useState(startingAmount);
@@ -19,7 +19,7 @@ export default function PaymentForm() {
       return false;
     }
 
-    if (!loanId) {
+    if (!loanId.trim()) {
       alert("No loan selected.");
       return false;
     }
@@ -96,7 +96,7 @@ export default function PaymentForm() {
         amount_remaining: newRemaining,
         status: newStatus === "Funded" ? "Funded" : "Approved",
       })
-      .eq("Id", loanId);
+      .eq("id", loanId);
 
     return true;
   }
