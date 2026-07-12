@@ -99,7 +99,10 @@ export default function KYCWorkflow({ expanded: initExpanded = false }: KYCWorkf
   ): Promise<string> {
     if (!supabase) throw new Error("Supabase unavailable");
     const ext = file.name.split(".").pop() ?? "bin";
-    const path = `${userId}/${prefix}/${crypto.randomUUID()}.${ext}`;
+    const objectId =
+      globalThis.crypto?.randomUUID?.() ??
+      `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const path = `${userId}/${prefix}/${objectId}.${ext}`;
     const { error } = await supabase.storage.from(bucket).upload(path, file, {
       cacheControl: "3600",
       upsert: false,

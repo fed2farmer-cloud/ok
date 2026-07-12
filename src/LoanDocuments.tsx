@@ -299,9 +299,9 @@ export default function LoanDocuments() {
         (application) => getApplicationId(application) === selectedLoanId
       );
 
-      const ownedApplication =
-        localApplication ??
-        (await getOwnedApplication(user.id, selectedLoanId));
+      const ownedApplication = localApplication
+        ? localApplication
+        : await getOwnedApplication(user.id, selectedLoanId);
 
       if (!ownedApplication) {
         setErrorMessage("This loan application does not belong to your account.");

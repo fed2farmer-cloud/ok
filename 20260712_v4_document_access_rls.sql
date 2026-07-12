@@ -130,6 +130,7 @@ insert into storage.buckets (id, name, public)
 values ('loan-documents', 'loan-documents', false)
 on conflict (id) do update set public = false;
 
+-- Loan document objects must follow {user_id}/{loan_application_id}/{filename}.
 drop policy if exists "Borrowers upload own loan documents" on storage.objects;
 create policy "Borrowers upload own loan documents"
   on storage.objects for insert to authenticated
@@ -183,6 +184,7 @@ create policy "Admins read all loan documents"
     and public.current_app_role() = 'admin'
   );
 
+-- Replace the broader legacy upload policy with a folder-scoped borrower policy.
 drop policy if exists "Authenticated users upload KYC docs" on storage.objects;
 drop policy if exists "Users upload own KYC docs" on storage.objects;
 create policy "Users upload own KYC docs"
