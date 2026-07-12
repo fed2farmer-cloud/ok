@@ -3,7 +3,7 @@ import { supabase } from "./lib/supabase";
 import AppLayout from "./components/AppLayout";
 
 type LoanApplication = {
-  id: string;
+  id: number;
   business_name?: string | null;
   full_name?: string | null;
   loan_amount?: number | null;
