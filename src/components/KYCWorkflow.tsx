@@ -137,9 +137,16 @@ export default function KYCWorkflow({ expanded: initExpanded = false }: KYCWorkf
       };
 
       if (kyc) {
-        await supabase.from("kyc_submissions").update(payload).eq("id", kyc.id);
+        const { error: updateError } = await supabase
+          .from("kyc_submissions")
+          .update(payload)
+          .eq("id", kyc.id);
+        if (updateError) throw updateError;
       } else {
-        await supabase.from("kyc_submissions").insert(payload);
+        const { error: insertError } = await supabase
+          .from("kyc_submissions")
+          .insert(payload);
+        if (insertError) throw insertError;
       }
 
       addToast("success", "KYC submitted", "Your identity is under review. We'll notify you within 1–2 business days.");
@@ -154,7 +161,13 @@ export default function KYCWorkflow({ expanded: initExpanded = false }: KYCWorkf
 
   if (loading) return null;
 
-  const status: KYCStatus = kyc?.status ?? "not_started";
+  // 'pending' was the legacy DB default before the V3 migration; treat it as 'in_progress'.
+  // Derive valid statuses from STATUS_META so both stay in sync automatically.
+  const rawStatus = kyc?.status as string | undefined;
+  const normalised = rawStatus === "pending" ? "in_progress" : rawStatus;
+  const status: KYCStatus = Object.prototype.hasOwnProperty.call(STATUS_META, normalised ?? "")
+    ? (normalised as KYCStatus)
+    : "not_started";
   const meta = STATUS_META[status];
   const canEdit = ["not_started", "in_progress", "rejected", "more_information"].includes(status);
 
