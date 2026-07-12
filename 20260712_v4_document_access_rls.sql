@@ -44,35 +44,35 @@ create policy "Admins update loan applications"
   using (public.current_app_role() = 'admin')
   with check (public.current_app_role() = 'admin');
 
-create table if not exists public.loan_documents (
-  id                  uuid primary key default gen_random_uuid(),
-  loan_application_id uuid not null references public.loan_applications(id) on delete cascade,
-  user_id             uuid not null references auth.users(id) on delete cascade,
-  document_type       text not null,
-  file_name           text not null,
-  storage_path        text not null,
-  file_url            text,
-  public_url          text,
-  status              text not null default 'submitted',
-  admin_notes         text,
-  reviewed_by         uuid references auth.users(id) on delete set null,
-  reviewed_at         timestamptz,
-  created_at          timestamptz not null default now()
-);
-
-alter table public.loan_documents
-  add column if not exists loan_application_id uuid references public.loan_applications(id) on delete cascade,
-  add column if not exists user_id uuid references auth.users(id) on delete cascade,
-  add column if not exists document_type text,
-  add column if not exists file_name text,
-  add column if not exists storage_path text,
-  add column if not exists file_url text,
-  add column if not exists public_url text,
-  add column if not exists status text default 'submitted',
-  add column if not exists admin_notes text,
-  add column if not exists reviewed_by uuid references auth.users(id) on delete set null,
-  add column if not exists reviewed_at timestamptz,
-  add column if not exists created_at timestamptz not null default now();
+do $$
+begin
+  if to_regclass('public.loan_documents') is null then
+    create table public.loan_documents (
+      id                  uuid primary key default gen_random_uuid(),
+      loan_application_id uuid not null references public.loan_applications(id) on delete cascade,
+      user_id             uuid not null references auth.users(id) on delete cascade,
+      document_type       text not null,
+      file_name           text not null,
+      storage_path        text not null,
+      file_url            text,
+      public_url          text,
+      status              text not null default 'submitted',
+      admin_notes         text,
+      reviewed_by         uuid references auth.users(id) on delete set null,
+      reviewed_at         timestamptz,
+      created_at          timestamptz not null default now()
+    );
+  else
+    alter table public.loan_documents
+      add column if not exists file_url text,
+      add column if not exists public_url text,
+      add column if not exists status text default 'submitted',
+      add column if not exists admin_notes text,
+      add column if not exists reviewed_by uuid references auth.users(id) on delete set null,
+      add column if not exists reviewed_at timestamptz,
+      add column if not exists created_at timestamptz default now();
+  end if;
+end $$;
 
 alter table public.loan_documents enable row level security;
 
