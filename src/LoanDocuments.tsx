@@ -28,6 +28,9 @@ type LoanDocument = {
   view_url?: string;
 };
 
+const LOAN_ACCESS_DENIED_MESSAGE =
+  "You do not have access to this loan application. Please choose a loan below.";
+
 export default function LoanDocuments() {
   const [loanId, setLoanId] = useState("");
   const [applications, setApplications] = useState<LoanApplication[]>([]);
@@ -136,9 +139,7 @@ export default function LoanDocuments() {
     } else if (borrowerApplications.length === 1) {
       setLoanId(String(getApplicationId(borrowerApplications[0])));
     } else if (requestedLoanId) {
-      setErrorMessage(
-        "The requested loan application was not found or does not belong to your account. Please choose a loan below."
-      );
+      setErrorMessage(LOAN_ACCESS_DENIED_MESSAGE);
     }
 
     await loadDocuments(userId);
@@ -304,7 +305,7 @@ export default function LoanDocuments() {
         : await getOwnedApplication(user.id, selectedLoanId);
 
       if (!ownedApplication) {
-        setErrorMessage("This loan application does not belong to your account.");
+        setErrorMessage(LOAN_ACCESS_DENIED_MESSAGE);
         return;
       }
 

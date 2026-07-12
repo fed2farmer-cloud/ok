@@ -99,7 +99,9 @@ export default function KYCWorkflow({ expanded: initExpanded = false }: KYCWorkf
   ): Promise<string> {
     if (!supabase) throw new Error("Supabase unavailable");
     if (!globalThis.crypto?.randomUUID) {
-      throw new Error("Secure file upload is unavailable in this browser. Please try again in a modern browser.");
+      throw new Error(
+        "Secure file upload requires a modern browser with crypto support (Chrome 92+, Firefox 95+, Safari 15.4+, or Edge 92+). Please update your browser or try a different one."
+      );
     }
     const ext = file.name.split(".").pop() ?? "bin";
     const objectId = globalThis.crypto.randomUUID();
