@@ -46,13 +46,18 @@ export default function LoanDocuments() {
     initializePage();
   }, []);
 
-  function getApplicationId(application: LoanApplication) {
-    return application.id;
-  }
+  function getApplicationId(application: LoanApplication): string {
+  return String(application.id);
+}
 
-  function getDocumentLoanId(document: LoanDocument) {
-    return document.loan_application_id ?? document.loan_id ?? document.application_id ?? "";
-  }
+function getDocumentLoanId(document: LoanDocument): string {
+  return String(
+    document.loan_application_id ??
+      document.loan_id ??
+      document.application_id ??
+      ""
+  );
+}
 
   function formatMoney(value: unknown) {
     return Number(value || 0).toLocaleString(undefined, {
