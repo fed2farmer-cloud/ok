@@ -10,11 +10,11 @@ type LoanApplication = {
 };
 
 type LoanDocument = {
-  id: string;
+  id: string | number;
   user_id: string;
-  loan_id?: string | null;
-  loan_application_id?: string | null;
-  application_id?: string | null;
+  loan_id?: string | number | null;
+  loan_application_id?: string | number | null;
+  application_id?: string | number | null;
   document_type: string;
   file_name: string;
   storage_path?: string | null;
