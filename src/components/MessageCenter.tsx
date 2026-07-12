@@ -78,7 +78,7 @@ export default function MessageCenter() {
     // Group into threads
     const threadMap = new Map<string, Thread>();
     for (const m of (data ?? []) as any[]) {
-      const lid = String(m.loan_application_id ?? "");
+      const lid = m.loan_application_id ?? "";
       if (!threadMap.has(lid)) {
         threadMap.set(lid, {
           loan_application_id: lid,
