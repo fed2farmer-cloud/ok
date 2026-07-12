@@ -162,9 +162,12 @@ export default function KYCWorkflow({ expanded: initExpanded = false }: KYCWorkf
   if (loading) return null;
 
   // 'pending' was the legacy DB default before the V3 migration; treat it as 'in_progress'.
+  // Derive valid statuses from STATUS_META so both stay in sync automatically.
   const rawStatus = kyc?.status as string | undefined;
-  const status: KYCStatus =
-    rawStatus === "pending" ? "in_progress" : (rawStatus as KYCStatus) ?? "not_started";
+  const normalised = rawStatus === "pending" ? "in_progress" : rawStatus;
+  const status: KYCStatus = Object.prototype.hasOwnProperty.call(STATUS_META, normalised ?? "")
+    ? (normalised as KYCStatus)
+    : "not_started";
   const meta = STATUS_META[status];
   const canEdit = ["not_started", "in_progress", "rejected", "more_information"].includes(status);
 

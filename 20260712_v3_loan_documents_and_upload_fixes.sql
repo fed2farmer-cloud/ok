@@ -113,7 +113,9 @@ create policy "Borrowers delete own loan documents"
 -- The frontend uses 'in_progress' (partial save state) and 'more_information' (admin request).
 -- Also change the default from 'pending' to 'in_progress' to match frontend expectations.
 
--- Step 1: migrate any existing 'pending' rows to 'in_progress' before changing the constraint
+-- Step 1: migrate any existing 'pending' rows to 'in_progress' before changing the constraint.
+-- This UPDATE is idempotent: after the first run no 'pending' rows remain, so subsequent
+-- executions are safe no-ops.
 update public.kyc_submissions
 set status = 'in_progress'
 where status = 'pending';
