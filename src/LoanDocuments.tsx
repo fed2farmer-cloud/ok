@@ -137,7 +137,7 @@ export default function LoanDocuments() {
       setLoanId(String(getApplicationId(borrowerApplications[0])));
     } else if (requestedLoanId) {
       setErrorMessage(
-        "The selected loan application is not available in your account. Please choose a loan below."
+        "The requested loan application was not found or does not belong to your account. Please choose a loan below."
       );
     }
 
@@ -295,24 +295,22 @@ export default function LoanDocuments() {
 
     try {
       const { user } = await getCurrentAuthContext();
+      const localApplication = applications.find(
+        (application) => getApplicationId(application) === selectedLoanId
+      );
 
       const ownedApplication =
-        applications.find(
-          (application) => getApplicationId(application) === selectedLoanId
-        ) || (await getOwnedApplication(user.id, selectedLoanId));
+        localApplication ??
+        (await getOwnedApplication(user.id, selectedLoanId));
 
       if (!ownedApplication) {
         setErrorMessage("This loan application does not belong to your account.");
         return;
       }
 
-      setApplications((current) =>
-        current.some(
-          (application) => getApplicationId(application) === selectedLoanId
-        )
-          ? current
-          : [ownedApplication, ...current]
-      );
+      if (!localApplication) {
+        setApplications((current) => [ownedApplication, ...current]);
+      }
 
       const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
 
