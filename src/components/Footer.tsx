@@ -113,7 +113,7 @@ export default function Footer() {
         <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
           <div className="grid gap-12 lg:grid-cols-[1.2fr_2fr]">
             <div>
-              <Logo />
+              <Logo dark />
               <p className="mt-5 max-w-xs text-[13px] leading-relaxed text-paper-50/45">
                 The land-backed lending marketplace. Unlocking the equity trapped in American
                 land ownership — securely, transparently, and fast.
@@ -144,7 +144,7 @@ export default function Footer() {
 
           <div className="mt-14 border-t border-paper-50/8 pt-8">
             <p className="text-[11px] leading-relaxed text-paper-50/30">
-              © {new Date().getFullYear()} SecuredLanding.com. All rights reserved. SecuredLanding is a financial
+              © {new Date().getFullYear()} SecuredLanding.com. All rights reserved. Secured Landing is a financial
               technology platform, not a bank. Loans are subject to underwriting, title verification, independent
               valuation, and applicable state law, and are available only where legally permitted. Investments
               involve risk, including possible loss of principal, and are offered only to eligible investors in
