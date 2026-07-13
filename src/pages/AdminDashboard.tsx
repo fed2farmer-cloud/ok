@@ -6,6 +6,7 @@ import AppLayout from "../components/AppLayout";
 
 type LoanApplication = {
   id: string;
+  loan_number?: number | null;
   user_id?: string | null;
   created_at?: string | null;
   business_name?: string | null;
@@ -329,6 +330,7 @@ export default function AdminDashboard() {
           .upsert(
             {
               loan_application_id: id,
+              loan_number: loan.loan_number,
               business_name: loan.business_name || "Land-backed loan",
               borrower_name: loan.full_name || "",
               apn: loan.apn || "",
@@ -357,13 +359,81 @@ export default function AdminDashboard() {
         if (removeError) throw removeError;
       }
 
-      setMessage(`Application #${id} was saved successfully.`);
+      setMessage(`Loan #${loan.loan_number ?? id} was saved successfully.`);
       await loadApplications(true);
     } catch (error: any) {
       setErrorMessage(error?.message || "Unable to save the loan review.");
     } finally {
       setSavingId(null);
     }
+  }
+
+  async function createClosingCenter(loan: LoanApplication) {
+    if (!supabase || !loan.user_id) return;
+
+    const amount = Number(loan.loan_amount || 0);
+    const term = Number(loan.repayment_term_months || 36);
+    const values = editing[loan.id];
+    const borrowerRate = Number(values?.borrower_interest_rate ?? loan.borrower_interest_rate ?? 10);
+    const investorRate = Number(values?.investor_interest_rate ?? loan.investor_interest_rate ?? 9);
+    const monthlyRate = borrowerRate / 100 / 12;
+    const payment = monthlyRate === 0
+      ? amount / Math.max(term, 1)
+      : (amount * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -term));
+
+    const { data: closing, error: closingError } = await supabase
+      .from("loan_closings")
+      .upsert({
+        loan_application_id: loan.id,
+        borrower_user_id: loan.user_id,
+        stage: "borrower_actions",
+        progress_percent: 12,
+        approved_loan_amount: amount,
+        borrower_interest_rate: borrowerRate,
+        investor_interest_rate: investorRate,
+        repayment_term_months: term,
+        monthly_payment: Number(payment.toFixed(2)),
+        terms_locked_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "loan_application_id" })
+      .select("id")
+      .single();
+    if (closingError) throw closingError;
+
+    const tasks = [
+      ["underwriting", "Underwriting approved", "complete", 1],
+      ["video", "Upload borrower introduction video", loan.borrower_video_path ? "submitted" : "pending", 2],
+      ["required_documents", "Upload required property and identity documents", "pending", 3],
+      ["loan_documents", "Review generated loan documents", "pending", 4],
+      ["signatures", "Sign closing documents", "pending", 5],
+      ["investor_funding", "Investor funding complete", "pending", 6],
+      ["disbursement", "Funds released", "pending", 7],
+    ].map(([task_key, title, taskStatus, sort_order]) => ({
+      loan_closing_id: closing.id,
+      loan_application_id: loan.id,
+      task_key, title, status: taskStatus, sort_order,
+      completed_at: taskStatus === "complete" ? new Date().toISOString() : null,
+    }));
+
+    const { error: taskError } = await supabase
+      .from("closing_tasks")
+      .upsert(tasks, { onConflict: "loan_application_id,task_key" });
+    if (taskError) throw taskError;
+
+    await supabase.from("borrower_notifications").insert({
+      user_id: loan.user_id,
+      loan_application_id: loan.id,
+      title: "Your Secured Landing loan was approved",
+      message: "Your approved terms are ready. Open the Closing Center to upload your introduction video, review required documents and track funding.",
+      notification_type: "loan_approved",
+    });
+
+    await supabase.from("loan_timeline_events").insert({
+      loan_application_id: loan.id,
+      event_key: "loan_approved",
+      title: "Loan approved",
+      description: "Approved terms were locked and the Closing Center was created.",
+    });
   }
 
   async function updateStatus(id: string, status: string) {
@@ -390,6 +460,10 @@ export default function AdminDashboard() {
         .eq("id", id);
       if (applicationError) throw applicationError;
 
+      if (status === "Approved") {
+        await createClosingCenter({ ...loan, status });
+      }
+
       if (status === "Funded") {
         const values = editing[id];
         const borrowerRate = Number(values?.borrower_interest_rate ?? loan.borrower_interest_rate ?? 10);
@@ -399,6 +473,7 @@ export default function AdminDashboard() {
           .upsert(
             {
               loan_application_id: id,
+              loan_number: loan.loan_number,
               business_name: loan.business_name || "Land-backed loan",
               borrower_name: loan.full_name || "",
               apn: loan.apn || "",
@@ -430,7 +505,7 @@ export default function AdminDashboard() {
         }
       }
 
-      setMessage(`Application #${id} status changed to ${status}.`);
+      setMessage(`Loan #${loan.loan_number || id} status changed to ${status}.`);
       await loadApplications(true);
     } catch (error: any) {
       setErrorMessage(error?.message || "Unable to update loan status.");
@@ -516,7 +591,7 @@ export default function AdminDashboard() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950">
         <div className="text-center text-white">
-          <img src="/Logo.png" alt="SecuredLanding" className="mx-auto h-16 w-16 rounded-2xl object-contain" />
+          <img src="/Logo.png" alt="Secured Landing" className="mx-auto h-16 w-16 rounded-2xl object-contain" />
           <p className="mt-5 text-lg font-semibold">Loading secure admin workspace…</p>
         </div>
       </div>
@@ -640,7 +715,7 @@ export default function AdminDashboard() {
                 <article key={loan.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
                   <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-6 py-5">
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Application #{loan.id}</p>
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Loan #{loan.loan_number ?? loan.id}</p>
                       <h2 className="mt-1 text-2xl font-black text-slate-950">{loan.business_name || loan.full_name || "Land-backed loan"}</h2>
                     </div>
                     <span className={`rounded-full px-3 py-1 text-sm font-bold ${statusClasses(loan.status)}`}>{loan.status || "Pending"}</span>

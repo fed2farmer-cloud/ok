@@ -6,9 +6,11 @@ import PropertyGallery from "../components/PropertyGallery";
 import MapEmbed from "../components/MapEmbed";
 import RepaymentSchedule from "../components/RepaymentSchedule";
 import KYCWorkflow from "../components/KYCWorkflow";
+import ClosingCenterCard from "../components/ClosingCenterCard";
 
 type LoanApplication = {
   id: string;
+  loan_number?: number | null;
   user_id?: string | null;
   created_at?: string | null;
   business_name?: string | null;
@@ -32,6 +34,7 @@ type LoanApplication = {
 type MarketplaceLoan = {
   id: number;
   loan_application_id?: string | null;
+  loan_number?: number | null;
   business_name?: string | null;
   funding_goal?: number | null;
   loan_amount?: number | null;
@@ -283,7 +286,7 @@ export default function Dashboard() {
                     {/* Card header */}
                     <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 px-6 py-5">
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Application #{applicationId}</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Loan #{application.loan_number ?? applicationId}</p>
                         <h3 className="mt-1 text-xl font-black text-slate-950">{application.business_name || application.full_name || "Land Loan"}</h3>
                       </div>
                       <div className="flex items-center gap-3">
