@@ -1,12 +1,12 @@
-# Testing checklist
+# Testing Checklist
 
-- Homepage displays the farmland sunrise hero.
-- Header reads **Secured Landing**.
-- Apply button opens `/loan-application`.
-- Investment button opens `/marketplace`.
-- Navigation links scroll to the correct sections.
-- Calculator updates the maximum loan estimate.
-- Featured opportunity cards display properly.
-- Mobile navigation opens and closes.
-- Login and signup links still work.
-- Footer appears with the updated branding.
+- [ ] SQL migration finishes with `Success. No rows returned`.
+- [ ] Existing borrower, investor and admin pages still load.
+- [ ] Admin can save borrower and investor rates.
+- [ ] Clicking Approved creates one `loan_closings` record.
+- [ ] Seven default `closing_tasks` records are created.
+- [ ] Borrower sees the Closing Center and six-digit public loan number.
+- [ ] Approved amount, rate, term and estimated payment are correct.
+- [ ] Borrower can upload or replace an introduction video.
+- [ ] Review / Upload Documents opens the loan document page.
+- [ ] Reapproving the same loan updates the existing closing instead of duplicating it.

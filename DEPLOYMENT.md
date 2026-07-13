@@ -1,19 +1,9 @@
-# Deployment instructions
+# Deployment
 
-1. Upload this package's files to the same paths in the GitHub repository.
-2. Replace the existing files when prompted.
-3. Do not place the files in the repository root.
-4. Commit the changes to the `main` branch.
-5. Allow Vercel to deploy automatically.
-6. Open the homepage on mobile and desktop and hard-refresh the browser.
+1. Run `supabase/migrations/20260713_v2_3_0_closing_center.sql` in the Supabase SQL Editor.
+2. Upload the three TypeScript files into the matching repository folders, replacing existing files where applicable.
+3. Commit to `main` and allow Vercel to deploy.
+4. Open an admin loan, save the approved rates, then click Approved.
+5. Sign in as that borrower and open the dashboard. The Closing Center should appear on the approved loan.
 
-## Files replaced
-- `src/pages/Home.tsx`
-- `src/components/Nav.tsx`
-- `src/components/Hero.tsx`
-- `src/components/Calculator.tsx`
-- `src/components/Marketplace.tsx`
-- `src/components/Footer.tsx`
-- `src/index.css`
-
-No SQL migration is required for this visual update.
+Important: run the SQL migration before testing approval. Without the new tables, approval will show a database error.
