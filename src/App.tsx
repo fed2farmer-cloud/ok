@@ -14,6 +14,7 @@ import Invest from "./pages/Invest";
 import InvestmentDetails from "./pages/InvestmentDetails";
 import Messages from "./pages/Messages";
 import KYCPage from "./pages/KYCPage";
+import LoanForms from "./pages/LoanForms";
 
 import LoanDocuments from "./LoanDocuments";
 import InvestorWallet from "./InvestorWallet";
@@ -36,6 +37,7 @@ export default function App() {
 
         <Route path="/loan-application" element={<LoanApplication />} />
         <Route path="/loan-documents" element={<LoanDocuments />} />
+        <Route path="/loan-forms" element={<LoanForms />} />
 
         <Route path="/marketplace" element={<InvestorMarketplace />} />
         <Route path="/investor-wallet" element={<InvestorWallet />} />
