@@ -283,7 +283,7 @@ export default function AdminDashboard() {
 
   function getLoanDocuments(loanId: string) {
     return documents.filter((document) =>
-      getDocumentLoanId(document) === loanId
+      String(getDocumentLoanId(document)) === String(loanId)
     );
   }
 
@@ -623,9 +623,21 @@ export default function AdminDashboard() {
   const totals = useMemo(() => {
     const volume = applications.reduce((sum, loan) => sum + Number(loan.loan_amount || 0), 0);
     const funded = applications.reduce((sum, loan) => sum + Number(loan.amount_funded || 0), 0);
-    const pending = applications.filter((loan) => String(loan.status || "Pending").toLowerCase() === "pending").length;
-    return { volume, funded, pending };
-  }, [applications]);
+    const pendingLoans = applications.filter((loan) => String(loan.status || "Pending").toLowerCase() === "pending").length;
+    const pendingVideos = applications.filter((loan) =>
+      Boolean(loan.borrower_video_path) &&
+      !["approved", "rejected"].includes(String(loan.borrower_video_status || "submitted").toLowerCase())
+    ).length;
+    const pendingDocuments = documents.filter((document) =>
+      !["approved", "rejected"].includes(String(document.status || "submitted").toLowerCase())
+    ).length;
+    return { volume, funded, pending: pendingLoans + pendingVideos + pendingDocuments };
+  }, [applications, documents]);
+
+  const videoApplications = useMemo(
+    () => applications.filter((loan) => Boolean(loan.borrower_video_path)),
+    [applications]
+  );
 
   function statusClasses(status?: string | null) {
     const normalized = String(status || "Pending").toLowerCase();
@@ -681,6 +693,46 @@ export default function AdminDashboard() {
               <p className="mt-2 text-2xl font-black text-slate-950">{value}</p>
             </div>
           ))}
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Media review queue</p>
+              <h2 className="mt-1 text-2xl font-black text-slate-950">Borrower introduction videos</h2>
+              <p className="mt-1 text-sm text-slate-600">Review uploaded videos here without scrolling through every loan application.</p>
+            </div>
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-black text-emerald-800">{videoApplications.length} uploaded</span>
+          </div>
+
+          {videoApplications.length === 0 ? (
+            <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm font-semibold text-slate-600">
+              No borrower videos are currently available. Refresh after a borrower completes an upload.
+            </div>
+          ) : (
+            <div className="mt-5 grid gap-5 xl:grid-cols-2">
+              {videoApplications.map((loan) => (
+                <div key={`video-${loan.id}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Loan #{loan.loan_number ?? loan.id}</p>
+                      <h3 className="mt-1 text-lg font-black text-slate-950">{loan.business_name || loan.full_name || "Borrower video"}</h3>
+                    </div>
+                    <span className={`rounded-full px-3 py-1 text-xs font-black ${statusClasses(loan.borrower_video_status)}`}>
+                      {String(loan.borrower_video_status || "submitted").replaceAll("_", " ")}
+                    </span>
+                  </div>
+                  <VideoReviewPanel
+                    applicationId={loan.id}
+                    storagePath={loan.borrower_video_path!}
+                    status={loan.borrower_video_status}
+                    existingNotes={loan.borrower_video_admin_notes}
+                    onReviewed={() => loadApplications(true)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Analytics Charts */}
