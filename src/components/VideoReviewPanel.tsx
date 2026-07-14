@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { syncApprovedBorrowerVideo } from "../lib/marketplace";
 
 export type VideoReviewStatus = "submitted" | "approved" | "rejected" | "more_information";
 
@@ -16,6 +17,7 @@ export default function VideoReviewPanel({ applicationId, storagePath, status, e
   const [notes, setNotes] = useState(existingNotes ?? "");
   const [saving, setSaving] = useState<VideoReviewStatus | null>(null);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -34,6 +36,7 @@ export default function VideoReviewPanel({ applicationId, storagePath, status, e
     if (!supabase) return;
     setSaving(nextStatus);
     setError("");
+    setMessage("");
     const { data: { user } } = await supabase.auth.getUser();
     const update = {
       borrower_video_status: nextStatus,
@@ -42,9 +45,18 @@ export default function VideoReviewPanel({ applicationId, storagePath, status, e
       borrower_video_reviewed_by: user?.id ?? null,
     };
     const { error } = await supabase.from("loan_applications").update(update).eq("id", applicationId);
-    setSaving(null);
-    if (error) { setError(error.message); return; }
-    await onReviewed?.();
+    if (error) { setSaving(null); setError(error.message); return; }
+    try {
+      if (nextStatus === "approved") {
+        await syncApprovedBorrowerVideo(applicationId, storagePath, nextStatus);
+      }
+      setMessage(nextStatus === "approved" ? "Video approved and synchronized with the marketplace." : `Video marked ${nextStatus.replace(/_/g, " ")}.`);
+      await onReviewed?.();
+    } catch (syncError: any) {
+      setError(syncError?.message || "The video was reviewed, but marketplace synchronization failed.");
+    } finally {
+      setSaving(null);
+    }
   }
 
   return (
@@ -57,7 +69,8 @@ export default function VideoReviewPanel({ applicationId, storagePath, status, e
       </div>
       {url ? <video src={url} controls preload="metadata" className="mt-4 max-h-[520px] w-full rounded-xl bg-black" /> : <p className="mt-4 text-sm text-slate-500">Loading borrower video…</p>}
       <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Notes sent to the borrower" className="mt-4 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm" />
-      {error && <p className="mt-2 text-sm font-semibold text-rose-700">{error}</p>}
+      {error && <p className="mt-2 rounded-lg bg-rose-50 p-3 text-sm font-semibold text-rose-700">{error}</p>}
+      {message && <p className="mt-2 rounded-lg bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">{message}</p>}
       <div className="mt-3 flex flex-wrap gap-2">
         <button type="button" disabled={Boolean(saving)} onClick={() => void review("approved")} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{saving === "approved" ? "Approving…" : "Approve Video"}</button>
         <button type="button" disabled={Boolean(saving)} onClick={() => void review("more_information")} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Request New Video</button>
