@@ -1,0 +1,18 @@
+SecuredLanding Admin + Footer Patch
+
+Copy each file into the matching folder in your GitHub project, replacing files when prompted.
+
+Included:
+- src/pages/AdminDashboard.tsx
+- src/components/VideoReviewPanel.tsx
+- src/components/GeneratedDocumentsPanel.tsx
+- src/components/Footer.tsx
+- src/lib/admin.ts
+- src/lib/marketplace.ts
+- src/types/database.ts
+- supabase/functions/publish-marketplace/index.ts
+
+The footer Instagram icon is the only new external redirect:
+https://www.instagram.com/securedlanding?igsh=MW50b2FtMG9hcml4aQ==
+
+After uploading, redeploy Vercel. The production build was verified successfully.
