@@ -1,15 +1,15 @@
 # SecuredLanding v2.5.0
 
-## Included in this package
+## Included
 
-- Replaced the clipped header mark with the approved horizontal Secured Landing branding.
-- Added a dedicated app icon for loading states and future favicon use.
-- Added administrator borrower-video review controls and signed video playback.
-- Added approved borrower-video fields to marketplace publishing.
-- Added investor marketplace playback for admin-approved borrower videos only.
-- Added a compatibility migration for generated loan documents, admin review metadata, and marketplace video fields.
-- Preserved the existing bigint `loan_applications.id` convention.
+- Transparent, mobile-safe Secured Landing logo in public and authenticated headers.
+- Admin borrower-video review controls: approve, request changes, and reject.
+- Approved borrower-video publishing to the investor marketplace.
+- Generated loan-document and closing-center workflow.
+- Consolidated idempotent master migration matching the application schema.
+- Compatibility for the production `bigint` loan application identifier.
+- PostgREST schema reload notification after migration.
 
-## Required Supabase step
+## Required deployment step
 
-Run `supabase/migrations/20260714_v2_5_admin_video_documents_branding.sql` in the Supabase SQL Editor before testing the new marketplace and generated-document workflow.
+Run `MASTER_MIGRATION.sql` in the Supabase SQL Editor before testing the updated admin and marketplace workflows.
