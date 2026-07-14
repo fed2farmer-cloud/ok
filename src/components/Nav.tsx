@@ -3,11 +3,12 @@ import { Link } from "react-router-dom";
 
 export function Logo({ dark = false }: { dark?: boolean }) {
   return (
-    <Link to="/" className="flex items-center gap-3" aria-label="Secured Landing home">
-      <img src="/Logo.png" alt="Secured Landing" className="h-10 w-10 rounded-full object-contain shadow-sm" />
-      <span className={`font-display text-xl font-bold tracking-tight ${dark ? "text-paper-50" : "text-emerald-950"}`}>
-        Secured <span className="text-amber-600">Landing</span>
-      </span>
+    <Link to="/" className="flex min-w-0 items-center" aria-label="Secured Landing home">
+      <img
+        src="/secured-landing-logo.png"
+        alt="Secured Landing — land-backed lending and secure investing"
+        className={`h-11 w-auto max-w-[190px] object-contain sm:h-12 sm:max-w-[230px] ${dark ? "brightness-0 invert" : ""}`}
+      />
     </Link>
   );
 }
