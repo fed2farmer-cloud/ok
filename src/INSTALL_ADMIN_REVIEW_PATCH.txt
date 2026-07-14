@@ -1,0 +1,15 @@
+SECURED LANDING v2.5.2 ADMIN REVIEW PATCH
+
+Replace the files in GitHub using the exact folder paths included in this ZIP.
+Do not upload the enclosing patch folder itself.
+
+This patch adds:
+- A visible Media Review Queue near the top of the Admin Dashboard.
+- Borrower video playback without scrolling through every loan.
+- Approve Video, Request New Video, and Reject Video controls.
+- Marketplace synchronization after video approval.
+- Normalized bigint/string document-to-loan matching.
+- Pending-review totals that include pending videos and documents.
+- Footer Instagram link only; the other social symbols remain non-clickable.
+
+The MASTER_MIGRATION has already been run successfully, so no additional SQL is required for this patch.
