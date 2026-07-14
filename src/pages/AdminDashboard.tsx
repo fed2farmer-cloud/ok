@@ -420,6 +420,45 @@ export default function AdminDashboard() {
       .upsert(tasks, { onConflict: "loan_application_id,task_key" });
     if (taskError) throw taskError;
 
+    const generatedDocuments = [
+      ["promissory_note", "Promissory Note"],
+      ["deed_of_trust", "California Deed of Trust — Attorney Review Required"],
+      ["payment_schedule", "Payment Schedule"],
+      ["borrower_certification", "Borrower Certification"],
+      ["esign_consent", "Electronic Signature Consent"],
+      ["closing_summary", "Closing Summary"],
+    ].map(([document_type, title]) => ({
+      loan_application_id: Number(loan.id),
+      borrower_user_id: loan.user_id,
+      document_type,
+      title,
+      status: "ready_for_review",
+      terms_snapshot: {
+        loan_number: loan.loan_number ?? Number(loan.id),
+        borrower_name: loan.full_name || "",
+        business_name: loan.business_name || "",
+        property_address: loan.property_address || "",
+        apn: loan.apn || "",
+        county: loan.county || "",
+        state: loan.state || "CA",
+        approved_loan_amount: amount,
+        borrower_interest_rate: borrowerRate,
+        investor_interest_rate: investorRate,
+        repayment_term_months: term,
+        monthly_payment: Number(payment.toFixed(2)),
+        generated_at: new Date().toISOString(),
+      },
+      updated_at: new Date().toISOString(),
+    }));
+
+    const { error: generatedDocumentError } = await supabase
+      .from("generated_loan_documents")
+      .upsert(generatedDocuments, { onConflict: "loan_application_id,document_type" });
+    if (generatedDocumentError) throw generatedDocumentError;
+
+    await supabase.from("closing_tasks").update({ status: "submitted" })
+      .eq("loan_application_id", loan.id).eq("task_key", "loan_documents");
+
     await supabase.from("borrower_notifications").insert({
       user_id: loan.user_id,
       loan_application_id: loan.id,

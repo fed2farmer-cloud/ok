@@ -6,6 +6,7 @@ import AppLayout from "../components/AppLayout";
 type MarketplaceLoan = {
   id: number;
   loan_application_id: string;
+  loan_number?: number | null;
   business_name?: string | null;
   borrower_name?: string | null;
   apn?: string | null;
@@ -484,7 +485,7 @@ export default function InvestorMarketplace() {
 
                     <p>
                       <strong>Loan ID:</strong>{" "}
-                      {loan.loan_application_id}
+                      {loan.loan_number ?? loan.loan_application_id}
                     </p>
                   </div>
                 </div>
@@ -582,7 +583,7 @@ export default function InvestorMarketplace() {
                     type="button"
                     onClick={() =>
                       navigate(
-                        `/payment?loanId=${loan.loan_application_id}&amount=${investmentAmount}`
+                        `/payment?loanId=${loan.loan_number ?? loan.loan_application_id}&amount=${investmentAmount}`
                       )
                     }
                     className="mt-2 w-full rounded-lg bg-blue-600 py-3 font-bold text-white hover:bg-blue-700"
