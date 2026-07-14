@@ -346,6 +346,8 @@ export default function AdminDashboard() {
               funding_goal: loanAmount,
               amount_funded: amountFunded,
               amount_remaining: amountRemaining,
+              borrower_video_path: loan.borrower_video_status === "approved" ? loan.borrower_video_path : null,
+              borrower_video_status: loan.borrower_video_status || "not_submitted",
               status: amountRemaining <= 0 ? "Funded" : "Open",
             },
             { onConflict: "loan_application_id" }
@@ -630,7 +632,7 @@ export default function AdminDashboard() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950">
         <div className="text-center text-white">
-          <img src="/Logo.png" alt="Secured Landing" className="mx-auto h-16 w-16 rounded-2xl object-contain" />
+          <img src="/secured-landing-icon.png" alt="Secured Landing" className="mx-auto h-16 w-16 rounded-2xl object-contain" />
           <p className="mt-5 text-lg font-semibold">Loading secure admin workspace…</p>
         </div>
       </div>

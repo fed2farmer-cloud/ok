@@ -21,7 +21,37 @@ type MarketplaceLoan = {
   investor_interest_rate?: number | null;
   status?: string | null;
   created_at?: string | null;
+  borrower_video_path?: string | null;
+  borrower_video_status?: string | null;
 };
+
+
+function ApprovedBorrowerVideo({ storagePath }: { storagePath: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!supabase) return;
+    void supabase.storage
+      .from("borrower-videos")
+      .createSignedUrl(storagePath, 3600)
+      .then(({ data, error }) => {
+        if (active && !error && data?.signedUrl) setUrl(data.signedUrl);
+      });
+    return () => { active = false; };
+  }, [storagePath]);
+
+  if (!url) {
+    return <div className="mt-5 rounded-xl bg-slate-100 p-4 text-sm text-slate-500">Loading approved borrower video…</div>;
+  }
+
+  return (
+    <div className="mt-5 overflow-hidden rounded-2xl border border-emerald-100 bg-black shadow-sm">
+      <div className="bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">Approved borrower introduction</div>
+      <video src={url} controls preload="metadata" className="max-h-[520px] w-full bg-black object-contain" />
+    </div>
+  );
+}
 
 type InvestorWallet = {
   id?: string;
@@ -430,6 +460,10 @@ export default function InvestorMarketplace() {
                     {loan.status || "Open"}
                   </span>
                 </div>
+
+                {loan.borrower_video_status === "approved" && loan.borrower_video_path && (
+                  <ApprovedBorrowerVideo storagePath={loan.borrower_video_path} />
+                )}
 
                 <div className="mt-5 grid gap-4 text-gray-700 sm:grid-cols-2">
                   <div className="space-y-1">
