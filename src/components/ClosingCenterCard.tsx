@@ -89,8 +89,8 @@ export default function ClosingCenterCard({ loanApplicationId, loanNumber, loanA
               </div>
             )}
             <div className="mt-4 flex flex-wrap gap-2">
-              <button onClick={() => { window.location.href = `/loan-documents?loan=${loanApplicationId}`; }} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-600">Review / Upload Documents</button>
-              <button disabled className="cursor-not-allowed rounded-lg bg-slate-200 px-4 py-2 text-sm font-bold text-slate-500" title="Electronic signature integration is coming in the next release">Sign Documents — Coming Next</button>
+              <button onClick={() => { window.location.href = `/loan-forms?loanId=${loanApplicationId}`; }} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-600">Review Loan Forms</button>
+              <button onClick={() => { window.location.href = `/loan-documents?loanId=${loanApplicationId}`; }} className="rounded-lg border border-emerald-700 px-4 py-2 text-sm font-bold text-emerald-800 hover:bg-emerald-50">Upload Supporting Documents</button>
             </div>
           </div>
 
