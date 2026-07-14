@@ -7,7 +7,7 @@ export function Logo({ dark = false }: { dark?: boolean }) {
       <img
         src="/secured-landing-logo.png"
         alt="Secured Landing — land-backed lending and secure investing"
-        className={`h-11 w-auto max-w-[190px] object-contain sm:h-12 sm:max-w-[230px] ${dark ? "brightness-0 invert" : ""}`}
+        className="h-10 w-auto max-w-[185px] object-contain sm:h-12 sm:max-w-[225px]"
       />
     </Link>
   );

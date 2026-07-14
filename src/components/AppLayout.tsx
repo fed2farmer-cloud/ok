@@ -226,8 +226,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <img src="/Logo.png" alt="SecuredLanding" className="h-7 w-7 object-contain" />
-              <span className="text-sm font-semibold text-slate-700">SecuredLanding</span>
+              <img src="/secured-landing-logo.png" alt="Secured Landing" className="h-9 w-auto max-w-[180px] object-contain" />
             </div>
             <p className="text-xs text-slate-400">
               © {new Date().getFullYear()} SecuredLanding. Land-backed lending
