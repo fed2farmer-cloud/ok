@@ -1,16 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import BrandLogo from "./BrandLogo";
 
 export function Logo({ dark = false }: { dark?: boolean }) {
-  return (
-    <Link to="/" className="flex min-w-0 items-center" aria-label="Secured Landing home">
-      <img
-        src="/secured-landing-logo.png"
-        alt="Secured Landing — land-backed lending and secure investing"
-        className="h-10 w-auto max-w-[185px] object-contain sm:h-12 sm:max-w-[225px]"
-      />
-    </Link>
-  );
+  return <BrandLogo light={dark} className="h-10 w-auto max-w-[210px] sm:h-12 sm:max-w-[250px]" />;
 }
 
 const PUBLIC_NAV = [
