@@ -1,0 +1,11 @@
+SECURED LANDING v2.6 VIDEO WORKFLOW PATCH
+
+1. Copy the files in this ZIP into the same paths in GitHub.
+2. Run supabase/migrations/20260715_v2_6_video_workflow_patch.sql in Supabase SQL Editor.
+3. Redeploy Vercel.
+4. Sign in as the borrower and upload the introduction video again once.
+5. Sign in as admin and press Refresh Data. The video will appear in Media Review Queue.
+
+Important: videos uploaded before their database path was saved cannot be associated automatically. Re-uploading once links the storage object to the correct loan application.
+
+The Instagram redirect exists only on the footer Instagram button.
