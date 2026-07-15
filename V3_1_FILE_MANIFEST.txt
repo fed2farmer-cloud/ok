@@ -1,0 +1,14 @@
+NEW
+public/secured-landing-logo.svg
+src/components/BrandLogo.tsx
+src/components/AdminKYCReview.tsx
+supabase/migrations/20260715_v3_1_branding_kyc_admin.sql
+V3_1_INSTALL.txt
+V3_1_FILE_MANIFEST.txt
+
+UPDATED
+src/components/Nav.tsx
+src/components/AppLayout.tsx
+src/pages/Login.tsx
+src/pages/Signup.tsx
+src/pages/AdminDashboard.tsx

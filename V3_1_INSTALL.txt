@@ -1,0 +1,9 @@
+SecuredLanding v3.1 Milestone 1 — Branding + Private KYC/AML Admin Review
+
+1. Copy the files in this ZIP into the same paths in your GitHub repository.
+2. Run supabase/migrations/20260715_v3_1_branding_kyc_admin.sql in Supabase SQL Editor.
+3. Commit the changes and wait for Vercel/Railway to deploy.
+4. Sign in as an admin and open /admin. The KYC/AML queue appears beneath the media review queue.
+5. Confirm the same smooth SVG logo appears on Home, Login, Signup, dashboards, and footer.
+
+Privacy: KYC files remain in a private storage bucket. Investors have no policy granting access.
