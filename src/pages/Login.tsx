@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import BrandLogo from "../components/BrandLogo";
 import { supabase } from "../lib/supabase";
 
 type UserRole = "borrower" | "investor" | "admin";
@@ -167,9 +168,7 @@ export default function Login() {
     <div className="min-h-screen bg-slate-950 flex flex-col">
       {/* Header */}
       <header className="px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="text-2xl font-serif font-bold text-white tracking-tight">Secured<span className="text-amber-400">Landing</span></span>
-        </Link>
+        <BrandLogo light className="h-11 w-auto max-w-[250px]" />
         <Link to="/signup" className="text-sm text-slate-400 hover:text-white transition">
           New account →
         </Link>

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { BarChart } from "../components/PortfolioCharts";
 import { supabase } from "../lib/supabase";
 import AppLayout from "../components/AppLayout";
+import BrandLogo from "../components/BrandLogo";
+import AdminKYCReview from "../components/AdminKYCReview";
 
 type LoanApplication = {
   id: string;
@@ -642,7 +644,7 @@ export default function AdminDashboard() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950">
         <div className="text-center text-white">
-          <img src="/Logo.png" alt="Secured Landing" className="mx-auto h-16 w-16 rounded-2xl object-contain" />
+          <BrandLogo light={false} linkToHome={false} className="mx-auto h-16 w-auto max-w-[280px]" />
           <p className="mt-5 text-lg font-semibold">Loading secure admin workspace…</p>
         </div>
       </div>
@@ -727,6 +729,8 @@ export default function AdminDashboard() {
             </div>
           )}
         </section>
+
+        <AdminKYCReview />
 
         {/* Analytics Charts */}
         <section className="mt-6 grid gap-6 lg:grid-cols-2">
