@@ -15,6 +15,8 @@ import InvestmentDetails from "./pages/InvestmentDetails";
 import Messages from "./pages/Messages";
 import KYCPage from "./pages/KYCPage";
 import LoanForms from "./pages/LoanForms";
+import ClosingCenter from "./pages/ClosingCenter";
+import FundingCampaign from "./pages/FundingCampaign";
 
 import LoanDocuments from "./LoanDocuments";
 import InvestorWallet from "./InvestorWallet";
@@ -38,6 +40,8 @@ export default function App() {
         <Route path="/loan-application" element={<LoanApplication />} />
         <Route path="/loan-documents" element={<LoanDocuments />} />
         <Route path="/loan-forms" element={<LoanForms />} />
+        <Route path="/closing-center" element={<ClosingCenter />} />
+        <Route path="/funding-campaign" element={<FundingCampaign />} />
 
         <Route path="/marketplace" element={<InvestorMarketplace />} />
         <Route path="/investor-wallet" element={<InvestorWallet />} />
