@@ -354,22 +354,28 @@ export default function VideoUpload({
 
       setProgress(75);
 
-      const { error: updateError } = await supabase
+      const { data: updatedApplication, error: updateError } = await supabase
         .from("loan_applications")
         .update({
           borrower_video_path: uploadedPath,
-          borrower_video_status: "submitted",
+          borrower_video_status: "under_review",
           borrower_video_admin_notes: null,
+          borrower_video_reviewed_at: null,
+          borrower_video_reviewed_by: null,
         })
         .eq("id", applicationId)
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .select("id, borrower_video_path, borrower_video_status")
+        .maybeSingle();
 
-      if (updateError) {
+      if (updateError || !updatedApplication?.borrower_video_path) {
         await supabase.storage
           .from("borrower-videos")
           .remove([uploadedPath]);
 
-        throw updateError;
+        throw updateError || new Error(
+          "The video uploaded, but the loan record was not updated. Please try again."
+        );
       }
 
       /*
@@ -393,7 +399,7 @@ export default function VideoUpload({
 
       setProgress(100);
       setStoredPath(uploadedPath);
-      setStatus("submitted");
+      setStatus("under_review");
       clearSelectedFile();
 
       addToast(

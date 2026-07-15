@@ -118,10 +118,10 @@ export default function Footer() {
                 The land-backed lending marketplace. Unlocking the equity trapped in American
                 land ownership — securely, transparently, and fast.
               </p>
-              <div className="mt-6 flex gap-3">
-                {["X", "in", "f", "▶"].map((social) => (
-                  <span key={social} aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-full text-[12px] font-semibold text-paper-50/35 ring-1 ring-paper-50/10">
-                    {social}
+              <div className="mt-6 flex gap-3" aria-label="Secured Landing social media">
+                {["X", "in", "f", "▶"].map((symbol) => (
+                  <span key={symbol} aria-hidden="true" className="flex h-9 w-9 cursor-default items-center justify-center rounded-full text-[12px] font-semibold text-paper-50/35 ring-1 ring-paper-50/10">
+                    {symbol}
                   </span>
                 ))}
                 <a
@@ -129,14 +129,9 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Visit Secured Landing on Instagram"
-                  title="Instagram"
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-paper-50/70 ring-1 ring-paper-50/20 transition hover:text-paper-50 hover:ring-paper-50/50"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-[15px] font-semibold text-paper-50/70 ring-1 ring-paper-50/20 transition hover:text-paper-50 hover:ring-paper-50/50"
                 >
-                  <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-none stroke-current" strokeWidth="1.8">
-                    <rect x="3" y="3" width="18" height="18" rx="5" />
-                    <circle cx="12" cy="12" r="4" />
-                    <circle cx="17.5" cy="6.5" r="1" className="fill-current stroke-none" />
-                  </svg>
+                  ◎
                 </a>
               </div>
             </div>
