@@ -23,12 +23,6 @@ type MarketplaceLoan = {
   created_at?: string | null;
   borrower_video_path?: string | null;
   borrower_video_status?: string | null;
-  funding_started_at?: string | null;
-  funding_deadline?: string | null;
-  funding_window_days?: number | null;
-  funding_status?: string | null;
-  minimum_investment?: number | null;
-  investor_count?: number | null;
 };
 
 
@@ -213,22 +207,6 @@ export default function InvestorMarketplace() {
     }
 
     return Math.min(Math.max((funded / goal) * 100, 0), 100);
-  }
-
-  function getDaysRemaining(loan: MarketplaceLoan) {
-    if (!loan.funding_deadline) return Number(loan.funding_window_days || 45);
-    const deadline = new Date(loan.funding_deadline).getTime();
-    if (Number.isNaN(deadline)) return 45;
-    return Math.max(0, Math.ceil((deadline - Date.now()) / (24 * 60 * 60 * 1000)));
-  }
-
-  function fundingCallToAction(daysRemaining: number, percentage: number) {
-    if (percentage >= 100) return "Fully funded — preparing for closing";
-    if (daysRemaining <= 0) return "Funding window closed";
-    if (daysRemaining === 1) return "Final day to invest";
-    if (daysRemaining <= 5) return `Final ${daysRemaining} days — help close this loan`;
-    if (daysRemaining <= 10) return `Funding closes in ${daysRemaining} days`;
-    return `${daysRemaining} days remaining to participate`;
   }
 
   async function logout() {
@@ -456,8 +434,6 @@ export default function InvestorMarketplace() {
             const funded = getAmountFunded(loan);
             const remaining = getAmountRemaining(loan);
             const percentage = getFundingPercentage(loan);
-            const daysRemaining = getDaysRemaining(loan);
-            const fundingCta = fundingCallToAction(daysRemaining, percentage);
             const investmentAmount = Number(amounts[loan.id] || 0);
 
             const isProcessing = processingLoanId === loan.id;
@@ -548,19 +524,6 @@ export default function InvestorMarketplace() {
                   </div>
                 </div>
 
-                <div className={`mt-6 rounded-xl border p-4 ${daysRemaining <= 10 ? "border-amber-300 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}>
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">45-day funding window</p>
-                      <p className="mt-1 text-lg font-black text-slate-950">{fundingCta}</p>
-                    </div>
-                    <span className={`rounded-full px-3 py-1 text-sm font-black ${daysRemaining <= 10 ? "bg-amber-500 text-white" : "bg-emerald-700 text-white"}`}>
-                      {daysRemaining} day{daysRemaining === 1 ? "" : "s"} left
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm text-slate-700">Minimum investment: {money(loan.minimum_investment ?? 100)}{Number(loan.investor_count || 0) > 0 ? ` · ${loan.investor_count} investors participating` : ""}</p>
-                </div>
-
                 <div className="mt-6">
                   <div className="flex justify-between gap-4 text-sm">
                     <span>Funding Progress</span>
@@ -602,10 +565,10 @@ export default function InvestorMarketplace() {
                   <input
                     id={`investment-${loan.id}`}
                     type="number"
-                    min={Number(loan.minimum_investment || 100)}
+                    min="100"
                     step="1"
                     max={remaining}
-                    placeholder={`Minimum investment ${money(loan.minimum_investment || 100)}`}
+                    placeholder="Minimum investment $100"
                     value={amounts[loan.id] || ""}
                     onChange={(event) =>
                       setAmounts((current) => ({
