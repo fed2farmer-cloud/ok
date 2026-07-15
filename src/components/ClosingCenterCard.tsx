@@ -4,6 +4,7 @@ import VideoUpload from "./VideoUpload";
 
 type Task = { id: string; task_key: string; title: string; status: string; sort_order: number };
 type Closing = { id: string; stage: string; progress_percent: number; monthly_payment: number | null; borrower_interest_rate: number | null; repayment_term_months: number | null };
+type SigningDocument = { id: string | number; title?: string | null; document_name?: string | null; document_type?: string | null; signature_status?: string | null; status?: string | null; storage_path?: string | null; signed_storage_path?: string | null; correction_notes?: string | null };
 
 type Props = {
   loanApplicationId: string;
@@ -19,6 +20,7 @@ type Props = {
 export default function ClosingCenterCard({ loanApplicationId, loanNumber, loanAmount, borrowerRate, termMonths, videoPath, videoStatus, onVideoUploaded }: Props) {
   const [closing, setClosing] = useState<Closing | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [signingDocuments, setSigningDocuments] = useState<SigningDocument[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,9 +30,11 @@ export default function ClosingCenterCard({ loanApplicationId, loanNumber, loanA
       setLoading(true);
       const { data: closingData } = await supabase.from("loan_closings").select("*").eq("loan_application_id", loanApplicationId).maybeSingle();
       const { data: taskData } = await supabase.from("closing_tasks").select("*").eq("loan_application_id", loanApplicationId).order("sort_order");
+      const { data: signingData } = await supabase.from("generated_loan_documents").select("*").eq("loan_application_id", Number(loanApplicationId)).order("created_at");
       if (active) {
         setClosing((closingData as Closing | null) ?? null);
         setTasks((taskData as Task[] | null) ?? []);
+        setSigningDocuments((signingData as SigningDocument[] | null) ?? []);
         setLoading(false);
       }
     }
@@ -69,7 +73,7 @@ export default function ClosingCenterCard({ loanApplicationId, loanNumber, loanA
           <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-emerald-600 transition-all" style={{ width: `${Math.min(progress, 100)}%` }} /></div>
         </div>
 
-        <div className="mt-5 grid gap-3 lg:grid-cols-2">
+        <div className="mt-5 grid gap-3 xl:grid-cols-3">
           <div className="rounded-xl border border-slate-200 bg-white p-4">
             <h5 className="font-black text-slate-900">Closing checklist</h5>
             {loading ? <p className="mt-3 text-sm text-slate-500">Loading checklist…</p> : (
@@ -92,6 +96,32 @@ export default function ClosingCenterCard({ loanApplicationId, loanNumber, loanA
               <button onClick={() => { window.location.href = `/loan-forms?loanId=${loanApplicationId}`; }} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-600">Review Loan Forms</button>
               <button onClick={() => { window.location.href = `/loan-documents?loanId=${loanApplicationId}`; }} className="rounded-lg border border-emerald-700 px-4 py-2 text-sm font-bold text-emerald-800 hover:bg-emerald-50">Upload Supporting Documents</button>
             </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h5 className="font-black text-slate-900">Private Signing Center</h5>
+              <span className="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-black text-rose-800">🔒 Borrower + Admin</span>
+            </div>
+            <p className="mt-1 text-sm text-slate-500">Closing documents and signed copies are never visible to investors.</p>
+            <div className="mt-3 space-y-2">
+              {signingDocuments.length === 0 ? (
+                <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">Signing documents will appear here after approval.</p>
+              ) : signingDocuments.map((document) => {
+                const label = document.title || document.document_name || String(document.document_type || "Signing document").replaceAll("_", " ");
+                const signatureStatus = document.signature_status || document.status || "ready_to_sign";
+                return (
+                  <div key={document.id} className="rounded-lg border border-slate-200 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-bold capitalize text-slate-800">{label}</p>
+                      <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-black capitalize text-blue-800">{String(signatureStatus).replaceAll("_", " ")}</span>
+                    </div>
+                    {document.correction_notes && <p className="mt-2 text-xs text-rose-700">Correction requested: {document.correction_notes}</p>}
+                  </div>
+                );
+              })}
+            </div>
+            <button onClick={() => { window.location.href = `/loan-forms?loanId=${loanApplicationId}`; }} className="mt-4 w-full rounded-lg bg-blue-700 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600">Open Signing Documents</button>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-4">
