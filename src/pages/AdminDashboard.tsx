@@ -32,6 +32,11 @@ type LoanApplication = {
   borrower_video_path?: string | null;
   borrower_video_status?: string | null;
   county?: string | null;
+  approved_at?: string | null;
+  funding_started_at?: string | null;
+  funding_deadline?: string | null;
+  funding_window_days?: number | null;
+  funding_status?: string | null;
 };
 
 type LoanDocument = {
@@ -49,6 +54,10 @@ type LoanDocument = {
   reviewed_by?: string | null;
   reviewed_at?: string | null;
   created_at?: string | null;
+  visibility?: "private" | "investor_safe" | "public_summary" | null;
+  contains_sensitive_data?: boolean | null;
+  redacted_storage_path?: string | null;
+  approved_for_investors?: boolean | null;
 };
 
 type EditingValues = {
@@ -499,6 +508,16 @@ export default function AdminDashboard() {
 
       const loanAmount = Number(loan.loan_amount || 0);
       const payload: Record<string, unknown> = { status };
+      const approvalTime = new Date();
+      const fundingDeadline = new Date(approvalTime.getTime() + 45 * 24 * 60 * 60 * 1000);
+      if (status === "Approved") {
+        payload.approved_at = approvalTime.toISOString();
+        payload.funding_started_at = approvalTime.toISOString();
+        payload.funding_deadline = fundingDeadline.toISOString();
+        payload.funding_window_days = 45;
+        payload.funding_status = "open";
+        payload.published_to_marketplace = true;
+      }
       if (status === "Funded") {
         payload.amount_funded = loanAmount;
         payload.amount_remaining = 0;
@@ -513,6 +532,40 @@ export default function AdminDashboard() {
 
       if (status === "Approved") {
         await createClosingCenter({ ...loan, status });
+        const values = editing[id];
+        const borrowerRate = Number(values?.borrower_interest_rate ?? loan.borrower_interest_rate ?? 10);
+        const investorRate = Number(values?.investor_interest_rate ?? loan.investor_interest_rate ?? 9);
+        const amountFunded = Number(loan.amount_funded || 0);
+        const { error: openMarketplaceError } = await supabase
+          .from("marketplace_loans")
+          .upsert({
+            loan_application_id: id,
+            loan_number: loan.loan_number,
+            business_name: loan.business_name || "Land-backed loan",
+            borrower_name: loan.full_name || "",
+            apn: loan.apn || "",
+            state: loan.state || "",
+            acreage: Number(loan.acreage || 0),
+            land_value: Number(loan.land_value || 0),
+            loan_amount: loanAmount,
+            funding_goal: loanAmount,
+            amount_funded: amountFunded,
+            amount_remaining: Math.max(loanAmount - amountFunded, 0),
+            borrower_interest_rate: borrowerRate,
+            investor_interest_rate: investorRate,
+            company_spread_rate: Number((borrowerRate - investorRate).toFixed(2)),
+            repayment_term_months: Number(loan.repayment_term_months || 36),
+            risk_score: values?.risk_score || loan.risk_score || "Pending",
+            borrower_video_path: loan.borrower_video_path || null,
+            borrower_video_status: loan.borrower_video_status || null,
+            status: "Open",
+            funding_status: "open",
+            funding_started_at: approvalTime.toISOString(),
+            funding_deadline: fundingDeadline.toISOString(),
+            funding_window_days: 45,
+            minimum_investment: 100,
+          }, { onConflict: "loan_application_id" });
+        if (openMarketplaceError) throw openMarketplaceError;
       }
 
       if (status === "Funded") {
@@ -612,6 +665,62 @@ export default function AdminDashboard() {
       await loadDocuments();
     } catch (error: any) {
       setErrorMessage(error?.message || "Document review failed.");
+    } finally {
+      setReviewingDocumentId(null);
+    }
+  }
+
+  async function setDocumentVisibility(
+    document: LoanDocument,
+    visibility: "private" | "investor_safe" | "public_summary"
+  ) {
+    if (!supabase) return;
+
+    if (visibility !== "private" && !document.redacted_storage_path) {
+      setErrorMessage(
+        "Upload a separately redacted copy before making a document investor-safe. Original sensitive files cannot be published."
+      );
+      return;
+    }
+
+    setReviewingDocumentId(document.id);
+    setErrorMessage("");
+    setMessage("");
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Admin session expired.");
+
+      const publish = visibility !== "private";
+      const { error } = await supabase
+        .from("loan_documents")
+        .update({
+          visibility,
+          approved_for_investors: publish,
+          investor_approved_at: publish ? new Date().toISOString() : null,
+          investor_approved_by: publish ? user.id : null,
+          contains_sensitive_data: visibility === "private",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", document.id);
+      if (error) throw error;
+
+      await supabase.from("document_access_log").insert({
+        loan_document_id: Number(document.id),
+        loan_application_id: Number(getDocumentLoanId(document) || 0) || null,
+        actor_user_id: user.id,
+        action: publish ? "publish_investor_copy" : "change_visibility",
+        metadata: { visibility },
+      });
+
+      setMessage(
+        publish
+          ? "Redacted document approved for investor review."
+          : "Document returned to private borrower/admin access."
+      );
+      await loadDocuments();
+    } catch (error: any) {
+      setErrorMessage(error?.message || "Document visibility could not be updated.");
     } finally {
       setReviewingDocumentId(null);
     }
@@ -893,7 +1002,16 @@ export default function AdminDashboard() {
                             return (
                               <div key={document.id} className="rounded-xl border border-slate-200 bg-white p-4">
                                 <div className="flex flex-wrap items-start justify-between gap-3">
-                                  <div><p className="font-black capitalize">{String(document.document_type || "document").replaceAll("_", " ")}</p><p className="mt-1 break-all text-sm text-slate-600">{document.file_name || document.storage_path || "Uploaded file"}</p><p className="mt-1 text-xs font-bold uppercase tracking-wide text-slate-500">Status: {String(document.status || "submitted").replaceAll("_", " ")}</p></div>
+                                  <div>
+                                    <p className="font-black capitalize">{String(document.document_type || "document").replaceAll("_", " ")}</p>
+                                    <p className="mt-1 break-all text-sm text-slate-600">{document.file_name || document.storage_path || "Uploaded file"}</p>
+                                    <div className="mt-2 flex flex-wrap gap-2 text-xs font-black uppercase tracking-wide">
+                                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700">Status: {String(document.status || "submitted").replaceAll("_", " ")}</span>
+                                      <span className={`rounded-full px-2.5 py-1 ${document.visibility === "investor_safe" ? "bg-blue-100 text-blue-800" : document.visibility === "public_summary" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
+                                        {document.visibility === "investor_safe" ? "👥 Investor Safe" : document.visibility === "public_summary" ? "🌍 Public Summary" : "🔒 Private"}
+                                      </span>
+                                    </div>
+                                  </div>
                                   <button type="button" onClick={() => void openDocument(document)} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white">View</button>
                                 </div>
                                 <textarea rows={2} placeholder="Admin notes" value={documentNotes[document.id] || ""} onChange={(event) => setDocumentNotes((current) => ({ ...current, [document.id]: event.target.value }))} className="mt-3 w-full rounded-lg border border-slate-300 p-3" />
@@ -901,6 +1019,14 @@ export default function AdminDashboard() {
                                   <button disabled={isReviewing} onClick={() => void reviewDocument(document.id, "approved")} className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white disabled:bg-slate-400">Approve</button>
                                   <button disabled={isReviewing} onClick={() => void reviewDocument(document.id, "more_information")} className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-bold text-white disabled:bg-slate-400">More info</button>
                                   <button disabled={isReviewing} onClick={() => void reviewDocument(document.id, "rejected")} className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-bold text-white disabled:bg-slate-400">Reject</button>
+                                </div>
+                                <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50 p-3">
+                                  <p className="text-xs font-bold text-blue-900">Investor visibility is separate from underwriting approval.</p>
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    <button disabled={isReviewing} onClick={() => void setDocumentVisibility(document, "private")} className="rounded-lg bg-slate-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Keep Private</button>
+                                    <button disabled={isReviewing || !document.redacted_storage_path} onClick={() => void setDocumentVisibility(document, "investor_safe")} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300">Publish Redacted Copy</button>
+                                  </div>
+                                  {!document.redacted_storage_path && <p className="mt-2 text-xs text-blue-800">A separate redacted file is required before investor publication.</p>}
                                 </div>
                               </div>
                             );
