@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { BarChart } from "../components/PortfolioCharts";
 import { supabase } from "../lib/supabase";
 import AppLayout from "../components/AppLayout";
-import VideoReviewPanel from "../components/VideoReviewPanel";
-import GeneratedDocumentsPanel from "../components/GeneratedDocumentsPanel";
 
 type LoanApplication = {
   id: string;
@@ -33,9 +31,6 @@ type LoanApplication = {
   published_to_marketplace?: boolean | null;
   borrower_video_path?: string | null;
   borrower_video_status?: string | null;
-  borrower_video_admin_notes?: string | null;
-  borrower_video_reviewed_at?: string | null;
-  borrower_video_reviewed_by?: string | null;
   county?: string | null;
 };
 
@@ -89,12 +84,24 @@ function AdminVideoPlayer({
   async function review(status: string) {
     if (!supabase) return;
     setSaving(true);
-    await supabase
-      .from("loan_applications")
-      .update({ borrower_video_status: status, borrower_video_admin_notes: notes, borrower_video_reviewed_at: new Date().toISOString() })
-      .eq("id", loanId);
-    setSaving(false);
-    onReviewed();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("loan_applications")
+        .update({
+          borrower_video_status: status,
+          borrower_video_admin_notes: notes.trim() || null,
+          borrower_video_reviewed_at: new Date().toISOString(),
+          borrower_video_reviewed_by: user?.id ?? null,
+        })
+        .eq("id", loanId);
+      if (error) throw error;
+      onReviewed();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Video review could not be saved.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -187,8 +194,6 @@ export default function AdminDashboard() {
 
   const loadDocuments = useCallback(async () => {
     if (!supabase) return;
-    setMessage("");
-    setErrorMessage("");
     const { data, error } = await supabase
       .from("loan_documents")
       .select("*")
@@ -197,7 +202,6 @@ export default function AdminDashboard() {
     if (error) {
       // Keep the main dashboard usable if review columns or RLS are not ready yet.
       console.error("Loan document load failed:", error.message);
-      setErrorMessage(`Unable to refresh documents: ${error.message}`);
       return;
     }
 
@@ -208,7 +212,6 @@ export default function AdminDashboard() {
       notes[document.id] = document.admin_notes || "";
     });
     setDocumentNotes(notes);
-    setMessage(`Documents refreshed: ${rows.length} found.`);
   }, []);
 
   const checkAdmin = useCallback(async () => {
@@ -283,7 +286,7 @@ export default function AdminDashboard() {
 
   function getLoanDocuments(loanId: string) {
     return documents.filter((document) =>
-      String(getDocumentLoanId(document)) === String(loanId)
+      getDocumentLoanId(document) === loanId
     );
   }
 
@@ -623,21 +626,9 @@ export default function AdminDashboard() {
   const totals = useMemo(() => {
     const volume = applications.reduce((sum, loan) => sum + Number(loan.loan_amount || 0), 0);
     const funded = applications.reduce((sum, loan) => sum + Number(loan.amount_funded || 0), 0);
-    const pendingLoans = applications.filter((loan) => String(loan.status || "Pending").toLowerCase() === "pending").length;
-    const pendingVideos = applications.filter((loan) =>
-      Boolean(loan.borrower_video_path) &&
-      !["approved", "rejected"].includes(String(loan.borrower_video_status || "submitted").toLowerCase())
-    ).length;
-    const pendingDocuments = documents.filter((document) =>
-      !["approved", "rejected"].includes(String(document.status || "submitted").toLowerCase())
-    ).length;
-    return { volume, funded, pending: pendingLoans + pendingVideos + pendingDocuments };
-  }, [applications, documents]);
-
-  const videoApplications = useMemo(
-    () => applications.filter((loan) => Boolean(loan.borrower_video_path)),
-    [applications]
-  );
+    const pending = applications.filter((loan) => String(loan.status || "Pending").toLowerCase() === "pending").length;
+    return { volume, funded, pending };
+  }, [applications]);
 
   function statusClasses(status?: string | null) {
     const normalized = String(status || "Pending").toLowerCase();
@@ -700,37 +691,39 @@ export default function AdminDashboard() {
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Media review queue</p>
               <h2 className="mt-1 text-2xl font-black text-slate-950">Borrower introduction videos</h2>
-              <p className="mt-1 text-sm text-slate-600">Review uploaded videos here without scrolling through every loan application.</p>
+              <p className="mt-1 text-sm text-slate-600">Review uploaded videos here without opening every loan card.</p>
             </div>
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-black text-emerald-800">{videoApplications.length} uploaded</span>
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-black text-emerald-800">
+              {applications.filter((loan) => Boolean(loan.borrower_video_path)).length} uploaded
+            </span>
           </div>
 
-          {videoApplications.length === 0 ? (
-            <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm font-semibold text-slate-600">
-              No borrower videos are currently available. Refresh after a borrower completes an upload.
-            </div>
+          {applications.filter((loan) => Boolean(loan.borrower_video_path)).length === 0 ? (
+            <p className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-600">
+              No borrower videos are currently linked to a loan application. Ask the borrower to upload the video again after this patch is deployed.
+            </p>
           ) : (
-            <div className="mt-5 grid gap-5 xl:grid-cols-2">
-              {videoApplications.map((loan) => (
-                <div key={`video-${loan.id}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Loan #{loan.loan_number ?? loan.id}</p>
-                      <h3 className="mt-1 text-lg font-black text-slate-950">{loan.business_name || loan.full_name || "Borrower video"}</h3>
+            <div className="mt-5 grid gap-5 lg:grid-cols-2">
+              {applications
+                .filter((loan) => Boolean(loan.borrower_video_path))
+                .map((loan) => (
+                  <article key={`video-${loan.id}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wide text-emerald-700">Loan #{loan.loan_number ?? loan.id}</p>
+                        <h3 className="mt-1 text-lg font-black text-slate-950">{loan.business_name || loan.full_name || "Borrower video"}</h3>
+                      </div>
+                      <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black capitalize text-amber-800">
+                        {String(loan.borrower_video_status || "under_review").replace(/_/g, " ")}
+                      </span>
                     </div>
-                    <span className={`rounded-full px-3 py-1 text-xs font-black ${statusClasses(loan.borrower_video_status)}`}>
-                      {String(loan.borrower_video_status || "submitted").replaceAll("_", " ")}
-                    </span>
-                  </div>
-                  <VideoReviewPanel
-                    applicationId={loan.id}
-                    storagePath={loan.borrower_video_path!}
-                    status={loan.borrower_video_status}
-                    existingNotes={loan.borrower_video_admin_notes}
-                    onReviewed={() => loadApplications(true)}
-                  />
-                </div>
-              ))}
+                    <AdminVideoPlayer
+                      storagePath={String(loan.borrower_video_path)}
+                      loanId={loan.id}
+                      onReviewed={() => void loadApplications(true)}
+                    />
+                  </article>
+                ))}
             </div>
           )}
         </section>
@@ -917,20 +910,15 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* Borrower video review */}
-                    {loan.borrower_video_path ? (
-                      <VideoReviewPanel
-                        applicationId={loan.id}
-                        storagePath={loan.borrower_video_path}
-                        status={loan.borrower_video_status}
-                        existingNotes={loan.borrower_video_admin_notes}
-                        onReviewed={() => loadApplications(true)}
-                      />
-                    ) : (
-                      <div className="mt-7 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm font-semibold text-slate-600">
-                        No borrower video has been submitted for this loan.
+                    {loan.borrower_video_path && (
+                      <div className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                        <h3 className="text-lg font-black text-slate-950">Borrower Introduction Video</h3>
+                        <p className="mt-1 text-sm text-slate-500">
+                          Status: <span className="font-bold capitalize">{String(loan.borrower_video_status || "submitted").replace(/_/g, " ")}</span>
+                        </p>
+                        <AdminVideoPlayer storagePath={loan.borrower_video_path} loanId={loan.id} onReviewed={() => void loadApplications(true)} />
                       </div>
                     )}
-                    <GeneratedDocumentsPanel applicationId={loan.id} />
 
                     <div className="mt-7 flex flex-wrap gap-3">
                       <button disabled={isSaving} onClick={() => void saveLoanTerms(loan.id)} className="rounded-xl bg-violet-600 px-5 py-3 font-bold text-white disabled:bg-slate-400">{isSaving ? "Saving…" : "Save review"}</button>
