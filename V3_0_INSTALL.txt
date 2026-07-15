@@ -1,0 +1,15 @@
+SECUREDLANDING v3.0 — CLOSING & FUNDING FOUNDATION
+
+1. Upload this project to GitHub without removing your Vercel environment variables.
+2. In Supabase SQL Editor, run:
+   supabase/migrations/20260715_v3_0_closing_funding_foundation.sql
+3. Redeploy on Vercel.
+4. Approve a test loan in Admin.
+5. Log in as the borrower and open:
+   /closing-center?loanId=<loan_application_id>
+6. Confirm generated documents, checklist and 45-day funding status display.
+
+IMPORTANT
+- Original borrower documents remain private.
+- Investor-safe publication requires a separate redacted file.
+- The in-app acknowledgement UI is a prototype, not a substitute for legal review or a compliant e-sign provider.
