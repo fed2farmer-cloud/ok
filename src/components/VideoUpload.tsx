@@ -1,4 +1,11 @@
-import { ChangeEvent, DragEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  DragEvent,
+  KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../context/ToastContext";
 
@@ -12,7 +19,7 @@ interface VideoUploadProps {
 
 type VideoStatus =
   | "not_submitted"
-  | "submitted"
+  | "under_review"
   | "approved"
   | "rejected"
   | "more_information";
@@ -37,7 +44,7 @@ const STATUS_LABELS: Record<
     label: "Not submitted",
     classes: "bg-slate-100 text-slate-600",
   },
-  submitted: {
+  under_review: {
     label: "Under review",
     classes: "bg-amber-100 text-amber-700",
   },
@@ -109,7 +116,7 @@ export default function VideoUpload({
         }
 
         if (error) {
-          console.error("Unable to create video URL:", error);
+          console.error("Unable to create borrower video URL:", error);
           return;
         }
 
@@ -138,11 +145,16 @@ export default function VideoUpload({
 
   function normalizeStatus(value?: string | null): VideoStatus {
     switch (value) {
-      case "submitted":
+      case "under_review":
       case "approved":
       case "rejected":
       case "more_information":
         return value;
+
+      // Backward compatibility with older records
+      case "submitted":
+        return "under_review";
+
       default:
         return "not_submitted";
     }
@@ -235,27 +247,40 @@ export default function VideoUpload({
   }
 
   function handleGallerySelection(event: ChangeEvent<HTMLInputElement>) {
-    const selectedFile = event.target.files?.[0];
-    handleFile(selectedFile);
+    handleFile(event.target.files?.[0]);
   }
 
   function handleCameraSelection(event: ChangeEvent<HTMLInputElement>) {
-    const selectedFile = event.target.files?.[0];
-    handleFile(selectedFile);
+    handleFile(event.target.files?.[0]);
   }
 
   function handleDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     setDragOver(false);
 
-    const selectedFile = event.dataTransfer.files?.[0];
-    handleFile(selectedFile);
+    if (uploading) return;
+
+    handleFile(event.dataTransfer.files?.[0]);
   }
 
   function handleDropZoneKeyboard(event: KeyboardEvent<HTMLDivElement>) {
+    if (uploading) return;
+
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       galleryInputRef.current?.click();
+    }
+  }
+
+  async function removeUploadedFile(path: string) {
+    if (!supabase || !path) return;
+
+    const { error } = await supabase.storage
+      .from("borrower-videos")
+      .remove([path]);
+
+    if (error) {
+      console.warn("Unable to remove uploaded borrower video:", error);
     }
   }
 
@@ -304,10 +329,6 @@ export default function VideoUpload({
         throw new Error("You must be signed in to upload a video.");
       }
 
-      /*
-       * Confirm that this application belongs to the signed-in borrower.
-       * loan_applications.id is bigint, so it is compared as a number.
-       */
       const { data: application, error: applicationError } = await supabase
         .from("loan_applications")
         .select("id, user_id, borrower_video_path")
@@ -316,19 +337,20 @@ export default function VideoUpload({
         .maybeSingle();
 
       if (applicationError) {
-        throw applicationError;
+        throw new Error(
+          `Unable to verify the loan application: ${applicationError.message}`
+        );
       }
 
       if (!application) {
         throw new Error(
-          "This loan application does not belong to your account."
+          "This loan application was not found or does not belong to your account."
         );
       }
 
       setProgress(15);
 
       const extension = getExtension(file);
-      const safeApplicationId = String(applicationId);
       const uniqueName =
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
@@ -336,7 +358,7 @@ export default function VideoUpload({
 
       uploadedPath = [
         user.id,
-        safeApplicationId,
+        String(applicationId),
         `${uniqueName}.${extension}`,
       ].join("/");
 
@@ -349,12 +371,12 @@ export default function VideoUpload({
         });
 
       if (uploadError) {
-        throw uploadError;
+        throw new Error(`Video storage upload failed: ${uploadError.message}`);
       }
 
       setProgress(75);
 
-      const { data: updatedApplication, error: updateError } = await supabase
+      const { data: updatedApplications, error: updateError } = await supabase
         .from("loan_applications")
         .update({
           borrower_video_path: uploadedPath,
@@ -365,23 +387,40 @@ export default function VideoUpload({
         })
         .eq("id", applicationId)
         .eq("user_id", user.id)
-        .select("id, borrower_video_path, borrower_video_status")
-        .maybeSingle();
+        .select("id, borrower_video_path, borrower_video_status");
 
-      if (updateError || !updatedApplication?.borrower_video_path) {
-        await supabase.storage
-          .from("borrower-videos")
-          .remove([uploadedPath]);
+      if (updateError) {
+        console.error("Loan video database update failed:", updateError);
 
-        throw updateError || new Error(
-          "The video uploaded, but the loan record was not updated. Please try again."
+        await removeUploadedFile(uploadedPath);
+
+        throw new Error(`Loan update failed: ${updateError.message}`);
+      }
+
+      const updatedApplication = updatedApplications?.[0];
+
+      if (!updatedApplication) {
+        console.error("Loan video update affected zero rows:", {
+          applicationId,
+          userId: user.id,
+          uploadedPath,
+        });
+
+        await removeUploadedFile(uploadedPath);
+
+        throw new Error(
+          "The video reached storage, but database permission prevented the loan application from being updated."
         );
       }
 
-      /*
-       * Remove the previous video only after the database points to the new
-       * upload. Failure to remove the old file must not invalidate the upload.
-       */
+      if (updatedApplication.borrower_video_path !== uploadedPath) {
+        await removeUploadedFile(uploadedPath);
+
+        throw new Error(
+          "The loan application returned an unexpected video path after saving."
+        );
+      }
+
       const previousPath =
         typeof application.borrower_video_path === "string"
           ? application.borrower_video_path
@@ -393,7 +432,10 @@ export default function VideoUpload({
           .remove([previousPath]);
 
         if (removalError) {
-          console.warn("Old borrower video was not removed:", removalError);
+          console.warn(
+            "The previous borrower video could not be removed:",
+            removalError
+          );
         }
       }
 
@@ -521,12 +563,17 @@ export default function VideoUpload({
       <div
         onDragOver={(event) => {
           event.preventDefault();
-          if (!uploading) setDragOver(true);
+
+          if (!uploading) {
+            setDragOver(true);
+          }
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         onClick={() => {
-          if (!uploading) galleryInputRef.current?.click();
+          if (!uploading) {
+            galleryInputRef.current?.click();
+          }
         }}
         onKeyDown={handleDropZoneKeyboard}
         role="button"
@@ -626,7 +673,7 @@ export default function VideoUpload({
         </button>
       )}
 
-      {status === "submitted" && !file && (
+      {status === "under_review" && !file && (
         <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700">
           Your video was received and is waiting for administrator review. You
           may upload a replacement before approval.
@@ -636,6 +683,20 @@ export default function VideoUpload({
       {status === "approved" && (
         <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700">
           Your borrower introduction video has been approved.
+        </div>
+      )}
+
+      {status === "rejected" && (
+        <div className="mt-5 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          Your video needs revision. Review the administrator note and upload a
+          replacement video.
+        </div>
+      )}
+
+      {status === "more_information" && (
+        <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700">
+          The administrator requested additional information. Review the note
+          above and upload a replacement video.
         </div>
       )}
     </section>
