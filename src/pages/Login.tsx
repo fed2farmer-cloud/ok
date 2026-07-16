@@ -22,12 +22,18 @@ export default function Login() {
   async function checkExistingSession() {
     if (!supabase) return;
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-    if (session?.user) {
-      await routeUserByRole(session.user.id);
+      if (session?.user) {
+        await routeUserByRole(session.user.id);
+      }
+    } catch (error) {
+      // Some Android in-app browsers block web storage. Do not let that
+      // prevent the login page from rendering or the user from signing in.
+      console.warn("Unable to restore the saved session:", error);
     }
   }
 
@@ -150,10 +156,16 @@ export default function Login() {
         return;
       }
 
-      if (!rememberMe) {
-        sessionStorage.setItem("securedlanding_session_only", "true");
-      } else {
-        sessionStorage.removeItem("securedlanding_session_only");
+      // Storage can be unavailable inside Android in-app browsers. This
+      // preference is optional, so a blocked storage API must never fail login.
+      try {
+        if (!rememberMe) {
+          window.localStorage.setItem("securedlanding_session_only", "true");
+        } else {
+          window.localStorage.removeItem("securedlanding_session_only");
+        }
+      } catch (storageError) {
+        console.warn("Remember-me preference could not be saved:", storageError);
       }
 
       await routeUserByRole(data.user.id);
