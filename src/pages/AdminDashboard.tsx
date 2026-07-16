@@ -437,7 +437,7 @@ export default function AdminDashboard() {
 
     const generatedDocuments = [
       ["promissory_note", "Promissory Note"],
-      ["deed_of_trust", "California Deed of Trust — Attorney Review Required"],
+      ["deed_of_trust", `${loan.state || "State"} Security Instrument — Attorney Review Required`],
       ["payment_schedule", "Payment Schedule"],
       ["borrower_certification", "Borrower Certification"],
       ["esign_consent", "Electronic Signature Consent"],

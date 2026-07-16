@@ -7,7 +7,7 @@ type GeneratedDocument = { id:string; document_type:string; title:string; status
 
 const labels: Record<string,string> = {
   promissory_note: "Promissory Note",
-  deed_of_trust: "Deed of Trust",
+  deed_of_trust: "Security Instrument",
   payment_schedule: "Payment Schedule",
   borrower_certification: "Borrower Certification",
   esign_consent: "Electronic Signature Consent",
@@ -57,7 +57,7 @@ export default function LoanForms(){
       <div className="mb-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"><strong>Draft closing forms:</strong> State-specific security instruments and disclosures must be reviewed by qualified counsel before production use.</div>
       {loading?<p>Loading forms…</p>:error?<p className="rounded-xl bg-rose-50 p-4 text-rose-700">{error}</p>:!docs.length?<div className="rounded-2xl border bg-white p-8 text-center"><h2 className="text-xl font-black">Forms are not ready yet</h2><p className="mt-2 text-slate-600">Ask the administrator to approve the loan again after installing the document-delivery update.</p></div>:
       <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
-        <aside className="rounded-2xl border bg-white p-3 shadow-sm">{docs.map(d=><button key={d.id} onClick={()=>setSelected(d.id)} className={`mb-2 w-full rounded-xl p-3 text-left ${selected===d.id?"bg-emerald-900 text-white":"bg-slate-50 hover:bg-slate-100"}`}><span className="block font-bold">{labels[d.document_type]||d.title}</span><span className="text-xs opacity-75">{d.status.replaceAll("_"," ")}</span></button>)}</aside>
+        <aside className="rounded-2xl border bg-white p-3 shadow-sm">{docs.map(d=><button key={d.id} onClick={()=>setSelected(d.id)} className={`mb-2 w-full rounded-xl p-3 text-left ${selected===d.id?"bg-emerald-900 text-white":"bg-slate-50 hover:bg-slate-100"}`}><span className="block font-bold">{d.document_type === "deed_of_trust" ? `${String(d.terms_snapshot?.state || "State")} Security Instrument` : (labels[d.document_type]||d.title)}</span><span className="text-xs opacity-75">{d.status.replaceAll("_"," ")}</span></button>)}</aside>
         {doc&&<DocumentView doc={doc} onAcknowledge={acknowledge}/>} 
       </div>}
     </div>
@@ -77,7 +77,7 @@ function Field({k,v}:{k:string;v:any}){return <div className="rounded-xl border 
 function DocumentBody({type,t}:{type:string;t:Record<string,any>}){
  const amount=Number(t.approved_loan_amount||0).toLocaleString(undefined,{style:"currency",currency:"USD"});
  if(type==="promissory_note") return <PromissoryNoteDocument terms={t}/>;
- if(type==="deed_of_trust") return <><h2 className="font-black">Security Instrument Draft</h2><p>The property identified above is intended to secure repayment of the loan. The final deed of trust must contain the complete legal description, trustee information, recording language, and California-required provisions.</p><p className="font-bold text-amber-800">Attorney review and notarization required before recording.</p></>;
+ if(type==="deed_of_trust") return <><h2 className="font-black">Security Instrument Draft</h2><p>The property identified above is intended to secure repayment of the loan. The final security instrument must contain the complete legal description, secured-party or trustee information, recording language, and all provisions required by the state where the property is located.</p><p className="font-bold text-amber-800">State-specific attorney review and any required notarization are required before recording.</p></>;
  if(type==="payment_schedule") return <><h2 className="font-black">Payment Summary</h2><p>Estimated monthly payment: {Number(t.monthly_payment||0).toLocaleString(undefined,{style:"currency",currency:"USD"})}. Final dates and amounts will be established at closing.</p></>;
  if(type==="borrower_certification") return <><h2 className="font-black">Borrower Certification</h2><p>The borrower certifies that application, ownership, property, and financial information supplied to Secured Landing is accurate and complete, subject to final verification.</p></>;
  if(type==="esign_consent") return <><h2 className="font-black">Electronic Records Consent</h2><p>The borrower consents to receive, review, and sign permitted records electronically and may request paper copies where applicable.</p></>;
