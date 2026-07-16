@@ -6,6 +6,7 @@ interface NavItem { href: string; label: string; }
 const BORROWER_LINKS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/loan-application", label: "Apply" },
+  { href: "/loan-forms", label: "Loan Forms" },
   { href: "/loan-documents", label: "Documents" },
   { href: "/messages", label: "Messages" },
 ];

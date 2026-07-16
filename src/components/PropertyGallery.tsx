@@ -93,7 +93,11 @@ export default function PropertyGallery({
           storage_path: path,
           caption: caption.trim() || null,
         });
-      if (insertError) throw insertError;
+      if (insertError) {
+        // Prevent an orphaned storage object when the database row is rejected.
+        await supabase.storage.from("property-photos").remove([path]);
+        throw insertError;
+      }
 
       addToast("success", "Photo uploaded");
       setCaption("");
