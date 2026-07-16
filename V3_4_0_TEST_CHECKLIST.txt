@@ -1,0 +1,14 @@
+SECUREDLANDING v3.4.0 TEST CHECKLIST
+
+[ ] Supabase migration completes without red errors.
+[ ] signed-loan-documents bucket exists and is private.
+[ ] property-photos bucket exists and is private.
+[ ] Borrower can upload JPG/PNG/WebP property photo.
+[ ] Uploaded property photo appears in the gallery.
+[ ] Borrower can select among multiple approved/funded loans.
+[ ] Borrower can upload a signed PDF or image for each form.
+[ ] Closing progress changes after signed upload.
+[ ] Admin can see signed document queue.
+[ ] Admin can open the signed document.
+[ ] Admin can approve, reject, or request corrections.
+[ ] Borrower sees updated review status.

@@ -1,0 +1,33 @@
+SECUREDLANDING v3.4.0 FILE MANIFEST
+
+NEW FILES
+---------
+src/components/AdminSignedDocumentReview.tsx
+supabase/migrations/20260716_v3_4_0_storage_closing_review.sql
+RELEASE_NOTES_v3.4.0.md
+V3_4_0_INSTALL.txt
+V3_4_0_FILE_MANIFEST.txt
+V3_4_0_TEST_CHECKLIST.txt
+
+MODIFIED FILES
+--------------
+src/pages/AdminDashboard.tsx
+src/pages/LoanForms.tsx
+src/components/PropertyGallery.tsx
+
+REMOVED FILES
+-------------
+None
+
+DATABASE CHANGES
+----------------
+- Creates/updates private signed-loan-documents bucket.
+- Creates/updates private property-photos bucket.
+- Repairs generated_loan_documents borrower/admin RLS.
+- Repairs property_photos borrower/admin RLS.
+- Adds signed-document review index.
+- Recreates storage object policies for both buckets.
+
+NEW ENVIRONMENT VARIABLES
+-------------------------
+None

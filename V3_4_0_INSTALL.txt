@@ -1,0 +1,16 @@
+SECUREDLANDING v3.4.0 INSTALL
+
+1. Upload all NEW and MODIFIED files listed in V3_4_0_FILE_MANIFEST.txt to GitHub.
+2. In Supabase, open SQL Editor and run:
+   supabase/migrations/20260716_v3_4_0_storage_closing_review.sql
+3. Confirm Storage contains these private buckets:
+   - signed-loan-documents
+   - property-photos
+4. Redeploy the latest GitHub commit in Vercel without using the existing build cache.
+5. Test as a borrower:
+   - Upload a property photo.
+   - Open Loan Forms, select a loan, and upload a signed PDF or image.
+6. Test as an administrator:
+   - Open Admin Dashboard.
+   - Find Signed documents awaiting review.
+   - Open and approve or request corrections.
