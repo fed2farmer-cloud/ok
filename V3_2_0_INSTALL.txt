@@ -1,0 +1,20 @@
+SECUREDLANDING v3.2.0 INSTALL
+
+1. Upload all files from this ZIP to the same paths in GitHub.
+2. In Supabase SQL Editor, run:
+   supabase/migrations/20260716_v3_2_0_closing_uploads_photo_rls.sql
+3. Redeploy the newest GitHub commit in Vercel with build cache disabled.
+4. Sign in as a borrower and open Loan Forms.
+5. Use the new loan selector to switch between approved/funded loans.
+6. Open each form, print it, sign/date it, notarize when required, and upload the executed copy.
+7. Test a property photo upload again after the SQL migration succeeds.
+
+NEW WORKFLOW
+- Multiple-loan dropdown on Loan Forms
+- Print/sign/date/notarize instructions
+- Upload signed copy per form
+- Signed upload status tracking
+- Private signed-loan-documents storage bucket
+- Rebuilt property photo RLS based on ownership of the related loan
+
+Legal notice: all state-specific loan documents require qualified legal review before production use.
