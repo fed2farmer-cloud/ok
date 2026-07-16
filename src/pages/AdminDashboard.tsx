@@ -4,6 +4,7 @@ import { BarChart } from "../components/PortfolioCharts";
 import { supabase } from "../lib/supabase";
 import AppLayout from "../components/AppLayout";
 import BrandLogo from "../components/BrandLogo";
+import AdminKYCReview from "../components/AdminKYCReview";
 
 
 type LoanApplication = {
