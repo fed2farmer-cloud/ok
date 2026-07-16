@@ -185,7 +185,10 @@ function DocumentView({ doc, loanId, onAcknowledge, onUploaded }: { doc: Generat
       }
       onUploaded();
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Signed document upload failed.");
+      const message = error instanceof Error ? error.message : "Signed document upload failed.";
+      setUploadError(message.toLowerCase().includes("bucket not found")
+        ? "The signed-loan-documents bucket has not been installed. Run the v3.4.0 Supabase migration, then try again."
+        : message);
     } finally {
       setUploading(false);
     }
@@ -215,6 +218,22 @@ function DocumentView({ doc, loanId, onAcknowledge, onUploaded }: { doc: Generat
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <button onClick={onAcknowledge} className="rounded-xl bg-emerald-700 px-5 py-3 font-bold text-white">I reviewed this form</button>
         {doc.acknowledged_at && <span className="font-bold text-emerald-700">✓ Reviewed {new Date(doc.acknowledged_at).toLocaleDateString()}</span>}
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <h2 className="font-black text-slate-900">Closing progress</h2>
+        <div className="mt-4 grid gap-2 sm:grid-cols-4">
+          {[
+            ["Reviewed", Boolean(doc.acknowledged_at) || doc.status === "reviewed"],
+            ["Signed copy uploaded", Boolean(doc.signed_storage_path)],
+            ["Admin review", ["approved", "more_information", "rejected"].includes(String(doc.signed_review_status))],
+            ["Approved for processing", doc.signed_review_status === "approved"],
+          ].map(([label, complete]) => (
+            <div key={String(label)} className={`rounded-xl border p-3 text-sm font-bold ${complete ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-white text-slate-500"}`}>
+              {complete ? "✓" : "○"} {String(label)}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="mt-5 rounded-2xl border p-5">
