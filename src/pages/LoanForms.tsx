@@ -15,7 +15,8 @@ const labels: Record<string,string> = {
 };
 
 export default function LoanForms(){
-  const loanId = new URLSearchParams(window.location.search).get("loanId") || "";
+  const requestedLoanId = new URLSearchParams(window.location.search).get("loanId") || "";
+  const [loanId, setLoanId] = useState(requestedLoanId);
   const [docs,setDocs]=useState<GeneratedDocument[]>([]);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState("");
@@ -23,10 +24,29 @@ export default function LoanForms(){
 
   useEffect(()=>{ void load(); },[loanId]);
   async function load(){
-    if(!supabase || !loanId){ setError("Loan number is missing."); setLoading(false); return; }
+    if(!supabase){ setError("Supabase is not configured."); setLoading(false); return; }
     const {data:{user}}=await supabase.auth.getUser();
     if(!user){ window.location.href="/login"; return; }
-    const {data,error}=await supabase.from("generated_loan_documents").select("*").eq("loan_application_id",Number(loanId)).order("created_at");
+
+    let resolvedLoanId = loanId;
+    if(!resolvedLoanId){
+      const { data: latestLoan, error: loanError } = await supabase
+        .from("loan_applications")
+        .select("id")
+        .eq("user_id", user.id)
+        .in("status", ["Approved", "Funded", "approved", "funded"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if(loanError){ setError(loanError.message); setLoading(false); return; }
+      if(!latestLoan?.id){ setError("No approved loan was found for this account."); setLoading(false); return; }
+      resolvedLoanId = String(latestLoan.id);
+      setLoanId(resolvedLoanId);
+      window.history.replaceState({}, "", `/loan-forms?loanId=${encodeURIComponent(resolvedLoanId)}`);
+      return;
+    }
+
+    const {data,error}=await supabase.from("generated_loan_documents").select("*").eq("loan_application_id",resolvedLoanId).order("created_at");
     if(error){ setError(error.message); setLoading(false); return; }
     const rows=(data as GeneratedDocument[]|null)||[]; setDocs(rows); setSelected(rows[0]?.id||""); setLoading(false);
   }
