@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AppLayout from "../components/AppLayout";
 import { supabase } from "../lib/supabase";
+import PromissoryNoteDocument from "../components/PromissoryNoteDocument";
 
 type GeneratedDocument = { id:string; document_type:string; title:string; status:string; terms_snapshot:Record<string, any>; acknowledged_at?:string|null };
 
@@ -55,7 +56,7 @@ function DocumentView({doc,onAcknowledge}:{doc:GeneratedDocument;onAcknowledge:(
 function Field({k,v}:{k:string;v:any}){return <div className="rounded-xl border p-3"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">{k}</p><p className="mt-1 font-bold text-slate-900">{v||"Not provided"}</p></div>}
 function DocumentBody({type,t}:{type:string;t:Record<string,any>}){
  const amount=Number(t.approved_loan_amount||0).toLocaleString(undefined,{style:"currency",currency:"USD"});
- if(type==="promissory_note") return <><h2 className="font-black">Promise to Pay</h2><p>The borrower promises to pay Secured Landing or its designated lender the principal sum of {amount}, together with interest at {t.borrower_interest_rate}% per year, according to the approved {t.repayment_term_months}-month payment schedule.</p><p>This draft summarizes approved terms and is not effective until final closing documents are executed.</p></>;
+ if(type==="promissory_note") return <PromissoryNoteDocument terms={t}/>;
  if(type==="deed_of_trust") return <><h2 className="font-black">Security Instrument Draft</h2><p>The property identified above is intended to secure repayment of the loan. The final deed of trust must contain the complete legal description, trustee information, recording language, and California-required provisions.</p><p className="font-bold text-amber-800">Attorney review and notarization required before recording.</p></>;
  if(type==="payment_schedule") return <><h2 className="font-black">Payment Summary</h2><p>Estimated monthly payment: {Number(t.monthly_payment||0).toLocaleString(undefined,{style:"currency",currency:"USD"})}. Final dates and amounts will be established at closing.</p></>;
  if(type==="borrower_certification") return <><h2 className="font-black">Borrower Certification</h2><p>The borrower certifies that application, ownership, property, and financial information supplied to Secured Landing is accurate and complete, subject to final verification.</p></>;
