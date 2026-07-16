@@ -103,7 +103,16 @@ export default function PropertyGallery({
       setCaption("");
       await loadPhotos();
     } catch (err: any) {
-      addToast("error", "Upload failed", err?.message);
+      const message = String(err?.message || "Property photo upload failed.");
+      addToast(
+        "error",
+        "Upload failed",
+        message.toLowerCase().includes("row-level security")
+          ? "Property photo permission is not installed. Run the v3.4.0 Supabase migration and try again."
+          : message.toLowerCase().includes("bucket not found")
+            ? "The property-photos bucket is missing. Run the v3.4.0 Supabase migration and try again."
+            : message
+      );
     } finally {
       setUploading(false);
     }
