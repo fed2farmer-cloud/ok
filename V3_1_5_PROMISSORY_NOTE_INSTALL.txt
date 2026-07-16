@@ -1,0 +1,20 @@
+SECUREDLANDING v3.1.5 — PROMISSORY NOTE UPDATE
+
+UPDATED FILE
+- src/pages/LoanForms.tsx
+
+NEW FILES
+- src/components/PromissoryNoteDocument.tsx
+- supabase/migrations/20260716_v3_1_5_promissory_notes.sql
+- V3_1_5_PROMISSORY_NOTE_INSTALL.txt
+
+INSTALL
+1. Upload the new and updated files to the exact matching paths in GitHub.
+2. Open Supabase > SQL Editor.
+3. Run supabase/migrations/20260716_v3_1_5_promissory_notes.sql once.
+4. Redeploy the newest GitHub commit in Vercel without using the old build cache.
+5. Open a borrower loan, then Loan Forms. Select “Secured Promissory Note.”
+6. Use “Print / Save PDF” to create a review copy.
+
+IMPORTANT
+This is a platform-generated draft and must be reviewed by qualified lending counsel before production use. State-specific lending disclosures, licensing, usury rules, payment dates, lender identity, servicing information, signature blocks, and recording requirements must be finalized for each transaction.
