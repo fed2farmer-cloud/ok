@@ -1,0 +1,6 @@
+SecuredLanding v3.1.6
+1. Upload src/pages/LoanForms.tsx.
+2. Run supabase/migrations/20260716_v3_1_6_loan_forms_property_photos.sql in Supabase SQL Editor.
+3. Commit and redeploy without the Vercel build cache.
+4. Sign in as the borrower and open /loan-forms. It now automatically selects the newest approved loan when no loanId is supplied.
+5. Test one property-photo upload.
