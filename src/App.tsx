@@ -36,6 +36,7 @@ export default function App() {
         <Route path="/borrower" element={<Dashboard />} />
         <Route path="/investor" element={<InvestorDashboard />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
 
         <Route path="/loan-application" element={<LoanApplication />} />
         <Route path="/loan-documents" element={<LoanDocuments />} />
