@@ -1,0 +1,8 @@
+SECUREDLANDING v3.5.0 INSTALL
+
+1. Upload all files to the matching paths in GitHub.
+2. Open Supabase > SQL Editor > New query.
+3. Paste the CONTENTS of supabase/migrations/20260718_v3_5_0_photo_review_closing_status.sql and run it.
+4. Confirm: Success. No rows returned.
+5. Deploy the newest GitHub commit in Vercel without the existing build cache.
+6. Test property-photo moderation and signed-document review.

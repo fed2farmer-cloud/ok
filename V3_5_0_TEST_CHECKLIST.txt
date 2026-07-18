@@ -1,0 +1,11 @@
+SECUREDLANDING v3.5.0 TEST CHECKLIST
+
+[ ] Borrower uploads a property photo.
+[ ] Admin sees the photo in Property Photo Review.
+[ ] Admin approves the photo.
+[ ] Admin can set an approved photo as cover.
+[ ] Admin can request replacement or reject a photo.
+[ ] Borrower uploads a signed promissory note.
+[ ] Admin sees it in Closing Document Status and Review.
+[ ] Admin opens and approves the signed copy.
+[ ] Documents without uploads show Awaiting borrower signed upload.

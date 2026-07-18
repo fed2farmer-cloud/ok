@@ -1,0 +1,16 @@
+SECUREDLANDING v3.5.0 FILE MANIFEST
+
+NEW FILES
+src/components/AdminPropertyPhotoReview.tsx
+supabase/migrations/20260718_v3_5_0_photo_review_closing_status.sql
+RELEASE_NOTES_v3.5.0.md
+V3_5_0_FILE_MANIFEST.txt
+V3_5_0_INSTALL.txt
+V3_5_0_TEST_CHECKLIST.txt
+
+MODIFIED FILES
+src/components/AdminSignedDocumentReview.tsx
+src/pages/AdminDashboard.tsx
+
+REMOVED FILES
+None
