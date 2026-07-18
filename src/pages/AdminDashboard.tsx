@@ -6,6 +6,7 @@ import AppLayout from "../components/AppLayout";
 import BrandLogo from "../components/BrandLogo";
 import AdminKYCReview from "../components/AdminKYCReview";
 import AdminSignedDocumentReview from "../components/AdminSignedDocumentReview";
+import AdminPropertyPhotoReview from "../components/AdminPropertyPhotoReview";
 
 
 type LoanApplication = {
@@ -734,6 +735,7 @@ export default function AdminDashboard() {
 
         <AdminKYCReview />
         <AdminSignedDocumentReview />
+        <AdminPropertyPhotoReview />
 
         {/* Analytics Charts */}
         <section className="mt-6 grid gap-6 lg:grid-cols-2">
