@@ -25,12 +25,17 @@ export default function AdminPropertyPhotoReview() {
     if (!supabase) return;
     setLoading(true);
     setError("");
-    const { data, error: loadError } = await supabase
-      .from("property_photos")
-      .select("id,loan_application_id,user_id,storage_path,caption,is_cover,review_status,admin_notes,created_at")
-      .order("created_at", { ascending: false });
+    // Use a guarded SECURITY DEFINER RPC so the admin queue is not silently
+    // emptied by borrower-only RLS policies. The function still verifies that
+    // the current authenticated user exists in public.admin_users.
+    const { data, error: loadError } = await supabase.rpc("admin_list_property_photos");
     if (loadError) {
-      setError(loadError.message);
+      const missingMigration = loadError.message.toLowerCase().includes("admin_list_property_photos");
+      setError(
+        missingMigration
+          ? "Property photo admin access is not installed. Run the v3.5.1 Supabase migration and refresh."
+          : loadError.message
+      );
       setLoading(false);
       return;
     }
