@@ -1,0 +1,14 @@
+SECUREDLANDING v3.5.1 FILE MANIFEST
+
+NEW FILES
+- supabase/migrations/20260719_v3_5_1_admin_property_photo_visibility.sql
+- RELEASE_NOTES_v3.5.1.md
+- V3_5_1_FILE_MANIFEST.txt
+- V3_5_1_INSTALL.txt
+- V3_5_1_TEST_CHECKLIST.txt
+
+MODIFIED FILES
+- src/components/AdminPropertyPhotoReview.tsx
+
+REMOVED FILES
+- None

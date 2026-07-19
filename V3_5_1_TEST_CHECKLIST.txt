@@ -1,0 +1,11 @@
+SECUREDLANDING v3.5.1 TEST CHECKLIST
+
+[ ] Migration completes successfully.
+[ ] Admin Dashboard loads without a property-photo database error.
+[ ] All existing pending photos appear in Property photos awaiting review.
+[ ] Private photo thumbnails load.
+[ ] Approve works.
+[ ] Request replacement works.
+[ ] Reject works.
+[ ] An approved photo can be set as the loan cover photo.
+[ ] A newly uploaded borrower photo appears after Refresh.

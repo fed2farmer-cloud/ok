@@ -1,0 +1,8 @@
+SECUREDLANDING v3.5.1 INSTALL
+
+1. Upload all ZIP contents to the same paths in the GitHub repository.
+2. In Supabase SQL Editor, open and run the complete contents of:
+   supabase/migrations/20260719_v3_5_1_admin_property_photo_visibility.sql
+3. Confirm Supabase reports Success.
+4. Deploy the newest GitHub commit in Vercel without using the old build cache.
+5. Sign in as admin and press Refresh under Property photos awaiting review.
