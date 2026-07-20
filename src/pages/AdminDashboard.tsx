@@ -7,6 +7,8 @@ import BrandLogo from "../components/BrandLogo";
 import AdminKYCReview from "../components/AdminKYCReview";
 import AdminSignedDocumentReview from "../components/AdminSignedDocumentReview";
 import AdminPropertyPhotoReview from "../components/AdminPropertyPhotoReview";
+import AdminAccordionSection from "../components/AdminAccordionSection";
+import AdminLoanMediaPanel from "../components/AdminLoanMediaPanel";
 
 
 type LoanApplication = {
@@ -691,7 +693,8 @@ export default function AdminDashboard() {
           ))}
         </section>
 
-        <section className="mt-6 rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm sm:p-6">
+        <AdminAccordionSection title="Borrower introduction videos" eyebrow="Media review queue" count={applications.filter((loan) => Boolean(loan.borrower_video_path)).length}>
+          <section className="rounded-2xl border border-emerald-200 bg-white p-1">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Media review queue</p>
@@ -731,14 +734,22 @@ export default function AdminDashboard() {
                 ))}
             </div>
           )}
-        </section>
+          </section>
+        </AdminAccordionSection>
 
-        <AdminKYCReview />
-        <AdminSignedDocumentReview />
-        <AdminPropertyPhotoReview />
+        <AdminAccordionSection title="KYC / AML reviews" eyebrow="Compliance queue">
+          <AdminKYCReview />
+        </AdminAccordionSection>
+        <AdminAccordionSection title="Closing document queue" eyebrow="Documents">
+          <AdminSignedDocumentReview />
+        </AdminAccordionSection>
+        <AdminAccordionSection title="Property media queue" eyebrow="Photos">
+          <AdminPropertyPhotoReview />
+        </AdminAccordionSection>
 
         {/* Analytics Charts */}
-        <section className="mt-6 grid gap-6 lg:grid-cols-2">
+        <AdminAccordionSection title="Reports and analytics" eyebrow="Portfolio overview">
+        <section className="grid gap-6 lg:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-base font-bold text-slate-900">Loan Volume by Status</h2>
             <p className="mt-0.5 text-xs text-slate-400">Total requested ($) grouped by current status</p>
@@ -793,8 +804,10 @@ export default function AdminDashboard() {
             </div>
           </div>
         </section>
+        </AdminAccordionSection>
 
-        <section className="mt-8 space-y-6">
+        <AdminAccordionSection title="Loan applications" eyebrow="Underwriting workspace" count={applications.length} defaultOpen>
+        <section className="space-y-6">
           {applications.length === 0 ? (
             <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">No loan applications found.</div>
           ) : (
@@ -814,14 +827,17 @@ export default function AdminDashboard() {
               const isSaving = savingId === loan.id;
 
               return (
-                <article key={loan.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
-                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-6 py-5">
+                <details key={loan.id} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
+                  <summary className="flex cursor-pointer list-none flex-wrap items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-6 py-5 [&::-webkit-details-marker]:hidden">
                     <div>
                       <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Loan #{loan.loan_number ?? loan.id}</p>
                       <h2 className="mt-1 text-2xl font-black text-slate-950">{loan.business_name || loan.full_name || "Land-backed loan"}</h2>
                     </div>
-                    <span className={`rounded-full px-3 py-1 text-sm font-bold ${statusClasses(loan.status)}`}>{loan.status || "Pending"}</span>
-                  </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`rounded-full px-3 py-1 text-sm font-bold ${statusClasses(loan.status)}`}>{loan.status || "Pending"}</span>
+                      <span className="grid h-9 w-9 place-items-center rounded-full border border-slate-300 text-lg font-black transition group-open:rotate-180">⌄</span>
+                    </div>
+                  </summary>
 
                   <div className="p-6">
                     <div className="grid gap-6 lg:grid-cols-3">
@@ -918,6 +934,11 @@ export default function AdminDashboard() {
                       )}
                     </div>
 
+                    <details className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 p-5" open>
+                      <summary className="cursor-pointer list-none text-lg font-black text-slate-950 [&::-webkit-details-marker]:hidden">Property Photos <span className="float-right">⌄</span></summary>
+                      <AdminLoanMediaPanel loanApplicationId={loan.id} />
+                    </details>
+
                     {/* Borrower video review */}
                     {loan.borrower_video_path && (
                       <div className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 p-5">
@@ -937,11 +958,12 @@ export default function AdminDashboard() {
                       <button disabled={isSaving} onClick={() => void updateStatus(loan.id, "Funded")} className="rounded-xl bg-blue-600 px-5 py-3 font-bold text-white disabled:bg-slate-400">Mark funded</button>
                     </div>
                   </div>
-                </article>
+                </details>
               );
             })
           )}
         </section>
+        </AdminAccordionSection>
       </div>
     </AppLayout>
   );
