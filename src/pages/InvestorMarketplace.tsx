@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import AppLayout from "../components/AppLayout";
+import InvestorPropertyGallery, { type InvestorPropertyPhoto } from "../components/InvestorPropertyGallery";
 
 type MarketplaceLoan = {
   id: number;
@@ -66,6 +67,7 @@ export default function InvestorMarketplace() {
 
   const [loans, setLoans] = useState<MarketplaceLoan[]>([]);
   const [wallet, setWallet] = useState<InvestorWallet | null>(null);
+  const [photosByLoan, setPhotosByLoan] = useState<Record<string, InvestorPropertyPhoto[]>>({});
   const [amounts, setAmounts] = useState<Record<number, string>>({});
   const [processingLoanId, setProcessingLoanId] = useState<number | null>(null);
 
@@ -129,8 +131,53 @@ export default function InvestorMarketplace() {
         throw loanError;
       }
 
+      const marketplaceLoans = (loanData as MarketplaceLoan[] | null) || [];
       setWallet(walletData || null);
-      setLoans((loanData as MarketplaceLoan[] | null) || []);
+      setLoans(marketplaceLoans);
+
+      const applicationIds = Array.from(
+        new Set(
+          marketplaceLoans
+            .map((loan) => String(loan.loan_application_id ?? "").trim())
+            .filter(Boolean)
+        )
+      );
+
+      if (applicationIds.length === 0) {
+        setPhotosByLoan({});
+      } else {
+        const { data: photoData, error: photoError } = await supabase
+          .from("property_photos")
+          .select("id,loan_application_id,storage_path,caption,is_cover,is_cover_photo,created_at,review_status")
+          .in("loan_application_id", applicationIds)
+          .eq("review_status", "approved")
+          .order("created_at", { ascending: true });
+
+        if (photoError) {
+          console.error("Approved property photos could not be loaded:", photoError.message);
+          setPhotosByLoan({});
+        } else {
+          const hydrated = await Promise.all(
+            ((photoData || []) as Array<Omit<InvestorPropertyPhoto, "signed_url">>).map(async (photo) => {
+              const { data: signed, error: signedError } = await supabase.storage
+                .from("property-photos")
+                .createSignedUrl(photo.storage_path, 3600);
+              return {
+                ...photo,
+                signed_url: signedError ? "" : signed?.signedUrl || "",
+              };
+            })
+          );
+
+          const grouped: Record<string, InvestorPropertyPhoto[]> = {};
+          hydrated.forEach((photo) => {
+            if (!photo.signed_url) return;
+            const key = String(photo.loan_application_id);
+            grouped[key] = [...(grouped[key] || []), photo];
+          });
+          setPhotosByLoan(grouped);
+        }
+      }
     } catch (error: any) {
       setErrorMessage(
         error?.message || "Unable to load investment opportunities."
@@ -460,6 +507,11 @@ export default function InvestorMarketplace() {
                     {loan.status || "Open"}
                   </span>
                 </div>
+
+                <InvestorPropertyGallery
+                  photos={photosByLoan[String(loan.loan_application_id)] || []}
+                  loanLabel={`Loan #${loan.loan_number ?? loan.loan_application_id}`}
+                />
 
                 {loan.borrower_video_status === "approved" && loan.borrower_video_path && (
                   <ApprovedBorrowerVideo storagePath={loan.borrower_video_path} />
