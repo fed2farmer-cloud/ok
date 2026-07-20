@@ -1,0 +1,10 @@
+V3.5.2 TEST CHECKLIST
+
+[ ] Admin approves a property photo for one loan.
+[ ] Investor opens Marketplace.
+[ ] Approved photo appears only on the matching loan.
+[ ] Cover photo appears first.
+[ ] Additional thumbnails can be selected on mobile.
+[ ] Pending/rejected photos do not appear.
+[ ] Approved borrower video still appears.
+[ ] Marketplace investment buttons still work.

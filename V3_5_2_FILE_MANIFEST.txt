@@ -1,0 +1,13 @@
+NEW FILES
+src/components/InvestorPropertyGallery.tsx
+supabase/migrations/20260720_v3_5_2_investor_property_gallery.sql
+RELEASE_NOTES_v3.5.2.md
+V3_5_2_FILE_MANIFEST.txt
+V3_5_2_INSTALL.txt
+V3_5_2_TEST_CHECKLIST.txt
+
+MODIFIED FILES
+src/pages/InvestorMarketplace.tsx
+
+REMOVED FILES
+None

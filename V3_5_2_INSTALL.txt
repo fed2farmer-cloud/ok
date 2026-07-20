@@ -1,0 +1,8 @@
+SECUREDLANDING V3.5.2 INSTALL
+
+1. Upload all ZIP files to the same paths in GitHub.
+2. Run the complete contents of:
+   supabase/migrations/20260720_v3_5_2_investor_property_gallery.sql
+3. Commit to main.
+4. Redeploy the newest Vercel deployment without the old build cache.
+5. Sign in as an investor and open Marketplace.
