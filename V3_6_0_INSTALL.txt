@@ -1,0 +1,7 @@
+SECUREDLANDING v3.6.0 INSTALL
+
+1. Upload the ZIP contents to the root of the GitHub repository.
+2. Commit the files to the branch connected to Vercel.
+3. Redeploy the newest commit in Vercel.
+4. No new Supabase SQL is required if v3.5.1 is already installed.
+5. Sign in as admin and test the expandable folders and loan cards.

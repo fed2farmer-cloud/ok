@@ -1,0 +1,13 @@
+NEW
+src/components/AdminAccordionSection.tsx
+src/components/AdminLoanMediaPanel.tsx
+RELEASE_NOTES_v3.6.0.md
+V3_6_0_FILE_MANIFEST.txt
+V3_6_0_INSTALL.txt
+V3_6_0_TEST_CHECKLIST.txt
+
+MODIFIED
+src/pages/AdminDashboard.tsx
+
+REMOVED
+None

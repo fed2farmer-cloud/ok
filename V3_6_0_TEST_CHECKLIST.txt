@@ -1,0 +1,13 @@
+SECUREDLANDING v3.6.0 TEST CHECKLIST
+
+[ ] Admin dashboard loads without a page error.
+[ ] KYC / AML folder opens and closes.
+[ ] Closing document folder opens and closes.
+[ ] Property media folder opens and closes.
+[ ] Reports and analytics folder opens and closes.
+[ ] Loan applications folder opens and closes.
+[ ] Each individual loan card opens and closes.
+[ ] Correct property photos appear inside the matching loan card.
+[ ] Borrower video remains attached to the matching loan.
+[ ] Approve, deny, save review, and mark funded buttons still work.
+[ ] Production build completes successfully.
