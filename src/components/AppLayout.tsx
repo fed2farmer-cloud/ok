@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import BrandLogo from "./BrandLogo";
 
 interface NavItem { href: string; label: string; }
 const BORROWER_LINKS: NavItem[] = [
@@ -61,9 +62,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950 text-white shadow-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <Link to="/" className="inline-flex items-center" aria-label="Secured Landing home">
-            <img src="/secured-landing-logo.svg" alt="Secured Landing" className="h-10 w-auto max-w-[210px] brightness-0 invert" />
-          </Link>
+          <BrandLogo className="h-14 w-auto max-w-[250px]" light />
           <nav className="hidden items-center gap-1 md:flex">
             {navLinks.map((item) => (
               <Link key={item.href} to={item.href} className={`rounded-lg px-3 py-2 text-sm font-medium ${location.pathname === item.href ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}>

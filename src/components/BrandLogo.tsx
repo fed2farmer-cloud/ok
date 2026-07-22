@@ -1,39 +1,38 @@
-import React from "react";
+import { Link } from "react-router-dom";
 
 interface BrandLogoProps {
   className?: string;
-  dark?: boolean;
+  linkToHome?: boolean;
+  light?: boolean;
 }
 
 export default function BrandLogo({
-  className = "",
-  dark = false,
+  className = "h-14 w-auto max-w-[250px]",
+  linkToHome = true,
+  light = false,
 }: BrandLogoProps) {
-  return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      <img
-        src="/securedlanding-logo.png"
-        alt="SecuredLanding"
-        className="h-12 w-12 object-contain"
-      />
+  const logo = (
+    <img
+      src="/secured-landing-logo-transparent.png"
+      alt="Secured Landing — Land-Backed Lending"
+      className={`${className} object-contain [image-rendering:auto] ${
+        light ? "drop-shadow-sm" : ""
+      }`}
+      decoding="async"
+      loading="eager"
+      draggable={false}
+    />
+  );
 
-      <div className="leading-tight">
-        <h1
-          className={`text-xl font-bold ${
-            dark ? "text-slate-900" : "text-white"
-          }`}
-        >
-          SecuredLanding
-        </h1>
-
-        <p
-          className={`text-[10px] uppercase tracking-[0.25em] ${
-            dark ? "text-slate-500" : "text-slate-300"
-          }`}
-        >
-          LAND-BACKED LENDING
-        </p>
-      </div>
-    </div>
+  return linkToHome ? (
+    <Link
+      to="/"
+      aria-label="Secured Landing home"
+      className="inline-flex min-w-0 items-center"
+    >
+      {logo}
+    </Link>
+  ) : (
+    logo
   );
 }
