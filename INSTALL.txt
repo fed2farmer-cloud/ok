@@ -1,0 +1,18 @@
+SECUREDLANDING MEDIA + LOGO FIX
+
+1. Copy each file into the same path in your GitHub repository.
+2. Run supabase/migrations/20260722_media_read_policies.sql in Supabase SQL Editor.
+3. Confirm the storage buckets are named exactly:
+   property-photos
+   borrower-videos
+4. Commit and redeploy Vercel.
+5. Hard refresh Chrome after deployment.
+
+Why photos failed:
+The admin account could see them, but marketplace investors did not have SELECT permission for approved property_photos rows and/or storage.objects. The SQL file adds read-only authenticated policies.
+
+Why videos failed:
+Signed URL creation also requires SELECT permission on storage.objects. The helper additionally fixes full URLs, duplicate bucket prefixes, and stored paths.
+
+Why the logo looked patched:
+The old PNG contains a large low-quality transparent canvas. This patch replaces it with a tightly cropped vector SVG.
