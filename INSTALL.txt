@@ -1,18 +1,20 @@
-SECUREDLANDING MEDIA + LOGO FIX
+SECUREDLANDING MEDIA REPAIR PATCH
 
-1. Copy each file into the same path in your GitHub repository.
-2. Run supabase/migrations/20260722_media_read_policies.sql in Supabase SQL Editor.
-3. Confirm the storage buckets are named exactly:
-   property-photos
-   borrower-videos
-4. Commit and redeploy Vercel.
-5. Hard refresh Chrome after deployment.
+Replace these files in your repository with the files from this ZIP:
 
-Why photos failed:
-The admin account could see them, but marketplace investors did not have SELECT permission for approved property_photos rows and/or storage.objects. The SQL file adds read-only authenticated policies.
+src/lib/mediaStorage.ts
+src/pages/InvestorMarketplace.tsx
+src/components/VideoUpload.tsx
+src/components/PropertyGallery.tsx
 
-Why videos failed:
-Signed URL creation also requires SELECT permission on storage.objects. The helper additionally fixes full URLs, duplicate bucket prefixes, and stored paths.
+Then commit/push to GitHub and allow Vercel to redeploy.
 
-Why the logo looked patched:
-The old PNG contains a large low-quality transparent canvas. This patch replaces it with a tightly cropped vector SVG.
+WHAT THIS PATCH CHANGES
+- Prevents an old borrower video from being deleted when another loan still uses the same storage path.
+- Prevents a property photo from being deleted from Storage while another database record still uses it.
+- Tries the exact saved media path first, then other files in the same loan folder when the saved object was replaced.
+- Tries another video candidate automatically when the first signed URL cannot play.
+- Removes the misleading public-URL fallback for missing private objects.
+- Adds useful browser-console errors for broken media.
+
+No SQL migration is required for this patch.
