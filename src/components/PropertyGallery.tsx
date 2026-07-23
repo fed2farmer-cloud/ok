@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../context/ToastContext";
+import { resolveStorageUrl } from "../lib/mediaStorage";
 
 interface Photo {
   id: string;
@@ -49,12 +50,10 @@ export default function PropertyGallery({
 
     const rows = (data as Photo[] | null) ?? [];
     const withUrls = await Promise.all(
-      rows.map(async (p) => {
-        const { data: urlData } = await supabase!.storage
-          .from("property-photos")
-          .createSignedUrl(p.storage_path, 3600);
-        return { ...p, signed_url: urlData?.signedUrl ?? "" };
-      })
+      rows.map(async (p) => ({
+        ...p,
+        signed_url: await resolveStorageUrl("property-photos", p.storage_path),
+      }))
     );
 
     setPhotos(withUrls);
@@ -121,8 +120,33 @@ export default function PropertyGallery({
   async function deletePhoto(photo: Photo) {
     if (!supabase) return;
     if (!confirm("Delete this photo?")) return;
-    await supabase.storage.from("property-photos").remove([photo.storage_path]);
-    await supabase.from("property_photos").delete().eq("id", photo.id);
+
+    const { error: deleteRowError } = await supabase
+      .from("property_photos")
+      .delete()
+      .eq("id", photo.id);
+
+    if (deleteRowError) {
+      addToast("error", "Delete failed", deleteRowError.message);
+      return;
+    }
+
+    // Remove the storage object only when no other photo record reuses it.
+    const { data: sharedReferences, error: referenceError } = await supabase
+      .from("property_photos")
+      .select("id")
+      .eq("storage_path", photo.storage_path)
+      .limit(1);
+
+    if (referenceError) {
+      console.warn("Unable to check whether the property photo is shared; leaving the object in storage", referenceError);
+    } else if (!sharedReferences?.length) {
+      const { error: storageError } = await supabase.storage
+        .from("property-photos")
+        .remove([photo.storage_path]);
+      if (storageError) console.warn("Property photo row was deleted, but the storage object could not be removed", storageError);
+    }
+
     setPhotos((prev) => prev.filter((p) => p.id !== photo.id));
     addToast("success", "Photo deleted");
   }

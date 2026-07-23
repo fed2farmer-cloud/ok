@@ -427,15 +427,31 @@ export default function VideoUpload({
           : null;
 
       if (previousPath && previousPath !== uploadedPath) {
-        const { error: removalError } = await supabase.storage
-          .from("borrower-videos")
-          .remove([previousPath]);
+        // A borrower may intentionally reuse one stored video on multiple loans.
+        // Do not remove a shared object while another application still points to it.
+        const { data: sharedReferences, error: referenceError } = await supabase
+          .from("loan_applications")
+          .select("id")
+          .eq("borrower_video_path", previousPath)
+          .neq("id", applicationId)
+          .limit(1);
 
-        if (removalError) {
+        if (referenceError) {
           console.warn(
-            "The previous borrower video could not be removed:",
-            removalError
+            "Unable to verify whether the previous borrower video is shared; leaving the file in storage:",
+            referenceError
           );
+        } else if (!sharedReferences?.length) {
+          const { error: removalError } = await supabase.storage
+            .from("borrower-videos")
+            .remove([previousPath]);
+
+          if (removalError) {
+            console.warn(
+              "The previous borrower video could not be removed:",
+              removalError
+            );
+          }
         }
       }
 
