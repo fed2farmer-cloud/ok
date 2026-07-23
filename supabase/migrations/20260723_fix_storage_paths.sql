@@ -1,0 +1,4 @@
+-- 20260723_fix_storage_paths.sql
+-- Placeholder migration for media path fixes.
+-- Ensure borrower_video_path stores the full storage object path.
+-- Update application code to save full object name returned by Supabase Storage.
