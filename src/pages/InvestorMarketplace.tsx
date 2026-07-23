@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { resolveStorageUrl } from "../lib/mediaStorage";
+import { resolveStorageUrl, resolveStorageUrls } from "../lib/mediaStorage";
 import AppLayout from "../components/AppLayout";
 import InvestorPropertyGallery, { type InvestorPropertyPhoto } from "../components/InvestorPropertyGallery";
 
@@ -31,27 +31,51 @@ type InvestorWallet = { available_balance?: number | null };
 
 type VideoProps = { storagePath: string };
 function ApprovedBorrowerVideo({ storagePath }: VideoProps) {
-  const [url, setUrl] = useState("");
+  const [urls, setUrls] = useState<string[]>([]);
+  const [candidateIndex, setCandidateIndex] = useState(0);
   const [state, setState] = useState<"loading" | "ready" | "unavailable">("loading");
 
   useEffect(() => {
     let active = true;
     setState("loading");
-    setUrl("");
-    void resolveStorageUrl("borrower-videos", storagePath).then((resolved) => {
+    setUrls([]);
+    setCandidateIndex(0);
+
+    void resolveStorageUrls("borrower-videos", storagePath).then((resolved) => {
       if (!active) return;
-      setUrl(resolved);
-      setState(resolved ? "ready" : "unavailable");
+      setUrls(resolved);
+      setState(resolved.length ? "ready" : "unavailable");
     });
+
     return () => { active = false; };
   }, [storagePath]);
 
   if (state === "loading") return <div className="mt-5 rounded-2xl bg-slate-800 p-5 text-slate-300">Loading approved borrower video…</div>;
-  if (state === "unavailable" || !url) return <div className="mt-5 rounded-2xl border border-amber-700/40 bg-amber-950/30 p-5 text-amber-100">Approved borrower video is temporarily unavailable.</div>;
+  if (state === "unavailable" || !urls[candidateIndex]) return <div className="mt-5 rounded-2xl border border-amber-700/40 bg-amber-950/30 p-5 text-amber-100">Approved borrower video is temporarily unavailable.</div>;
 
   return (
-    <video controls playsInline preload="metadata" className="mt-5 w-full rounded-2xl bg-black" onError={() => setState("unavailable")}>
-      <source src={url} />
+    <video
+      key={urls[candidateIndex]}
+      controls
+      playsInline
+      preload="metadata"
+      className="mt-5 w-full rounded-2xl bg-black"
+      src={urls[candidateIndex]}
+      onLoadedMetadata={() => setState("ready")}
+      onError={() => {
+        const nextIndex = candidateIndex + 1;
+        if (nextIndex < urls.length) {
+          console.warn("Borrower video failed; trying another file from the same loan folder", {
+            storagePath,
+            candidateIndex: nextIndex,
+          });
+          setCandidateIndex(nextIndex);
+        } else {
+          console.error("All borrower video candidates failed to play", { storagePath });
+          setState("unavailable");
+        }
+      }}
+    >
       Your browser does not support video playback.
     </video>
   );
