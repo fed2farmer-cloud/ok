@@ -1,20 +1,13 @@
-SECUREDLANDING MEDIA REPAIR PATCH
+SecuredLanding Final Marketplace Media Patch
 
-Replace these files in your repository with the files from this ZIP:
+Replace these files in the repository using the same paths:
+- src/pages/InvestorMarketplace.tsx
+- src/lib/mediaStorage.ts
+- src/components/VideoUpload.tsx
+- src/components/InvestorPropertyGallery.tsx
+- src/components/PropertyGallery.tsx
 
-src/lib/mediaStorage.ts
-src/pages/InvestorMarketplace.tsx
-src/components/VideoUpload.tsx
-src/components/PropertyGallery.tsx
+Then run this migration in Supabase SQL Editor:
+- supabase/migrations/20260723_marketplace_media_access.sql
 
-Then commit/push to GitHub and allow Vercel to redeploy.
-
-WHAT THIS PATCH CHANGES
-- Prevents an old borrower video from being deleted when another loan still uses the same storage path.
-- Prevents a property photo from being deleted from Storage while another database record still uses it.
-- Tries the exact saved media path first, then other files in the same loan folder when the saved object was replaced.
-- Tries another video candidate automatically when the first signed URL cannot play.
-- Removes the misleading public-URL fallback for missing private objects.
-- Adds useful browser-console errors for broken media.
-
-No SQL migration is required for this patch.
+Commit all replacement files together and redeploy Vercel.
