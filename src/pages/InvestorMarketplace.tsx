@@ -45,15 +45,24 @@ type InvestorWallet = {
   invested_balance?: number | null;
 };
 
-type SortMode = "newest" | "rate" | "amount" | "funded" | "risk";
+type SortMode =
+  | "newest"
+  | "rate"
+  | "amount"
+  | "funded"
+  | "risk";
 
 type VideoProps = {
   storagePath: string;
 };
 
-function ApprovedBorrowerVideo({ storagePath }: VideoProps) {
+function ApprovedBorrowerVideo({
+  storagePath,
+}: VideoProps) {
   const [urls, setUrls] = useState<string[]>([]);
-  const [candidateIndex, setCandidateIndex] = useState(0);
+  const [candidateIndex, setCandidateIndex] =
+    useState(0);
+
   const [state, setState] = useState<
     "loading" | "ready" | "unavailable"
   >("loading");
@@ -65,14 +74,17 @@ function ApprovedBorrowerVideo({ storagePath }: VideoProps) {
     setUrls([]);
     setCandidateIndex(0);
 
-    void resolveStorageUrls("borrower-videos", storagePath).then(
-      (resolved) => {
-        if (!active) return;
+    void resolveStorageUrls(
+      "borrower-videos",
+      storagePath
+    ).then((resolved) => {
+      if (!active) return;
 
-        setUrls(resolved);
-        setState(resolved.length ? "ready" : "unavailable");
-      }
-    );
+      setUrls(resolved);
+      setState(
+        resolved.length ? "ready" : "unavailable"
+      );
+    });
 
     return () => {
       active = false;
@@ -87,10 +99,14 @@ function ApprovedBorrowerVideo({ storagePath }: VideoProps) {
     );
   }
 
-  if (state === "unavailable" || !urls[candidateIndex]) {
+  if (
+    state === "unavailable" ||
+    !urls[candidateIndex]
+  ) {
     return (
       <div className="mt-5 rounded-2xl border border-amber-700/40 bg-amber-950/30 p-5 text-amber-100">
-        Approved borrower video is temporarily unavailable.
+        Approved borrower video is temporarily
+        unavailable.
       </div>
     );
   }
@@ -120,69 +136,162 @@ function ApprovedBorrowerVideo({ storagePath }: VideoProps) {
 }
 
 function riskRank(value?: string | null) {
-  const normalized = String(value || "").toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
 
-  if (normalized.includes("low") || normalized.includes("a")) {
+  if (
+    normalized.includes("low") ||
+    normalized === "a" ||
+    normalized.startsWith("a")
+  ) {
     return 1;
   }
 
-  if (normalized.includes("medium") || normalized.includes("b")) {
+  if (
+    normalized.includes("medium") ||
+    normalized === "b" ||
+    normalized.startsWith("b")
+  ) {
     return 2;
   }
 
-  if (normalized.includes("high") || normalized.includes("c")) {
+  if (
+    normalized.includes("high") ||
+    normalized === "c" ||
+    normalized.startsWith("c")
+  ) {
     return 3;
   }
 
   return 9;
 }
 
+function getErrorMessage(
+  error: unknown,
+  fallback: string
+) {
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (
+    typeof error === "object" &&
+    error !== null
+  ) {
+    const record = error as Record<string, unknown>;
+
+    if (
+      typeof record.message === "string" &&
+      record.message.trim()
+    ) {
+      return record.message;
+    }
+
+    if (
+      typeof record.details === "string" &&
+      record.details.trim()
+    ) {
+      return record.details;
+    }
+
+    if (
+      typeof record.hint === "string" &&
+      record.hint.trim()
+    ) {
+      return record.hint;
+    }
+
+    try {
+      return JSON.stringify(record);
+    } catch {
+      return fallback;
+    }
+  }
+
+  return fallback;
+}
+
 export default function InvestorMarketplace() {
   const navigate = useNavigate();
 
-  const [loans, setLoans] = useState<MarketplaceLoan[]>([]);
-  const [wallet, setWallet] = useState<InvestorWallet | null>(null);
+  const [loans, setLoans] = useState<
+    MarketplaceLoan[]
+  >([]);
 
-  const [photosByLoan, setPhotosByLoan] = useState<
-    Record<string, InvestorPropertyPhoto[]>
+  const [wallet, setWallet] =
+    useState<InvestorWallet | null>(null);
+
+  const [photosByLoan, setPhotosByLoan] =
+    useState<
+      Record<string, InvestorPropertyPhoto[]>
+    >({});
+
+  const [amounts, setAmounts] = useState<
+    Record<number, string>
   >({});
 
-  const [amounts, setAmounts] = useState<Record<number, string>>({});
-  const [favorites, setFavorites] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [favorites, setFavorites] = useState<
+    Record<string, boolean>
+  >({});
 
   const [search, setSearch] = useState("");
-  const [stateFilter, setStateFilter] = useState("All");
+  const [stateFilter, setStateFilter] =
+    useState("All");
+
   const [sortMode, setSortMode] =
     useState<SortMode>("newest");
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
+
+  const [favoritesOnly, setFavoritesOnly] =
+    useState(false);
 
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [processingLoanId, setProcessingLoanId] = useState<
-    number | null
-  >(null);
+  const [refreshing, setRefreshing] =
+    useState(false);
 
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [
+    processingLoanId,
+    setProcessingLoanId,
+  ] = useState<number | null>(null);
+
+  const [errorMessage, setErrorMessage] =
+    useState("");
+
+  const [successMessage, setSuccessMessage] =
+    useState("");
 
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(
-        "securedlanding-marketplace-favorites"
-      );
+      const saved =
+        window.localStorage.getItem(
+          "securedlanding-marketplace-favorites"
+        );
 
       if (saved) {
         setFavorites(JSON.parse(saved));
       }
     } catch {
-      // Ignore unavailable or malformed local storage.
+      // Ignore local-storage errors.
     }
   }, []);
 
-  const toggleFavorite = (loan: MarketplaceLoan) => {
-    const key = String(loan.loan_application_id);
+  function money(value: unknown) {
+    return Number(value || 0).toLocaleString(
+      undefined,
+      {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 2,
+      }
+    );
+  }
+
+  const toggleFavorite = (
+    loan: MarketplaceLoan
+  ) => {
+    const key = String(
+      loan.loan_application_id
+    );
 
     setFavorites((current) => {
       const next = {
@@ -196,7 +305,7 @@ export default function InvestorMarketplace() {
           JSON.stringify(next)
         );
       } catch {
-        // Ignore local storage write errors.
+        // Ignore local-storage write errors.
       }
 
       return next;
@@ -206,7 +315,9 @@ export default function InvestorMarketplace() {
   const loadMarketplace = useCallback(
     async (silent = false) => {
       if (!supabase) {
-        setErrorMessage("Supabase is not configured.");
+        setErrorMessage(
+          "Supabase is not configured."
+        );
         setLoading(false);
         return;
       }
@@ -228,17 +339,27 @@ export default function InvestorMarketplace() {
         if (authError) throw authError;
 
         if (!user) {
-          navigate("/login", { replace: true });
+          navigate("/login", {
+            replace: true,
+          });
           return;
         }
 
         const [
-          { data: walletData, error: walletError },
-          { data: loanData, error: loanError },
+          {
+            data: walletData,
+            error: walletError,
+          },
+          {
+            data: loanData,
+            error: loanError,
+          },
         ] = await Promise.all([
           supabase
             .from("investor_wallets")
-            .select("available_balance,invested_balance")
+            .select(
+              "available_balance,invested_balance"
+            )
             .eq("user_id", user.id)
             .maybeSingle(),
 
@@ -246,95 +367,172 @@ export default function InvestorMarketplace() {
             .from("marketplace_loans")
             .select("*")
             .eq("status", "Open")
-            .order("created_at", { ascending: false }),
+            .order("created_at", {
+              ascending: false,
+            }),
         ]);
 
         if (walletError) throw walletError;
         if (loanError) throw loanError;
 
-        let marketplaceLoans = (loanData ?? []) as MarketplaceLoan[];
+        let marketplaceLoans =
+          (loanData ?? []) as MarketplaceLoan[];
 
         setWallet(walletData ?? null);
 
         const applicationIds = [
           ...new Set(
             marketplaceLoans
-              .map((loan) => String(loan.loan_application_id))
+              .map((loan) =>
+                String(
+                  loan.loan_application_id
+                )
+              )
               .filter(Boolean)
           ),
         ];
 
         if (applicationIds.length > 0) {
-          const { data: applications, error: applicationsError } =
-            await supabase
-              .from("loan_applications")
-              .select(
-                "id,borrower_video_path,borrower_video_status,county,land_type,repayment_term_months"
-              )
-              .in("id", applicationIds);
+          const {
+            data: applications,
+            error: applicationsError,
+          } = await supabase
+            .from("loan_applications")
+            .select(
+              [
+                "id",
+                "borrower_video_path",
+                "borrower_video_status",
+                "county",
+                "land_type",
+                "repayment_term_months",
+              ].join(",")
+            )
+            .in("id", applicationIds);
 
           if (applicationsError) {
             console.error(
               "Loan application details could not be loaded:",
-              applicationsError.message
+              applicationsError
             );
           }
 
           const byId = new Map(
-            (applications ?? []).map((row: any) => [
-              String(row.id),
-              row,
-            ])
+            (applications ?? []).map(
+              (row: Record<string, unknown>) => [
+                String(row.id),
+                row,
+              ]
+            )
           );
 
-          marketplaceLoans = marketplaceLoans.map((loan) => {
-            const application = byId.get(
-              String(loan.loan_application_id)
-            );
+          marketplaceLoans =
+            marketplaceLoans.map((loan) => {
+              const application = byId.get(
+                String(
+                  loan.loan_application_id
+                )
+              );
 
-            return {
-              ...loan,
-              borrower_video_path:
-                application?.borrower_video_path ??
-                loan.borrower_video_path,
-              borrower_video_status:
-                application?.borrower_video_status ??
-                loan.borrower_video_status,
-              county: application?.county ?? loan.county,
-              land_type: application?.land_type ?? loan.land_type,
-              repayment_term_months:
-                application?.repayment_term_months ??
-                loan.repayment_term_months,
-            };
-          });
+              return {
+                ...loan,
+                borrower_video_path:
+                  String(
+                    application
+                      ?.borrower_video_path ??
+                      loan.borrower_video_path ??
+                      ""
+                  ) || null,
 
-          const { data: photoData, error: photoError } =
-            await supabase
-              .from("property_photos")
-              .select(
-                "id,loan_application_id,storage_path,caption,is_cover,created_at,review_status"
-              )
-              .in("loan_application_id", applicationIds)
-              .eq("review_status", "approved")
-              .order("created_at", { ascending: true });
+                borrower_video_status:
+                  String(
+                    application
+                      ?.borrower_video_status ??
+                      loan.borrower_video_status ??
+                      ""
+                  ) || null,
+
+                county:
+                  String(
+                    application?.county ??
+                      loan.county ??
+                      ""
+                  ) || null,
+
+                land_type:
+                  String(
+                    application?.land_type ??
+                      loan.land_type ??
+                      ""
+                  ) || null,
+
+                repayment_term_months:
+                  Number(
+                    application
+                      ?.repayment_term_months ??
+                      loan.repayment_term_months ??
+                      0
+                  ) || null,
+              };
+            });
+
+          const {
+            data: photoData,
+            error: photoError,
+          } = await supabase
+            .from("property_photos")
+            .select(
+              [
+                "id",
+                "loan_application_id",
+                "storage_path",
+                "caption",
+                "is_cover",
+                "created_at",
+                "review_status",
+              ].join(",")
+            )
+            .in(
+              "loan_application_id",
+              applicationIds
+            )
+            .eq(
+              "review_status",
+              "approved"
+            )
+            .order("created_at", {
+              ascending: true,
+            });
 
           if (photoError) {
             console.error(
               "Approved property photos could not be loaded:",
-              photoError.message
+              photoError
             );
 
             setPhotosByLoan({});
           } else {
-            const hydrated = await Promise.all(
-              (photoData ?? []).map(async (photo: any) => ({
-                ...photo,
-                signed_url: await resolveStorageUrl(
-                  "property-photos",
-                  photo.storage_path
-                ),
-              }))
-            );
+            const hydrated =
+              await Promise.all(
+                (photoData ?? []).map(
+                  async (
+                    photo: Record<
+                      string,
+                      unknown
+                    >
+                  ) => ({
+                    ...photo,
+                    signed_url:
+                      await resolveStorageUrl(
+                        "property-photos",
+                        String(
+                          photo.storage_path ||
+                            ""
+                        )
+                      ),
+                  })
+                )
+              );
 
             const grouped: Record<
               string,
@@ -342,9 +540,13 @@ export default function InvestorMarketplace() {
             > = {};
 
             hydrated
-              .filter((photo) => Boolean(photo.signed_url))
+              .filter((photo) =>
+                Boolean(photo.signed_url)
+              )
               .forEach((photo) => {
-                const key = String(photo.loan_application_id);
+                const key = String(
+                  photo.loan_application_id
+                );
 
                 grouped[key] = [
                   ...(grouped[key] ?? []),
@@ -360,12 +562,16 @@ export default function InvestorMarketplace() {
 
         setLoans(marketplaceLoans);
       } catch (error: unknown) {
-        console.error("Marketplace loading failed:", error);
+        console.error(
+          "Marketplace loading failed:",
+          error
+        );
 
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Unable to load investment opportunities."
+          getErrorMessage(
+            error,
+            "Unable to load investment opportunities."
+          )
         );
       } finally {
         setLoading(false);
@@ -379,67 +585,86 @@ export default function InvestorMarketplace() {
     void loadMarketplace();
   }, [loadMarketplace]);
 
-  const states = useMemo(
-    () => [
+  const states = useMemo(() => {
+    const values = loans
+      .map((loan) => loan.state)
+      .filter(Boolean) as string[];
+
+    return [
       "All",
       ...Array.from(
-        new Set(
-          loans
-            .map((loan) => loan.state)
-            .filter(Boolean) as string[]
-        )
+        new Set(values)
       ).sort(),
-    ],
-    [loans]
-  );
+    ];
+  }, [loans]);
 
   const visibleLoans = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = search
+      .trim()
+      .toLowerCase();
 
-    const filtered = loans.filter((loan) => {
-      const key = String(loan.loan_application_id);
-
-      const matchesSearch =
-        !query ||
-        [
-          loan.business_name,
-          loan.borrower_name,
-          loan.state,
-          loan.county,
-          loan.land_type,
-          loan.apn,
-          loan.loan_number,
-        ].some((value) =>
-          String(value || "")
-            .toLowerCase()
-            .includes(query)
+    const filtered = loans.filter(
+      (loan) => {
+        const key = String(
+          loan.loan_application_id
         );
 
-      const matchesState =
-        stateFilter === "All" || loan.state === stateFilter;
+        const matchesSearch =
+          !query ||
+          [
+            loan.business_name,
+            loan.borrower_name,
+            loan.state,
+            loan.county,
+            loan.land_type,
+            loan.apn,
+            loan.loan_number,
+          ].some((value) =>
+            String(value || "")
+              .toLowerCase()
+              .includes(query)
+          );
 
-      const matchesFavorite =
-        !favoritesOnly || favorites[key];
+        const matchesState =
+          stateFilter === "All" ||
+          loan.state === stateFilter;
 
-      return (
-        matchesSearch &&
-        matchesState &&
-        matchesFavorite
-      );
-    });
+        const matchesFavorite =
+          !favoritesOnly ||
+          Boolean(favorites[key]);
+
+        return (
+          matchesSearch &&
+          matchesState &&
+          matchesFavorite
+        );
+      }
+    );
 
     return [...filtered].sort((a, b) => {
       if (sortMode === "rate") {
         return (
-          Number(b.investor_interest_rate || 0) -
-          Number(a.investor_interest_rate || 0)
+          Number(
+            b.investor_interest_rate || 0
+          ) -
+          Number(
+            a.investor_interest_rate || 0
+          )
         );
       }
 
       if (sortMode === "amount") {
         return (
-          Number(a.funding_goal ?? a.loan_amount ?? 0) -
-          Number(b.funding_goal ?? b.loan_amount ?? 0)
+          Number(
+            a.funding_goal ??
+              a.loan_amount ??
+              0
+          ) -
+          Number(
+            b.funding_goal ??
+              b.loan_amount ??
+              0
+          )
         );
       }
 
@@ -447,14 +672,22 @@ export default function InvestorMarketplace() {
         const aPercent =
           Number(a.amount_funded || 0) /
           Math.max(
-            Number(a.funding_goal ?? a.loan_amount ?? 1),
+            Number(
+              a.funding_goal ??
+                a.loan_amount ??
+                1
+            ),
             1
           );
 
         const bPercent =
           Number(b.amount_funded || 0) /
           Math.max(
-            Number(b.funding_goal ?? b.loan_amount ?? 1),
+            Number(
+              b.funding_goal ??
+                b.loan_amount ??
+                1
+            ),
             1
           );
 
@@ -462,12 +695,19 @@ export default function InvestorMarketplace() {
       }
 
       if (sortMode === "risk") {
-        return riskRank(a.risk_score) - riskRank(b.risk_score);
+        return (
+          riskRank(a.risk_score) -
+          riskRank(b.risk_score)
+        );
       }
 
       return (
-        new Date(b.created_at || 0).getTime() -
-        new Date(a.created_at || 0).getTime()
+        new Date(
+          b.created_at || 0
+        ).getTime() -
+        new Date(
+          a.created_at || 0
+        ).getTime()
       );
     });
   }, [
@@ -479,26 +719,21 @@ export default function InvestorMarketplace() {
     stateFilter,
   ]);
 
-  function money(value: unknown) {
-    return Number(value || 0).toLocaleString(undefined, {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 2,
-    });
-  }
-
   async function handleInvestFromWallet(
     loan: MarketplaceLoan,
     investmentAmount: number,
     remaining: number
   ) {
     if (!supabase) {
-      setErrorMessage("Supabase is not configured.");
+      setErrorMessage(
+        "Supabase is not configured."
+      );
       return;
     }
 
     const publicLoanNumber = Number(
-      loan.loan_number ?? loan.loan_application_id
+      loan.loan_number ??
+        loan.loan_application_id
     );
 
     const availableBalance = Number(
@@ -519,7 +754,9 @@ export default function InvestorMarketplace() {
       !Number.isFinite(investmentAmount) ||
       investmentAmount < 100
     ) {
-      setErrorMessage("The minimum investment is $100.");
+      setErrorMessage(
+        "The minimum investment is $100."
+      );
       return;
     }
 
@@ -530,17 +767,27 @@ export default function InvestorMarketplace() {
       return;
     }
 
-    if (investmentAmount > availableBalance) {
+    if (
+      investmentAmount >
+      availableBalance
+    ) {
       setErrorMessage(
         "You do not have enough available wallet cash."
       );
       return;
     }
 
+    const refundDays =
+      loan.investor_refund_days ?? 7;
+
     const confirmed = window.confirm(
-      `Invest ${money(
-        investmentAmount
-      )} from your available wallet cash in Loan #${publicLoanNumber}?\n\nThis investment includes a 7-day investor refund period.`
+      [
+        `Invest ${money(
+          investmentAmount
+        )} from your available wallet cash in Loan #${publicLoanNumber}?`,
+        "",
+        `This investment includes a ${refundDays}-day investor refund period.`,
+      ].join("\n")
     );
 
     if (!confirmed) return;
@@ -550,19 +797,26 @@ export default function InvestorMarketplace() {
     setSuccessMessage("");
 
     try {
-      const { data, error } = await supabase.rpc(
+      const {
+        data,
+        error,
+      } = await supabase.rpc(
         "invest_from_wallet_v28",
         {
-          p_loan_number: publicLoanNumber,
-          p_amount: investmentAmount,
+          p_loan_number:
+            publicLoanNumber,
+          p_amount:
+            investmentAmount,
         }
       );
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       if (!data) {
         throw new Error(
-          "The wallet investment did not return a completed investment record."
+          "The database did not return a completed investment record."
         );
       }
 
@@ -574,7 +828,7 @@ export default function InvestorMarketplace() {
       setSuccessMessage(
         `${money(
           investmentAmount
-        )} was invested from available wallet cash in Loan #${publicLoanNumber}.`
+        )} was deducted from available wallet cash and invested in Loan #${publicLoanNumber}.`
       );
 
       await loadMarketplace(true);
@@ -583,12 +837,16 @@ export default function InvestorMarketplace() {
         navigate("/portfolio");
       }, 900);
     } catch (error: unknown) {
-      console.error("Wallet investment failed:", error);
+      console.error(
+        "Wallet investment failed:",
+        error
+      );
 
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "The wallet investment could not be completed."
+        getErrorMessage(
+          error,
+          "The wallet investment could not be completed."
+        )
       );
     } finally {
       setProcessingLoanId(null);
@@ -616,16 +874,19 @@ export default function InvestorMarketplace() {
             </h1>
 
             <p className="text-slate-600">
-              Compare reviewed land-backed opportunities and
-              estimate potential returns.
+              Compare reviewed land-backed
+              opportunities and estimate
+              potential returns.
             </p>
           </div>
 
           <button
             type="button"
-            onClick={() => void loadMarketplace(true)}
+            onClick={() =>
+              void loadMarketplace(true)
+            }
             disabled={refreshing}
-            className="rounded-xl bg-slate-700 px-5 py-3 font-bold text-white disabled:opacity-60"
+            className="rounded-xl bg-slate-700 px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {refreshing
               ? "Refreshing…"
@@ -634,25 +895,27 @@ export default function InvestorMarketplace() {
         </div>
 
         {errorMessage && (
-          <div className="mb-5 rounded-xl border border-rose-300 bg-rose-100 p-4 font-semibold text-rose-800">
+          <div className="mb-5 rounded-xl border border-rose-400 bg-rose-950/40 p-4 font-semibold text-rose-300">
             {errorMessage}
           </div>
         )}
 
         {successMessage && (
-          <div className="mb-5 rounded-xl border border-emerald-300 bg-emerald-100 p-4 font-semibold text-emerald-800">
+          <div className="mb-5 rounded-xl border border-emerald-400 bg-emerald-950/40 p-4 font-semibold text-emerald-300">
             {successMessage}
           </div>
         )}
 
-        <div className="mb-8 grid gap-4 rounded-2xl bg-slate-950 p-6 text-white sm:grid-cols-2">
+        <div className="mb-8 grid gap-5 rounded-3xl bg-slate-950 p-7 text-white shadow-xl sm:grid-cols-2">
           <div>
             <div className="text-sm text-slate-400">
               Available Wallet Cash
             </div>
 
-            <div className="mt-1 text-4xl font-black">
-              {money(wallet?.available_balance)}
+            <div className="mt-2 text-4xl font-black">
+              {money(
+                wallet?.available_balance
+              )}
             </div>
           </div>
 
@@ -661,69 +924,98 @@ export default function InvestorMarketplace() {
               Invested Balance
             </div>
 
-            <div className="mt-1 text-4xl font-black text-emerald-400">
-              {money(wallet?.invested_balance)}
+            <div className="mt-2 text-4xl font-black text-emerald-400">
+              {money(
+                wallet?.invested_balance
+              )}
             </div>
           </div>
         </div>
 
-        <section className="mb-8 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-4">
+        <section className="mb-8 grid gap-3 rounded-2xl border border-slate-700 bg-[#111] p-4 shadow-sm md:grid-cols-4">
           <input
             value={search}
             onChange={(event) =>
               setSearch(event.target.value)
             }
             placeholder="Search business, state, county…"
-            className="rounded-xl border border-slate-300 px-4 py-3 md:col-span-2"
+            className="rounded-xl border border-slate-500 bg-slate-700 px-4 py-3 text-white placeholder:text-slate-300 md:col-span-2"
           />
 
           <select
             value={stateFilter}
             onChange={(event) =>
-              setStateFilter(event.target.value)
+              setStateFilter(
+                event.target.value
+              )
             }
-            className="rounded-xl border border-slate-300 px-4 py-3"
+            className="rounded-xl border border-slate-500 bg-slate-600 px-4 py-3 text-white"
           >
             {states.map((state) => (
-              <option key={state}>{state}</option>
+              <option key={state}>
+                {state}
+              </option>
             ))}
           </select>
 
           <select
             value={sortMode}
             onChange={(event) =>
-              setSortMode(event.target.value as SortMode)
+              setSortMode(
+                event.target
+                  .value as SortMode
+              )
             }
-            className="rounded-xl border border-slate-300 px-4 py-3"
+            className="rounded-xl border border-slate-500 bg-slate-600 px-4 py-3 text-white"
           >
-            <option value="newest">Newest first</option>
-            <option value="rate">Highest return</option>
-            <option value="amount">Lowest loan amount</option>
-            <option value="funded">Most funded</option>
-            <option value="risk">Lowest risk first</option>
+            <option value="newest">
+              Newest first
+            </option>
+
+            <option value="rate">
+              Highest return
+            </option>
+
+            <option value="amount">
+              Lowest loan amount
+            </option>
+
+            <option value="funded">
+              Most funded
+            </option>
+
+            <option value="risk">
+              Lowest risk first
+            </option>
           </select>
 
-          <label className="flex items-center gap-2 text-sm font-bold text-slate-700 md:col-span-4">
+          <label className="flex items-center gap-3 text-sm font-bold text-slate-200 md:col-span-4">
             <input
               type="checkbox"
               checked={favoritesOnly}
               onChange={(event) =>
-                setFavoritesOnly(event.target.checked)
+                setFavoritesOnly(
+                  event.target.checked
+                )
               }
+              className="h-5 w-5"
             />
 
             Show watchlist only
           </label>
         </section>
 
-        <div className="mb-4 text-sm font-semibold text-slate-600">
-          Showing {visibleLoans.length} of {loans.length} opportunities
+        <div className="mb-4 text-sm font-semibold text-slate-500">
+          Showing {visibleLoans.length} of{" "}
+          {loans.length} opportunities
         </div>
 
         <div className="space-y-8">
           {visibleLoans.map((loan) => {
             const goal = Number(
-              loan.funding_goal ?? loan.loan_amount ?? 0
+              loan.funding_goal ??
+                loan.loan_amount ??
+                0
             );
 
             const funded = Number(
@@ -740,38 +1032,55 @@ export default function InvestorMarketplace() {
 
             const photos =
               photosByLoan[
-                String(loan.loan_application_id)
+                String(
+                  loan.loan_application_id
+                )
               ] ?? [];
 
             const isFavorite = Boolean(
               favorites[
-                String(loan.loan_application_id)
+                String(
+                  loan.loan_application_id
+                )
               ]
             );
 
-            const investmentAmount = Number(
-              amounts[loan.id] || 0
-            );
+            const rawAmount =
+              amounts[loan.id] ?? "";
 
-            const availableBalance = Number(
-              wallet?.available_balance || 0
-            );
+            const investmentAmount =
+              Number(rawAmount || 0);
+
+            const availableBalance =
+              Number(
+                wallet?.available_balance ||
+                  0
+              );
 
             const invalidInvestment =
-              !Number.isFinite(investmentAmount) ||
+              !Number.isFinite(
+                investmentAmount
+              ) ||
               investmentAmount < 100 ||
-              investmentAmount > remaining ||
-              investmentAmount > availableBalance;
+              investmentAmount >
+                remaining ||
+              investmentAmount >
+                availableBalance;
 
             const publicLoanNumber =
               loan.loan_number ??
               loan.loan_application_id;
 
             const protectionEnabled =
-              loan.investor_refund_enabled !== false;
+              loan.investor_refund_enabled !==
+              false;
 
             const protectionDays =
-              loan.investor_refund_days ?? 7;
+              loan.investor_refund_days ??
+              7;
+
+            const isProcessing =
+              processingLoanId === loan.id;
 
             return (
               <article
@@ -801,7 +1110,9 @@ export default function InvestorMarketplace() {
                           loan.land_value || 0
                         ) > 0
                       }
-                      riskScore={loan.risk_score}
+                      riskScore={
+                        loan.risk_score
+                      }
                     />
                   </div>
 
@@ -822,11 +1133,14 @@ export default function InvestorMarketplace() {
                           : "Add to watchlist"
                       }
                     >
-                      {isFavorite ? "★" : "☆"}
+                      {isFavorite
+                        ? "★"
+                        : "☆"}
                     </button>
 
                     <span className="rounded-full bg-slate-800 px-4 py-2 font-bold text-violet-300">
-                      {loan.status || "Open"}
+                      {loan.status ||
+                        "Open"}
                     </span>
                   </div>
                 </div>
@@ -838,7 +1152,8 @@ export default function InvestorMarketplace() {
                         🛡️
                       </span>
 
-                      {protectionDays}-Day Investment Protection
+                      {protectionDays}-Day
+                      Investment Protection
                     </div>
                   )}
 
@@ -864,48 +1179,69 @@ export default function InvestorMarketplace() {
 
                 <div className="mt-6 grid gap-3 text-base sm:grid-cols-2">
                   <p>
-                    <strong>Borrower:</strong>{" "}
+                    <strong>
+                      Borrower:
+                    </strong>{" "}
                     {loan.borrower_name ||
                       "Not provided"}
                   </p>
 
                   <p>
                     <strong>APN:</strong>{" "}
-                    {loan.apn || "Not provided"}
+                    {loan.apn ||
+                      "Not provided"}
                   </p>
 
                   <p>
-                    <strong>Location:</strong>{" "}
-                    {[loan.county, loan.state]
+                    <strong>
+                      Location:
+                    </strong>{" "}
+                    {[
+                      loan.county,
+                      loan.state,
+                    ]
                       .filter(Boolean)
-                      .join(", ") || "Not provided"}
+                      .join(", ") ||
+                      "Not provided"}
                   </p>
 
                   <p>
-                    <strong>Land type:</strong>{" "}
+                    <strong>
+                      Land type:
+                    </strong>{" "}
                     {loan.land_type ||
                       "Not provided"}
                   </p>
 
                   <p>
-                    <strong>Acres:</strong>{" "}
+                    <strong>
+                      Acres:
+                    </strong>{" "}
                     {loan.acreage ??
                       "Not provided"}
                   </p>
 
                   <p>
-                    <strong>Risk score:</strong>{" "}
+                    <strong>
+                      Risk score:
+                    </strong>{" "}
                     {loan.risk_score ||
                       "Not rated"}
                   </p>
 
                   <p>
-                    <strong>Land value:</strong>{" "}
-                    {money(loan.land_value)}
+                    <strong>
+                      Land value:
+                    </strong>{" "}
+                    {money(
+                      loan.land_value
+                    )}
                   </p>
 
                   <p>
-                    <strong>Loan amount:</strong>{" "}
+                    <strong>
+                      Loan amount:
+                    </strong>{" "}
                     {money(goal)}
                   </p>
 
@@ -935,7 +1271,9 @@ export default function InvestorMarketplace() {
                   </p>
 
                   <p>
-                    <strong>Loan ID:</strong>{" "}
+                    <strong>
+                      Loan ID:
+                    </strong>{" "}
                     {publicLoanNumber}
                   </p>
                 </div>
@@ -943,18 +1281,21 @@ export default function InvestorMarketplace() {
                 <FundingProgress
                   funded={funded}
                   goal={goal}
-                  createdAt={loan.created_at}
+                  createdAt={
+                    loan.created_at
+                  }
                 />
 
                 <InvestmentCalculator
-                  amount={
-                    amounts[loan.id] ?? ""
-                  }
+                  amount={rawAmount}
                   onAmountChange={(value) =>
-                    setAmounts((current) => ({
-                      ...current,
-                      [loan.id]: value,
-                    }))
+                    setAmounts(
+                      (current) => ({
+                        ...current,
+                        [loan.id]:
+                          value,
+                      })
+                    )
                   }
                   annualRate={Number(
                     loan.investor_interest_rate ||
@@ -973,7 +1314,7 @@ export default function InvestorMarketplace() {
                   type="button"
                   disabled={
                     invalidInvestment ||
-                    processingLoanId === loan.id
+                    isProcessing
                   }
                   onClick={() =>
                     void handleInvestFromWallet(
@@ -984,13 +1325,15 @@ export default function InvestorMarketplace() {
                   }
                   className="mt-5 w-full rounded-xl bg-emerald-600 py-4 text-xl font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-600"
                 >
-                  {processingLoanId === loan.id
+                  {isProcessing
                     ? "Processing Wallet Investment..."
                     : "Invest From Wallet"}
                 </button>
 
                 <p className="mt-3 text-center text-xs text-slate-500">
-                  This button uses available wallet cash and does not redirect to NMI.
+                  This button uses available
+                  wallet cash and does not
+                  redirect to NMI.
                 </p>
               </article>
             );
@@ -998,7 +1341,8 @@ export default function InvestorMarketplace() {
 
           {visibleLoans.length === 0 && (
             <div className="rounded-2xl bg-white p-10 text-center text-slate-600 shadow">
-              No opportunities match these filters.
+              No opportunities match these
+              filters.
             </div>
           )}
         </div>
