@@ -1,3 +1,5 @@
+// Add to App.tsx
+
 import Portfolio from "./pages/Portfolio";
 import AdminInvestmentRefunds from "./components/AdminInvestmentRefunds";
 

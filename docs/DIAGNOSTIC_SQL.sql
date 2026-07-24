@@ -1,14 +1,45 @@
+-- Confirm the known mapping.
 select
-  la.id as loan_application_id,
-  la.status,
-  la.published_to_marketplace
+  la.id as internal_loan_id,
+  la.loan_number,
+  ml.id as marketplace_id,
+  ml.loan_application_id,
+  ml.amount_funded,
+  ml.amount_remaining
 from public.loan_applications la
-left join public.marketplace_loans ml
+join public.marketplace_loans ml
   on ml.loan_application_id = la.id
-where coalesce(la.published_to_marketplace, false) = true
-  and ml.id is null;
+where la.loan_number = 889568;
 
-select loan_application_id, count(*) as row_count
+-- Confirm wallet debit and invested balance.
+select
+  user_id,
+  available_balance,
+  invested_balance,
+  updated_at
+from public.investor_wallets
+order by updated_at desc;
+
+-- Confirm investment uses internal loan id.
+select
+  id,
+  loan_id,
+  investor_id,
+  amount,
+  status,
+  refund_deadline,
+  created_at
+from public.investments
+order by created_at desc
+limit 20;
+
+-- Confirm funding totals.
+select
+  loan_number,
+  loan_application_id,
+  amount_funded,
+  amount_remaining,
+  protected_funds,
+  settled_funds
 from public.marketplace_loans
-group by loan_application_id
-having count(*) > 1;
+where loan_number = 889568;
