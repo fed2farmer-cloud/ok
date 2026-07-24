@@ -1,1 +1,10 @@
-Install notes for v2.7.
+SecuredLanding v2.7 Build Repair
+
+Upload every file in this patch to the matching GitHub path.
+Do not upload only VerificationBadges.tsx; the files are a matched set.
+
+Verified command:
+npm run build
+
+Result:
+140 modules transformed and production build completed successfully.
