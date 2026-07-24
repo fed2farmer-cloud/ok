@@ -1,22 +1,25 @@
 import { useCallback, useEffect, useState } from "react";
-import InvestorProtectionCard from "../components/InvestorProtectionCard";
+import PortfolioInvestmentCard from "../components/PortfolioInvestmentCard";
 import {
-  ProtectedInvestment,
-  loadMyProtectedInvestments,
+  PortfolioInvestment,
+  loadMyPortfolio,
 } from "../features/investorProtection/investorProtectionService";
 
 export default function Portfolio() {
-  const [investments, setInvestments] = useState<ProtectedInvestment[]>([]);
+  const [investments, setInvestments] = useState<PortfolioInvestment[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     setMessage("");
+
     try {
-      setInvestments(await loadMyProtectedInvestments());
+      setInvestments(await loadMyPortfolio());
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to load investments.");
+      setMessage(
+        error instanceof Error ? error.message : "Unable to load portfolio."
+      );
     } finally {
       setLoading(false);
     }
@@ -27,18 +30,24 @@ export default function Portfolio() {
   }, [load]);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
+    <main className="mx-auto max-w-5xl px-4 py-8 text-white">
       <h1 className="text-3xl font-bold">My Investments</h1>
-      <p className="mt-2 text-slate-600">
-        Request eligible refunds during the 7-day investor protection period.
+      <p className="mt-2 text-slate-400">
+        Track positions and request eligible refunds during the investor
+        protection period.
       </p>
 
       {loading && <p className="mt-6">Loading portfolio...</p>}
-      {message && <p className="mt-6 rounded-xl bg-red-50 p-4 text-red-800">{message}</p>}
+
+      {message && (
+        <p className="mt-6 rounded-xl bg-red-950 p-4 text-red-300">
+          {message}
+        </p>
+      )}
 
       <div className="mt-6 space-y-5">
         {investments.map((investment) => (
-          <InvestorProtectionCard
+          <PortfolioInvestmentCard
             key={investment.id}
             investment={investment}
             onUpdated={() => void load()}
