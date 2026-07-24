@@ -5,25 +5,26 @@ import {
   requestInvestmentRefund,
 } from "../features/investorProtection/investorProtectionService";
 
-interface Props {
+export default function InvestorProtectionCard({
+  investment,
+  onUpdated,
+}: {
   investment: ProtectedInvestment;
   onUpdated?: () => void;
-}
-
-export default function InvestorProtectionCard({ investment, onUpdated }: Props) {
-  const [now, setNow] = useState(Date.now());
+}) {
+  const [clock, setClock] = useState(Date.now());
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 60000);
+    const timer = window.setInterval(() => setClock(Date.now()), 60000);
     return () => window.clearInterval(timer);
   }, []);
 
   const protection = useMemo(
     () => getProtectionTime(investment.refund_deadline),
-    [investment.refund_deadline, now]
+    [investment.refund_deadline, clock]
   );
 
   const refundable =
@@ -60,7 +61,7 @@ export default function InvestorProtectionCard({ investment, onUpdated }: Props)
           </h3>
           <p className="text-sm text-slate-600">Loan #{investment.loan_application_id}</p>
         </div>
-        <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-800">
+        <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold capitalize text-emerald-800">
           {investment.status.replaceAll("_", " ")}
         </span>
       </div>
@@ -93,12 +94,17 @@ export default function InvestorProtectionCard({ investment, onUpdated }: Props)
         </div>
       )}
 
-      <p className="mt-4 text-xs leading-5 text-slate-500">
-        This protection applies only to this investor investment. It does not give
-        borrowers a loan cancellation or refund right.
+      {investment.status === "refund_processing" && (
+        <div className="mt-4 rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">
+          Refund processing
+        </div>
+      )}
+
+      <p className="mt-4 text-xs text-slate-500">
+        This applies only to the investor investment, not to borrowers.
       </p>
 
-      {message && <p className="mt-3 text-sm font-medium text-slate-800">{message}</p>}
+      {message && <p className="mt-3 text-sm font-medium">{message}</p>}
     </section>
   );
 }
