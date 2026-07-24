@@ -1,7 +1,6 @@
 import { supabase } from "../../lib/supabase";
 
 export type InvestmentStatus =
-  | "payment_pending"
   | "protection_period"
   | "refund_requested"
   | "refund_processing"
@@ -11,58 +10,86 @@ export type InvestmentStatus =
   | "cancelled"
   | "failed";
 
-export interface ProtectedInvestment {
-  id: string;
-  investor_user_id: string;
-  loan_application_id: number;
+export interface PortfolioInvestment {
+  id: number;
+  loan_id: number;
+  investor_id: string;
   amount: number;
   status: InvestmentStatus;
-  invested_at: string;
+  created_at: string;
   refund_policy_enabled: boolean;
   refund_period_days: number;
   refund_deadline: string | null;
+  refunded_at: string | null;
+  settled_at: string | null;
 }
 
-export function getProtectionTime(deadline: string | null) {
-  if (!deadline) return { eligible: false, label: "Not protected" };
-  const ms = new Date(deadline).getTime() - Date.now();
-  if (ms <= 0) return { eligible: false, label: "Protection expired" };
-  const totalMinutes = Math.floor(ms / 60000);
+export function getRefundCountdown(deadline: string | null) {
+  if (!deadline) return { eligible: false, label: "Not refundable" };
+
+  const milliseconds = new Date(deadline).getTime() - Date.now();
+
+  if (milliseconds <= 0) {
+    return { eligible: false, label: "Refund period expired" };
+  }
+
+  const totalMinutes = Math.floor(milliseconds / 60000);
   const days = Math.floor(totalMinutes / 1440);
   const hours = Math.floor((totalMinutes % 1440) / 60);
   const minutes = totalMinutes % 60;
-  return { eligible: true, label: `${days}d ${hours}h ${minutes}m remaining` };
+
+  return {
+    eligible: true,
+    label: `${days}d ${hours}h ${minutes}m remaining`,
+  };
 }
 
-export async function loadMyProtectedInvestments(): Promise<ProtectedInvestment[]> {
-  const { data: auth, error: authError } = await supabase.auth.getUser();
-  if (authError) throw authError;
-  if (!auth.user) throw new Error("You must be signed in.");
-
-  const { data, error } = await supabase
-    .from("investments")
-    .select("id,investor_user_id,loan_application_id,amount,status,invested_at,refund_policy_enabled,refund_period_days,refund_deadline")
-    .eq("investor_user_id", auth.user.id)
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
-  return (data ?? []) as ProtectedInvestment[];
-}
-
-export async function createProtectedInvestment(loanApplicationId: number, amount: number) {
-  const { data, error } = await supabase.rpc("create_protected_investment", {
-    p_loan_application_id: loanApplicationId,
+export async function investFromWallet(
+  publicLoanNumber: number,
+  amount: number
+) {
+  const { data, error } = await supabase.rpc("invest_from_wallet_v28", {
+    p_loan_number: publicLoanNumber,
     p_amount: amount,
   });
+
   if (error) throw error;
   return data;
 }
 
-export async function requestInvestmentRefund(investmentId: string, reason = "") {
-  const { data, error } = await supabase.rpc("request_investment_refund", {
-    p_investment_id: investmentId,
-    p_reason: reason || null,
-  });
+export async function loadMyPortfolio(): Promise<PortfolioInvestment[]> {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) throw authError;
+  if (!user) throw new Error("You must be signed in.");
+
+  const { data, error } = await supabase
+    .from("investments")
+    .select(
+      "id,loan_id,investor_id,amount,status,created_at,refund_policy_enabled,refund_period_days,refund_deadline,refunded_at,settled_at"
+    )
+    .eq("investor_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as PortfolioInvestment[];
+}
+
+export async function requestPortfolioRefund(
+  investmentId: number,
+  reason = ""
+) {
+  const { data, error } = await supabase.rpc(
+    "request_investment_refund_v28",
+    {
+      p_investment_id: investmentId,
+      p_reason: reason || null,
+    }
+  );
+
   if (error) throw error;
   return data;
 }
