@@ -1,0 +1,11 @@
+SecuredLanding v3.2 Closing Center Automation
+
+1. Run supabase/migrations/20260725_v3_2_closing_center_automation.sql in Supabase SQL Editor.
+2. Replace the project files from this ZIP.
+3. Run npm install, then npm run build.
+4. Deploy.
+5. Open an approved loan at /loan-forms?loanId=<id>. The page creates missing borrower signature requests automatically.
+
+This build fixes the v3.1 bigint/uuid loan ID mismatch, adds the missing signing route, changes generated forms to Ready for Signature, adds Review and Sign buttons, displays signing progress, and advances the Closing Center after all documents are signed.
+
+State-specific security instruments, notarization, recording, final PDF certificates, server-side exact-byte hashing, and legal review are still required before production use.
