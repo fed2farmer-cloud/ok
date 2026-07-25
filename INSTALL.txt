@@ -1,23 +1,31 @@
-SecuredLanding v3.0 Split Payment Upgrade
+SecuredLanding v3.1 — Electronic Signatures & Closing Documents
 
-FILES
-- src/pages/InvestorMarketplace.tsx
-- src/lib/pendingSplitInvestment.ts
-- docs/SPLIT_PAYMENT_INTEGRATION.md
-- CHANGELOG.md
+CONTENTS
+- Supabase signature migration
+- Borrower document-signing page
+- Drawn signature canvas
+- Typed signature support
+- Consent and document-review confirmations
+- Signature status badge
+- Admin request-signature button
+- App route snippet
+- Closing Center integration guide
+- Production security checklist
 
-INSTALL
-1. Back up the existing repository.
-2. Replace src/pages/InvestorMarketplace.tsx.
-3. Add src/lib/pendingSplitInvestment.ts.
-4. Read docs/SPLIT_PAYMENT_INTEGRATION.md before enabling live split checkout.
-5. Update the NMI payment success handler to finalize the split payment on a trusted server.
-6. Run npm run build.
-7. Commit and deploy.
-
-The marketplace source has an explicit default export and contains no Markdown fences.
+INSTALL ORDER
+1. Back up the database and repository.
+2. Review and run:
+   supabase/migrations/20260725_v31_electronic_signatures.sql
+3. Copy the files under src/ into the matching repository folders.
+4. Add the route shown in docs/APP_ROUTE.tsx to src/App.tsx.
+5. Add the Closing Center link described in docs/CLOSING_CENTER_INTEGRATION.md.
+6. Connect admin authorization before calling request_borrower_signature.
+7. Run npm run build.
+8. Test in a non-production environment.
+9. Complete the production controls in docs/PRODUCTION_SECURITY.md.
 
 IMPORTANT
-The marketplace UI and routing are complete in this ZIP. The trusted server-side
-NMI verification/finalization step must be connected to your existing payment
-backend before split payments are used with real money.
+This is a targeted upgrade package, not the complete SecuredLanding repository.
+The signature UI is functional, but server-side PDF hashing, finalized signed
+PDF generation, IP capture, notary handling, and legal review remain required
+before treating the workflow as production-ready for recorded loan documents.

@@ -1,20 +1,30 @@
-# SecuredLanding v3.0 — Split Payment Upgrade
+# SecuredLanding v3.1
 
 ## Added
-- Wallet + debit/credit-card split payment selection.
-- Automatic split selection when an investment exceeds wallet cash.
-- Live wallet/card/total breakdown.
-- “Use Max Wallet Balance” shortcut.
-- Session-based pending split checkout context.
-- Integration guide for trusted NMI completion.
+- Borrower document signature requests
+- Typed and drawn electronic signatures
+- Electronic-signature consent
+- Document review confirmation
+- Signature status tracking
+- Signature audit events
+- Document version and hash fields
+- Borrower signing route
+- Admin signature-request component
+- Closing task completion hook
 
-## Preserved
-- Wallet-only investment through `invest_from_wallet_v28`.
-- Full debit/credit-card checkout.
-- Bitcoin checkout.
-- Seven-day investor protection display.
-- Explicit `export default InvestorMarketplace;`.
+## Workflow
+1. Admin marks a generated document ready for signature.
+2. A borrower signature request is created.
+3. Borrower reviews the document.
+4. Borrower accepts electronic-signature consent.
+5. Borrower types or draws a signature.
+6. The signature and audit event are recorded.
+7. The generated document becomes signed and locked.
+8. The Closing Center can advance to the next stage.
 
-## Security
-Wallet funds are not deducted by the marketplace before external payment succeeds.
-The payment backend must verify and finalize split investments atomically.
+## Production follow-up
+- Trusted server/Edge Function finalization
+- Exact PDF byte hashing
+- Final signed PDF certificate
+- Real IP address capture
+- Notary and county-recording workflow where required
