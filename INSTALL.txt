@@ -1,10 +1,12 @@
-SecuredLanding v2.7 Build Repair
+SecuredLanding v2.9.1 Marketplace Build Fix
 
-Upload every file in this patch to the matching GitHub path.
-Do not upload only VerificationBadges.tsx; the files are a matched set.
+1. Extract this ZIP.
+2. Copy src/pages/InvestorMarketplace.tsx.
+3. Replace the existing file at the same path in your GitHub repository.
+4. Keep this App.tsx import unchanged:
+   import InvestorMarketplace from "./pages/InvestorMarketplace";
+5. Commit and redeploy on Vercel.
 
-Verified command:
-npm run build
-
-Result:
-140 modules transformed and production build completed successfully.
+This package is a targeted patch, not the complete repository.
+The replacement file has no Markdown fences and ends with:
+export default InvestorMarketplace;
