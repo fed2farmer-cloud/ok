@@ -10,6 +10,7 @@ type Closing = { id: string; stage?: string | null; progress_percent?: number | 
 type Task = { id: string; title: string; status?: string | null; sort_order?: number | null };
 type GeneratedDocument = { id: string | number; title?: string | null; document_name?: string | null; document_type?: string | null; status?: string | null; acknowledged_at?: string | null; signed_at?: string | null; storage_path?: string | null };
 type Market = { funding_goal?: number | null; amount_funded?: number | null; funding_deadline?: string | null };
+type SignatureRequest = { id: string; generated_document_id: string; status: string; signed_at?: string | null };
 
 export default function ClosingCenter() {
   const [params] = useSearchParams();
@@ -19,6 +20,7 @@ export default function ClosingCenter() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [documents, setDocuments] = useState<GeneratedDocument[]>([]);
   const [market, setMarket] = useState<Market | null>(null);
+  const [signatureRequests, setSignatureRequests] = useState<SignatureRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -28,12 +30,14 @@ export default function ClosingCenter() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = "/login"; return; }
-      const [applicationResult, closingResult, taskResult, documentResult, marketResult] = await Promise.all([
+      await supabase.rpc("ensure_borrower_signature_requests", { p_loan_application_id: Number(loanId) });
+      const [applicationResult, closingResult, taskResult, documentResult, marketResult, signatureResult] = await Promise.all([
         supabase.from("loan_applications").select("id,loan_number,business_name,full_name,loan_amount,status,user_id").eq("id", Number(loanId)).eq("user_id", user.id).single(),
         supabase.from("loan_closings").select("*").eq("loan_application_id", Number(loanId)).maybeSingle(),
         supabase.from("closing_tasks").select("id,title,status,sort_order").eq("loan_application_id", Number(loanId)).order("sort_order"),
         supabase.from("generated_loan_documents").select("id,title,document_name,document_type,status,acknowledged_at,signed_at,storage_path").eq("loan_application_id", Number(loanId)).order("created_at"),
         supabase.from("marketplace_loans").select("funding_goal,amount_funded,funding_deadline").eq("loan_application_id", Number(loanId)).maybeSingle(),
+        supabase.from("document_signature_requests").select("id,generated_document_id,status,signed_at").eq("loan_application_id", Number(loanId)),
       ]);
       if (applicationResult.error) throw applicationResult.error;
       setApplication(applicationResult.data as Application);
@@ -41,13 +45,15 @@ export default function ClosingCenter() {
       setTasks((taskResult.data as Task[] | null) || []);
       setDocuments((documentResult.data as GeneratedDocument[] | null) || []);
       setMarket((marketResult.data as Market | null) || null);
+      setSignatureRequests((signatureResult.data as SignatureRequest[] | null) || []);
     } catch (e: any) { setError(e?.message || "Unable to load the Closing Center."); }
     finally { setLoading(false); }
   }
 
   useEffect(() => { void load(); }, [loanId]);
 
-  const completedDocuments = useMemo(() => documents.filter((doc) => ["accepted", "signed", "completed"].includes(String(doc.status || "").toLowerCase())).length, [documents]);
+  const completedDocuments = useMemo(() => signatureRequests.filter((request) => request.status === "signed").length, [signatureRequests]);
+  const requestByDocument = useMemo(() => new Map(signatureRequests.map((request) => [String(request.generated_document_id), request])), [signatureRequests]);
 
   if (!loanId) return <AppLayout><div className="mx-auto max-w-4xl p-6 text-white">Choose a loan from your borrower dashboard.</div></AppLayout>;
 
@@ -84,8 +90,10 @@ export default function ClosingCenter() {
                 {documents.length ? documents.map((doc) => (
                   <article key={String(doc.id)} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <h3 className="font-black text-slate-900">{doc.title || doc.document_name || doc.document_type || "Closing document"}</h3>
-                    <p className="mt-1 text-sm capitalize text-slate-500">{String(doc.status || "ready for review").replaceAll("_", " ")}</p>
-                    <button onClick={() => window.location.href = `/loan-forms?loanId=${loanId}`} className="mt-3 text-sm font-bold text-emerald-700">Review document →</button>
+                    {(() => { const request = requestByDocument.get(String(doc.id)); return <>
+                      <p className="mt-1 text-sm capitalize text-slate-500">{String(request?.status || doc.status || "ready_for_signature").replaceAll("_", " ")}</p>
+                      {request?.status === "signed" ? <span className="mt-3 inline-block font-black text-emerald-700">✓ Signed</span> : request ? <button onClick={() => window.location.href = `/sign-document/${request.id}`} className="mt-3 rounded-lg bg-emerald-700 px-3 py-2 text-sm font-bold text-white">Review and Sign</button> : <button onClick={() => window.location.href = `/loan-forms?loanId=${loanId}`} className="mt-3 text-sm font-bold text-emerald-700">Review document →</button>}
+                    </>; })()}
                   </article>
                 )) : <p className="text-sm text-slate-500">No closing documents have been generated yet. Contact the administrator if the loan is already approved.</p>}
               </div>

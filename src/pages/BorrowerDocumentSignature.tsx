@@ -22,6 +22,8 @@ type SignatureRequestRecord = {
     storage_path: string | null;
     document_version: string | null;
     signature_status: string | null;
+    title: string | null;
+    terms_snapshot: Record<string, unknown> | null;
   } | null;
 };
 
@@ -108,7 +110,9 @@ function BorrowerDocumentSignature() {
                 public_url,
                 storage_path,
                 document_version,
-                signature_status
+                signature_status,
+                title,
+                terms_snapshot
               )
             `
           )
@@ -148,6 +152,8 @@ function BorrowerDocumentSignature() {
     const document = request?.generated_loan_documents;
     return document?.file_url || document?.public_url || null;
   }, [request]);
+
+  const terms = request?.generated_loan_documents?.terms_snapshot || {};
 
   const expired =
     Boolean(request?.expires_at) &&
@@ -210,7 +216,7 @@ function BorrowerDocumentSignature() {
       setSuccessMessage("Document signed successfully.");
 
       window.setTimeout(() => {
-        navigate("/closing-center");
+        navigate(`/closing-center?loanId=${request.loan_application_id}`);
       }, 1000);
     } catch (error: unknown) {
       setErrorMessage(
@@ -292,16 +298,16 @@ function BorrowerDocumentSignature() {
 
               {documentUrl ? (
                 <div className="mt-5 overflow-hidden rounded-2xl border border-slate-700">
-                  <iframe
-                    title="Document preview"
-                    src={documentUrl}
-                    className="h-[65vh] min-h-[520px] w-full bg-white"
-                  />
+                  <iframe title="Document preview" src={documentUrl} className="h-[65vh] min-h-[520px] w-full bg-white" />
                 </div>
               ) : (
-                <div className="mt-5 rounded-2xl border border-amber-700/50 bg-amber-950/30 p-5 text-amber-200">
-                  The document preview URL is unavailable. Do not sign until the
-                  document is accessible for review.
+                <div className="mt-5 rounded-2xl border border-slate-700 bg-white p-6 text-slate-900">
+                  <h3 className="text-2xl font-black">{request.generated_loan_documents?.title || request.generated_loan_documents?.document_type?.replaceAll("_", " ")}</h3>
+                  <p className="mt-2 text-sm text-slate-500">Loan #{String((terms as any).loan_number || request.loan_application_id)}</p>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {[['Borrower',(terms as any).borrower_name],['Business',(terms as any).business_name],['Property',(terms as any).property_address],['APN',(terms as any).apn],['Principal',Number((terms as any).approved_loan_amount || 0).toLocaleString('en-US',{style:'currency',currency:'USD'})],['Interest rate',`${(terms as any).borrower_interest_rate || 0}%`],['Term',`${(terms as any).repayment_term_months || 0} months`],['Monthly payment',Number((terms as any).monthly_payment || 0).toLocaleString('en-US',{style:'currency',currency:'USD'})]].map(([label,value]) => <div key={String(label)} className="rounded-xl border p-3"><p className="text-xs font-bold uppercase text-slate-500">{String(label)}</p><p className="mt-1 font-bold">{String(value || 'Not provided')}</p></div>)}
+                  </div>
+                  <p className="mt-6 leading-7 text-slate-700">This generated closing document records the approved loan terms shown above. State-specific security instruments, notarization, and recording requirements remain subject to final legal review.</p>
                 </div>
               )}
 
@@ -406,7 +412,7 @@ function BorrowerDocumentSignature() {
 
               <button
                 type="button"
-                disabled={!canSubmit || submitting || !documentUrl}
+                disabled={!canSubmit || submitting}
                 onClick={() => void submitSignature()}
                 className="mt-6 w-full rounded-xl bg-emerald-600 py-4 text-xl font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-600"
               >

@@ -451,7 +451,9 @@ export default function AdminDashboard() {
       borrower_user_id: loan.user_id,
       document_type,
       title,
-      status: "ready_for_review",
+      status: "ready_for_signature",
+      signature_required: true,
+      signature_status: "ready_for_signature",
       terms_snapshot: {
         loan_number: loan.loan_number ?? Number(loan.id),
         borrower_name: loan.full_name || "",

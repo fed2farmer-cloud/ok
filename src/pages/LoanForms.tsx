@@ -21,6 +21,9 @@ type GeneratedDocument = {
   signed_storage_path?: string | null;
   signed_uploaded_at?: string | null;
   signed_review_status?: string | null;
+  signature_status?: string | null;
+  signature_request_id?: string | null;
+  signature_request_status?: string | null;
 };
 
 const labels: Record<string, string> = {
@@ -71,13 +74,22 @@ export default function LoanForms() {
     if (!supabase) return;
     setLoading(true);
     setError("");
-    const { data, error: documentError } = await supabase
-      .from("generated_loan_documents")
-      .select("*")
-      .eq("loan_application_id", id)
-      .order("created_at");
+    const { error: ensureError } = await supabase.rpc("ensure_borrower_signature_requests", {
+      p_loan_application_id: Number(id),
+    });
+    if (ensureError) { setError(ensureError.message); setLoading(false); return; }
+
+    const [{ data, error: documentError }, { data: requestData, error: requestError }] = await Promise.all([
+      supabase.from("generated_loan_documents").select("*").eq("loan_application_id", id).order("created_at"),
+      supabase.from("document_signature_requests").select("id,generated_document_id,status,signed_at").eq("loan_application_id", id),
+    ]);
     if (documentError) { setError(documentError.message); setLoading(false); return; }
-    const rows = (data as GeneratedDocument[] | null) || [];
+    if (requestError) { setError(requestError.message); setLoading(false); return; }
+    const requestMap = new Map((requestData || []).map((request: any) => [String(request.generated_document_id), request]));
+    const rows = ((data as GeneratedDocument[] | null) || []).map((row) => {
+      const request = requestMap.get(String(row.id));
+      return { ...row, signature_request_id: request?.id || null, signature_request_status: request?.status || null };
+    });
     setDocs(rows);
     setSelected((current) => rows.some((row) => row.id === current) ? current : (rows[0]?.id || ""));
     setLoading(false);
@@ -140,7 +152,7 @@ export default function LoanForms() {
               {docs.map((d) => (
                 <button key={d.id} onClick={() => setSelected(d.id)} className={`mb-2 w-full rounded-xl p-3 text-left ${selected === d.id ? "bg-emerald-900 text-white" : "bg-slate-50 hover:bg-slate-100"}`}>
                   <span className="block font-bold">{d.document_type === "deed_of_trust" ? `${String(d.terms_snapshot?.state || "State")} Security Instrument` : (labels[d.document_type] || d.title)}</span>
-                  <span className="text-xs opacity-75">{String(d.signed_review_status || d.status).replaceAll("_", " ")}</span>
+                  <span className="text-xs opacity-75">{String(d.signature_request_status || d.signature_status || d.signed_review_status || d.status || "ready_for_signature").replaceAll("_", " ")}</span>
                 </button>
               ))}
             </aside>
@@ -216,7 +228,11 @@ function DocumentView({ doc, loanId, onAcknowledge, onUploaded }: { doc: Generat
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <button onClick={onAcknowledge} className="rounded-xl bg-emerald-700 px-5 py-3 font-bold text-white">I reviewed this form</button>
+        {doc.signature_request_id && !["signed"].includes(String(doc.signature_request_status)) && (
+          <button onClick={() => window.location.href = `/sign-document/${doc.signature_request_id}`} className="rounded-xl bg-emerald-700 px-5 py-3 font-bold text-white">Review and Sign Electronically</button>
+        )}
+        {doc.signature_request_status === "signed" && <span className="rounded-xl bg-emerald-50 px-4 py-3 font-black text-emerald-700">✓ Electronically signed</span>}
+        <button onClick={onAcknowledge} className="rounded-xl border border-emerald-700 px-5 py-3 font-bold text-emerald-700">I reviewed this form</button>
         {doc.acknowledged_at && <span className="font-bold text-emerald-700">✓ Reviewed {new Date(doc.acknowledged_at).toLocaleDateString()}</span>}
       </div>
 
