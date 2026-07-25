@@ -35,7 +35,7 @@ type InvestorWallet = {
   invested_balance: number | null;
 };
 
-type PaymentMethod = "wallet" | "card" | "bitcoin";
+type PaymentMethod = "wallet" | "split" | "card" | "bitcoin";
 type SortMode = "newest" | "rate" | "amount" | "funded";
 
 function money(value: unknown): string {
@@ -274,6 +274,67 @@ function InvestorMarketplace() {
     }
   }
 
+  function payBySplit(
+    loan: MarketplaceLoan,
+    amount: number,
+    remaining: number
+  ) {
+    const available = Number(wallet?.available_balance || 0);
+
+    if (!Number.isFinite(amount) || amount < 100) {
+      setError("The minimum investment is $100.");
+      return;
+    }
+
+    if (amount > remaining) {
+      setError("The investment exceeds the amount remaining on this loan.");
+      return;
+    }
+
+    if (available <= 0 || available >= amount) {
+      setError(
+        "Split payment is available only when wallet cash covers part, but not all, of the investment."
+      );
+      return;
+    }
+
+    const loanNumber = loan.loan_number ?? loan.loan_application_id;
+    const walletAmount = Math.min(available, amount);
+    const cardAmount = Math.max(amount - walletAmount, 0);
+
+    const pendingSplit = {
+      version: 1,
+      loanNumber,
+      loanApplicationId: loan.loan_application_id,
+      marketplaceLoanId: loan.id,
+      totalAmount: amount,
+      walletAmount,
+      externalAmount: cardAmount,
+      externalMethod: "card",
+      createdAt: new Date().toISOString(),
+    };
+
+    window.sessionStorage.setItem(
+      "securedlanding_pending_split_investment",
+      JSON.stringify(pendingSplit)
+    );
+
+    setError("");
+    setMessage("");
+
+    navigate(
+      `/payment?loanId=${encodeURIComponent(
+        String(loanNumber)
+      )}&amount=${encodeURIComponent(
+        String(cardAmount)
+      )}&totalAmount=${encodeURIComponent(
+        String(amount)
+      )}&walletAmount=${encodeURIComponent(
+        String(walletAmount)
+      )}&method=split`
+    );
+  }
+
   function payByCard(
     loan: MarketplaceLoan,
     amount: number,
@@ -338,7 +399,7 @@ function InvestorMarketplace() {
             </h1>
             <p className="mt-2 text-slate-300">
               Invest in reviewed land-backed opportunities using wallet cash,
-              debit/credit card, or Bitcoin.
+              wallet cash, split wallet + card, debit/credit card, or Bitcoin.
             </p>
           </div>
 
@@ -427,7 +488,12 @@ function InvestorMarketplace() {
             const amount = Number(amounts[loan.id] || 0);
             const available = Number(wallet?.available_balance || 0);
             const method =
-              methods[loan.id] || (amount > available ? "card" : "wallet");
+              methods[loan.id] ||
+              (amount > available && available > 0
+                ? "split"
+                : amount > available
+                  ? "card"
+                  : "wallet");
             const invalidAmount =
               !Number.isFinite(amount) || amount < 100 || amount > remaining;
             const walletDisabled = invalidAmount || amount > available;
@@ -510,13 +576,42 @@ function InvestorMarketplace() {
                     onChange={(event) => {
                       const value = event.target.value;
                       setAmounts((current) => ({ ...current, [loan.id]: value }));
-                      if (Number(value || 0) > available) {
-                        setMethods((current) => ({ ...current, [loan.id]: "card" }));
+                      const numericAmount = Number(value || 0);
+                      if (numericAmount > available && available > 0) {
+                        setMethods((current) => ({
+                          ...current,
+                          [loan.id]: "split",
+                        }));
+                      } else if (numericAmount > available) {
+                        setMethods((current) => ({
+                          ...current,
+                          [loan.id]: "card",
+                        }));
                       }
                     }}
                     placeholder="Minimum $100"
                     className="w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-3"
                   />
+
+                  {available >= 100 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const maxWalletAmount = Math.min(available, remaining);
+                        setAmounts((current) => ({
+                          ...current,
+                          [loan.id]: String(maxWalletAmount),
+                        }));
+                        setMethods((current) => ({
+                          ...current,
+                          [loan.id]: "wallet",
+                        }));
+                      }}
+                      className="mt-3 rounded-lg border border-emerald-700 px-3 py-2 text-sm font-bold text-emerald-300"
+                    >
+                      Use Max Wallet Balance ({money(Math.min(available, remaining))})
+                    </button>
+                  )}
                 </div>
 
                 <section className="mt-5 rounded-2xl border border-slate-700 bg-slate-950 p-4">
@@ -525,28 +620,68 @@ function InvestorMarketplace() {
                     Wallet cash available: {money(available)}
                   </p>
 
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    {(["wallet", "card", "bitcoin"] as PaymentMethod[]).map((item) => (
-                      <button
-                        key={item}
-                        type="button"
-                        onClick={() =>
-                          setMethods((current) => ({ ...current, [loan.id]: item }))
-                        }
-                        className={`rounded-xl border px-4 py-3 font-bold capitalize ${
-                          method === item
-                            ? "border-emerald-400 bg-emerald-950 text-emerald-300"
-                            : "border-slate-700 bg-slate-900 text-slate-300"
-                        }`}
-                      >
-                        {item === "card" ? "Debit / Credit" : item}
-                      </button>
-                    ))}
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {(
+                      [
+                        ["wallet", "Wallet"],
+                        ["split", "Wallet + Card"],
+                        ["card", "Debit / Credit"],
+                        ["bitcoin", "Bitcoin"],
+                      ] as Array<[PaymentMethod, string]>
+                    ).map(([item, label]) => {
+                      const splitUnavailable =
+                        item === "split" &&
+                        (available <= 0 || amount <= available);
+
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          disabled={splitUnavailable}
+                          onClick={() =>
+                            setMethods((current) => ({
+                              ...current,
+                              [loan.id]: item,
+                            }))
+                          }
+                          className={`rounded-xl border px-4 py-3 font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                            method === item
+                              ? "border-emerald-400 bg-emerald-950 text-emerald-300"
+                              : "border-slate-700 bg-slate-900 text-slate-300"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {amount > available && amount > 0 && (
-                    <div className="mt-4 rounded-xl border border-amber-700 bg-amber-950/40 p-3 text-amber-200">
-                      This amount exceeds your wallet balance. Card and Bitcoin remain available.
+                    <div className="mt-4 rounded-xl border border-amber-700 bg-amber-950/40 p-4 text-amber-100">
+                      <p className="font-bold">
+                        This amount exceeds your wallet balance.
+                      </p>
+
+                      {available > 0 ? (
+                        <div className="mt-3 space-y-2 text-sm">
+                          <div className="flex justify-between gap-4">
+                            <span>Wallet contribution</span>
+                            <strong>{money(Math.min(available, amount))}</strong>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span>Debit / credit card contribution</span>
+                            <strong>{money(Math.max(amount - available, 0))}</strong>
+                          </div>
+                          <div className="flex justify-between gap-4 border-t border-amber-700/50 pt-2">
+                            <span>Total investment</span>
+                            <strong>{money(amount)}</strong>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-sm">
+                          Debit/credit card and Bitcoin remain available.
+                        </p>
+                      )}
                     </div>
                   )}
 
@@ -560,6 +695,22 @@ function InvestorMarketplace() {
                       {processingLoanId === loan.id
                         ? "Processing Investment…"
                         : "Invest From Wallet"}
+                    </button>
+                  )}
+
+                  {method === "split" && (
+                    <button
+                      type="button"
+                      disabled={
+                        invalidAmount ||
+                        available <= 0 ||
+                        amount <= available
+                      }
+                      onClick={() => payBySplit(loan, amount, remaining)}
+                      className="mt-4 w-full rounded-xl bg-gradient-to-r from-emerald-600 to-blue-700 py-4 text-lg font-black disabled:bg-slate-600 disabled:from-slate-600 disabled:to-slate-600"
+                    >
+                      Use {money(Math.min(available, amount))} Wallet +{" "}
+                      {money(Math.max(amount - available, 0))} Card
                     </button>
                   )}
 
