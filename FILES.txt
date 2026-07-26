@@ -1,9 +1,6 @@
 NEW FILES
----------
-supabase/migrations/20260726_v3_2_2_signature_rpc_repair.sql
-INSTALL.txt
-FILES.txt
-
-MODIFIED APPLICATION FILES
---------------------------
-None. This is a Supabase SQL-only repair patch.
+supabase/migrations/20260726_v3_2_3_signature_rpc_repair.sql
+RESET_PARTIAL_TABLES.sql
+VERIFY.sql
+INSTALL.md
+CHANGELOG.md

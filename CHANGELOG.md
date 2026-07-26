@@ -1,30 +1,10 @@
-# SecuredLanding v3.1
+# v3.2.3
 
-## Added
-- Borrower document signature requests
-- Typed and drawn electronic signatures
-- Electronic-signature consent
-- Document review confirmation
-- Signature status tracking
-- Signature audit events
-- Document version and hash fields
-- Borrower signing route
-- Admin signature-request component
-- Closing task completion hook
-
-## Workflow
-1. Admin marks a generated document ready for signature.
-2. A borrower signature request is created.
-3. Borrower reviews the document.
-4. Borrower accepts electronic-signature consent.
-5. Borrower types or draws a signature.
-6. The signature and audit event are recorded.
-7. The generated document becomes signed and locked.
-8. The Closing Center can advance to the next stage.
-
-## Production follow-up
-- Trusted server/Edge Function finalization
-- Exact PDF byte hashing
-- Final signed PDF certificate
-- Real IP address capture
-- Notary and county-recording workflow where required
+- Creates the exact borrower-signature RPC expected by the deployed Closing Center.
+- Uses bigint loan and generated-document IDs.
+- Avoids one all-or-nothing transaction so optional policy errors cannot erase a successfully created RPC.
+- Repairs missing request-table columns and indexes.
+- Grants RPC execution to authenticated users and service role.
+- Reloads the PostgREST schema cache.
+- Includes a guarded reset for incompatible partial UUID tables.
+- Includes verification queries.
