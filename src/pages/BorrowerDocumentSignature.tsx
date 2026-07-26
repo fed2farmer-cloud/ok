@@ -686,7 +686,44 @@ function BorrowerDocumentSignature() {
     for a new request.
   </div>
 )}
+{!canSubmit && (
+  <div className="mt-5 rounded-xl border border-amber-500/40 bg-amber-950/30 p-4 text-sm text-amber-200">
+    <p className="font-bold">Complete these items before signing:</p>
 
+    <ul className="mt-2 space-y-1">
+      {legalName.trim().length < 2 && (
+        <li>• Enter your full legal name.</li>
+      )}
+
+      {!reviewConfirmed && (
+        <li>• Confirm that you reviewed the complete document.</li>
+      )}
+
+      {method === "typed" && typedSignature.trim().length < 2 && (
+        <li>• Type your signature.</li>
+      )}
+
+      {method === "drawn" && !drawnSignature && (
+        <li>• Draw your signature.</li>
+      )}
+
+      {!consentAccepted && (
+        <li>• Accept the electronic-signature consent.</li>
+      )}
+
+      {expired && (
+        <li>• This signature request has expired.</li>
+      )}
+
+      {!["pending", "viewed"].includes(request?.status ?? "") && (
+        <li>
+          • This request cannot be signed because its status is{" "}
+          {request?.status ?? "unknown"}.
+        </li>
+      )}
+    </ul>
+  </div>
+)}
 <button
   type="button"
   disabled={!canSubmit || submitting}
