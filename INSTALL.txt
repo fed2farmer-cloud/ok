@@ -1,31 +1,27 @@
-SecuredLanding v3.1 — Electronic Signatures & Closing Documents
+SECUREDLANDING v3.2.2 — SQL REPAIR PATCH
 
-CONTENTS
-- Supabase signature migration
-- Borrower document-signing page
-- Drawn signature canvas
-- Typed signature support
-- Consent and document-review confirmations
-- Signature status badge
-- Admin request-signature button
-- App route snippet
-- Closing Center integration guide
-- Production security checklist
+Purpose
+-------
+Repairs the failed Closing Center migration caused by a UUID-to-bigint foreign-key mismatch and creates the missing RPC:
 
-INSTALL ORDER
-1. Back up the database and repository.
-2. Review and run:
-   supabase/migrations/20260725_v31_electronic_signatures.sql
-3. Copy the files under src/ into the matching repository folders.
-4. Add the route shown in docs/APP_ROUTE.tsx to src/App.tsx.
-5. Add the Closing Center link described in docs/CLOSING_CENTER_INTEGRATION.md.
-6. Connect admin authorization before calling request_borrower_signature.
-7. Run npm run build.
-8. Test in a non-production environment.
-9. Complete the production controls in docs/PRODUCTION_SECURITY.md.
+  public.ensure_borrower_signature_requests(p_loan_application_id bigint)
 
-IMPORTANT
-This is a targeted upgrade package, not the complete SecuredLanding repository.
-The signature UI is functional, but server-side PDF hashing, finalized signed
-PDF generation, IP capture, notary handling, and legal review remain required
-before treating the workflow as production-ready for recorded loan documents.
+Install
+-------
+1. Extract this ZIP.
+2. Open Supabase Dashboard > SQL Editor > New query.
+3. Open:
+   supabase/migrations/20260726_v3_2_2_signature_rpc_repair.sql
+4. Copy the ENTIRE file into the SQL Editor.
+5. Press Run once.
+6. Confirm the final result shows one row:
+   ensure_borrower_signature_requests | p_loan_application_id bigint
+7. Refresh securedlanding.com and test the borrower Closing Center.
+
+Important
+---------
+- This is a database-only patch. No GitHub or Vercel file upload is required.
+- The SQL is designed for the deployed schema shown in your Supabase error:
+  generated_loan_documents.id = bigint.
+- It is safe to rerun if the first attempt is interrupted.
+- Do not run the older v3.2 migration again after this repair succeeds.
