@@ -667,5 +667,75 @@ function BorrowerDocumentSignature() {
                     </div>
                   )}
 
-                  <label className="mt-6 flex items-start gap-3 rounded-xl border border-slate-700 p-4 text-slate-200">
+                <label className="mt-6 flex items-start gap-3 rounded-xl border border-slate-700 p-4 text-slate-200">
+  <input
+    type="checkbox"
+    checked={consentAccepted}
+    onChange={(event) =>
+      setConsentAccepted(event.target.checked)
+    }
+    className="mt-1 h-5 w-5"
+  />
+
+  <span>{CONSENT_TEXT}</span>
+</label>
+
+{expired && (
+  <div className="mt-5 rounded-xl border border-rose-700/50 bg-rose-950/40 p-4 text-rose-200">
+    This signature request has expired. Contact SecuredLanding
+    for a new request.
+  </div>
+)}
+
+<button
+  type="button"
+  disabled={!canSubmit || submitting}
+  onClick={() => void submitSignature()}
+  className="mt-6 w-full rounded-xl bg-emerald-600 py-4 text-xl font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-600"
+>
+  {submitting ? "Applying Signature…" : "Sign Document"}
+</button>
+
+<p className="mt-3 text-center text-xs text-slate-500">
+  Your signature, consent, document version, date, and audit
+  details will be recorded.
+</p>
+                </>
+              )}
+            </section>
+          </div>
+        )}
+      </main>
+    </AppLayout>
+  );
+}
+
+function DocumentField({
+  label,
+  value,
+}: {
+  label: string;
+  value: unknown;
+}) {
+  const displayValue =
+    value === null ||
+    value === undefined ||
+    String(value).trim() === ""
+      ? "Not provided"
+      : String(value);
+
+  return (
+    <div className="rounded-xl border border-slate-200 p-3">
+      <p className="text-xs font-bold uppercase text-slate-500">
+        {label}
+      </p>
+
+      <p className="mt-1 font-bold text-slate-900">
+        {displayValue}
+      </p>
+    </div>
+  );
+}
+
+export default BorrowerDocumentSignature;
         
