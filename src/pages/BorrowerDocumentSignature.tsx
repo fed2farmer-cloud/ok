@@ -406,4 +406,266 @@ function BorrowerDocumentSignature() {
     <AppLayout>
       <main className="mx-auto max-w-4xl px-4 py-10">
         <header className="mb-8">
-          <p className="text-sm font-bold
+          <p className="text-sm font-bold uppercase tracking-[0.25em] text-emerald-400">
+            SecuredLanding Closing Center
+          </p>
+
+          <h1 className="mt-2 text-4xl font-black text-white">
+            Review and Sign Document
+          </h1>
+
+          <p className="mt-3 text-slate-400">
+            Review the entire document before applying your
+            electronic signature.
+          </p>
+        </header>
+
+        {errorMessage && (
+          <div className="mb-5 rounded-2xl border border-rose-600/50 bg-rose-950/50 p-4 font-semibold text-rose-200">
+            {errorMessage}
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="mb-5 rounded-2xl border border-emerald-600/50 bg-emerald-950/50 p-4 font-semibold text-emerald-200">
+            {successMessage}
+          </div>
+        )}
+
+        {!request ? (
+          <div className="rounded-3xl border border-slate-700 bg-slate-950 p-8 text-slate-300">
+            This signature request is unavailable.
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <section className="rounded-3xl border border-slate-700 bg-slate-950 p-6">
+              <h2 className="text-2xl font-black capitalize text-white">
+                {getDocumentName(generatedDocument)}
+              </h2>
+
+              <div className="mt-4 grid gap-3 text-sm text-slate-400 sm:grid-cols-2">
+                <p>
+                  Document version:{" "}
+                  <strong className="text-slate-200">
+                    {generatedDocument?.document_version || "1"}
+                  </strong>
+                </p>
+
+                <p>
+                  Status:{" "}
+                  <strong className="capitalize text-slate-200">
+                    {(request.status || "pending").replaceAll(
+                      "_",
+                      " "
+                    )}
+                  </strong>
+                </p>
+              </div>
+
+              {documentLoading && (
+                <div className="mt-5 flex min-h-[300px] items-center justify-center rounded-2xl border border-slate-700 bg-slate-900 text-slate-300">
+                  Loading document…
+                </div>
+              )}
+
+              {!documentLoading && documentUrl && (
+                <div className="mt-5 overflow-hidden rounded-2xl border border-slate-700">
+                  <iframe
+                    title="Document preview"
+                    src={documentUrl}
+                    className="h-[65vh] min-h-[520px] w-full bg-white"
+                  />
+                </div>
+              )}
+
+              {!documentLoading && !documentUrl && (
+                <div className="mt-5 rounded-2xl border border-slate-700 bg-white p-6 text-slate-900">
+                  <h3 className="text-2xl font-black capitalize">
+                    {getDocumentName(generatedDocument)}
+                  </h3>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    Loan #
+                    {String(
+                      getTermValue(terms, "loan_number") ||
+                        request.loan_application_id
+                    )}
+                  </p>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <DocumentField
+                      label="Borrower"
+                      value={getTermValue(
+                        terms,
+                        "borrower_name"
+                      )}
+                    />
+
+                    <DocumentField
+                      label="Business"
+                      value={getTermValue(
+                        terms,
+                        "business_name"
+                      )}
+                    />
+
+                    <DocumentField
+                      label="Property"
+                      value={getTermValue(
+                        terms,
+                        "property_address"
+                      )}
+                    />
+
+                    <DocumentField
+                      label="APN"
+                      value={getTermValue(terms, "apn")}
+                    />
+
+                    <DocumentField
+                      label="Principal"
+                      value={formatMoney(
+                        getTermValue(
+                          terms,
+                          "approved_loan_amount"
+                        ) ||
+                          getTermValue(terms, "loan_amount")
+                      )}
+                    />
+
+                    <DocumentField
+                      label="Interest rate"
+                      value={`${Number(
+                        getTermValue(
+                          terms,
+                          "borrower_interest_rate"
+                        ) || 0
+                      )}%`}
+                    />
+
+                    <DocumentField
+                      label="Term"
+                      value={`${Number(
+                        getTermValue(
+                          terms,
+                          "repayment_term_months"
+                        ) || 0
+                      )} months`}
+                    />
+
+                    <DocumentField
+                      label="Monthly payment"
+                      value={formatMoney(
+                        getTermValue(
+                          terms,
+                          "monthly_payment"
+                        )
+                      )}
+                    />
+                  </div>
+
+                  <p className="mt-6 leading-7 text-slate-700">
+                    This generated closing document records the
+                    approved loan terms shown above. State-specific
+                    security instruments, notarization, and recording
+                    requirements remain subject to final legal review.
+                  </p>
+                </div>
+              )}
+
+              <label className="mt-5 flex items-start gap-3 rounded-xl border border-slate-700 p-4 text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={reviewConfirmed}
+                  disabled={alreadySigned}
+                  onChange={(event) =>
+                    setReviewConfirmed(event.target.checked)
+                  }
+                  className="mt-1 h-5 w-5"
+                />
+
+                <span>
+                  I confirm that I opened and reviewed the complete
+                  document before signing.
+                </span>
+              </label>
+            </section>
+
+            <section className="rounded-3xl border border-slate-700 bg-slate-950 p-6">
+              <h2 className="text-2xl font-black text-white">
+                Electronic Signature
+              </h2>
+
+              {alreadySigned ? (
+                <div className="mt-5 rounded-2xl border border-emerald-500/40 bg-emerald-950/40 p-5 text-emerald-200">
+                  This document has already been signed.
+                </div>
+              ) : (
+                <>
+                  <label className="mt-5 block">
+                    <span className="font-bold text-slate-200">
+                      Full legal name
+                    </span>
+
+                    <input
+                      value={legalName}
+                      onChange={(event) =>
+                        setLegalName(event.target.value)
+                      }
+                      autoComplete="name"
+                      className="mt-2 w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-white"
+                      placeholder="Enter your full legal name"
+                    />
+                  </label>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setMethod("typed")}
+                      className={`rounded-xl border px-4 py-3 font-bold ${
+                        method === "typed"
+                          ? "border-emerald-400 bg-emerald-950 text-emerald-300"
+                          : "border-slate-700 bg-slate-900 text-slate-300"
+                      }`}
+                    >
+                      Type Signature
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setMethod("drawn")}
+                      className={`rounded-xl border px-4 py-3 font-bold ${
+                        method === "drawn"
+                          ? "border-emerald-400 bg-emerald-950 text-emerald-300"
+                          : "border-slate-700 bg-slate-900 text-slate-300"
+                      }`}
+                    >
+                      Draw Signature
+                    </button>
+                  </div>
+
+                  {method === "typed" ? (
+                    <label className="mt-5 block">
+                      <span className="font-bold text-slate-200">
+                        Type your signature
+                      </span>
+
+                      <input
+                        value={typedSignature}
+                        onChange={(event) =>
+                          setTypedSignature(event.target.value)
+                        }
+                        className="mt-2 w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-4 font-serif text-3xl italic text-white"
+                        placeholder="Your signature"
+                      />
+                    </label>
+                  ) : (
+                    <div className="mt-5">
+                      <SignaturePad
+                        onChange={setDrawnSignature}
+                      />
+                    </div>
+                  )}
+
+                  <label className="mt-6 flex items-start gap-3 rounded-xl border border-slate-700 p-4 text-slate-200">
+        
