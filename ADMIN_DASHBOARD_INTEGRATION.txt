@@ -1,0 +1,111 @@
+SECUREDLANDING — REVISED ADMIN FEATURES
+=======================================
+
+NEW ADMIN BUTTONS
+-----------------
+Each expanded application should display:
+
+1. Approve Loan
+2. Request Revision
+3. Send Revised Loan Offer
+4. Deny Loan
+
+INSTALL THE COMPONENT
+---------------------
+Import:
+
+import AdminLoanReviewActions from
+  "../components/AdminLoanReviewActions";
+
+Inside the expanded loan card, place:
+
+<AdminLoanReviewActions
+  loan={loan}
+  onChanged={loadData}
+  addToast={addToast}
+/>
+
+The loan SELECT must include:
+- id
+- loan_number
+- full_name
+- business_name
+- state
+- land_value
+- loan_amount
+- borrower_interest_rate
+- repayment_term_months
+- status
+
+APPROVAL SAFEGUARDS
+-------------------
+Before approving, block approval when:
+
+- status is "Revision Requested"
+- status is "Counteroffer Pending"
+- counteroffer_status is "pending_borrower_acceptance"
+- loan_amount > land_value * 0.50
+- required property information is missing
+
+Recommended check:
+
+const missingRequired = [
+  !loan.property_address && "Property address",
+  !loan.county && "County",
+  !loan.state && "State",
+  !loan.APN && !loan.apn && "APN",
+  !loan.acreage && "Acreage",
+  !loan.land_value && "Land value",
+].filter(Boolean);
+
+if (missingRequired.length) {
+  throw new Error(
+    `Request revision before approval. Missing: ${missingRequired.join(", ")}`
+  );
+}
+
+const ltv =
+  Number(loan.land_value) > 0
+    ? Number(loan.loan_amount) / Number(loan.land_value)
+    : 0;
+
+if (ltv > 0.5) {
+  throw new Error(
+    "Send a revised loan offer before approval. Maximum LTV is 50%."
+  );
+}
+
+BORROWER DASHBOARD
+------------------
+Import:
+
+import BorrowerRevisionNotice from
+  "../components/BorrowerRevisionNotice";
+
+import BorrowerCounterofferNotice from
+  "../components/BorrowerCounterofferNotice";
+
+Render above the ordinary loan card:
+
+<BorrowerRevisionNotice
+  loan={loan}
+  onSubmitted={loadLoans}
+/>
+
+<BorrowerCounterofferNotice
+  loan={loan}
+  onChanged={loadLoans}
+/>
+
+IMPORTANT
+---------
+The notification inserts use `user_id: null` because the exact borrower
+notification schema varies across SecuredLanding builds. Replace null with
+`loan.user_id` after including user_id in the component's LoanApplication
+interface and query.
+
+Do not generate closing documents or publish to the marketplace until:
+- revisions are complete,
+- a counteroffer is accepted when applicable,
+- the final LTV is 50% or below,
+- the admin approves the application.

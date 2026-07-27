@@ -1,10 +1,17 @@
-# v3.2.3
+# SecuredLanding v2.9 Revised Admin Features
 
-- Creates the exact borrower-signature RPC expected by the deployed Closing Center.
-- Uses bigint loan and generated-document IDs.
-- Avoids one all-or-nothing transaction so optional policy errors cannot erase a successfully created RPC.
-- Repairs missing request-table columns and indexes.
-- Grants RPC execution to authenticated users and service role.
-- Reloads the PostgREST schema cache.
-- Includes a guarded reset for incompatible partial UUID tables.
-- Includes verification queries.
+## Added
+- Request Revision admin button and modal.
+- Missing-information checklist.
+- Borrower revision notice and resubmission action.
+- Send Revised Loan Offer admin button and modal.
+- Automatic maximum amount calculation at 50% LTV.
+- Borrower accept/decline counteroffer component.
+- Counteroffer and revision audit tables.
+- Database trigger blocking approval above 50% LTV.
+
+## Workflow protection
+- Revision-requested loans are removed from marketplace publication.
+- Counteroffer-pending loans are removed from marketplace publication.
+- Original requested amount is preserved.
+- Final loan amount changes only after borrower acceptance.

@@ -1,8 +1,34 @@
-SecuredLanding Revision Workflow Patch
+SECUREDLANDING V2.9 — REVISED ADMIN FEATURES PATCH
+==================================================
 
-Includes:
-- Request Revision workflow
-- SQL migration
-- Borrower resubmission flow documentation
+This patch adds actual React/TypeScript UI components for:
 
-Run the SQL migration, then integrate the UI button into AdminDashboard and Borrower Dashboard.
+- Request Revision
+- Missing-information checklist
+- Admin message to borrower
+- Revision Requested status
+- Borrower correction and resubmission
+- Revised Loan Offer
+- Automatic 50% LTV cap display
+- Borrower acceptance or decline
+- Database-level 50% LTV protection
+
+INSTALL
+-------
+1. Copy the three TSX files into `src/components`.
+2. Run:
+   `supabase/migrations/20260727_revised_admin_features.sql`
+3. Follow `ADMIN_DASHBOARD_INTEGRATION.txt`.
+4. Redeploy.
+5. Test with loan #352552:
+   - Land value: $1,100,000
+   - Request: $780,000
+   - Maximum offer: $550,000
+   - Resulting LTV: 50.00%
+
+NOTE
+----
+This is an integration patch. It does not overwrite your current
+AdminDashboard.tsx because that source file was not supplied with this
+request. The included component can be inserted into the expanded loan card
+without replacing the rest of the dashboard.
