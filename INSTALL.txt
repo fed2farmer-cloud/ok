@@ -1,27 +1,8 @@
-SECUREDLANDING v3.2.2 — SQL REPAIR PATCH
+SecuredLanding Revision Workflow Patch
 
-Purpose
--------
-Repairs the failed Closing Center migration caused by a UUID-to-bigint foreign-key mismatch and creates the missing RPC:
+Includes:
+- Request Revision workflow
+- SQL migration
+- Borrower resubmission flow documentation
 
-  public.ensure_borrower_signature_requests(p_loan_application_id bigint)
-
-Install
--------
-1. Extract this ZIP.
-2. Open Supabase Dashboard > SQL Editor > New query.
-3. Open:
-   supabase/migrations/20260726_v3_2_2_signature_rpc_repair.sql
-4. Copy the ENTIRE file into the SQL Editor.
-5. Press Run once.
-6. Confirm the final result shows one row:
-   ensure_borrower_signature_requests | p_loan_application_id bigint
-7. Refresh securedlanding.com and test the borrower Closing Center.
-
-Important
----------
-- This is a database-only patch. No GitHub or Vercel file upload is required.
-- The SQL is designed for the deployed schema shown in your Supabase error:
-  generated_loan_documents.id = bigint.
-- It is safe to rerun if the first attempt is interrupted.
-- Do not run the older v3.2 migration again after this repair succeeds.
+Run the SQL migration, then integrate the UI button into AdminDashboard and Borrower Dashboard.
