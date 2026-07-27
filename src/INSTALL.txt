@@ -1,0 +1,38 @@
+SECUREDLANDING V2.9 STATE-AWARE DOCUMENT PATCH
+==============================================
+
+PURPOSE
+-------
+Fixes the bug where a Missouri collateral property received a California
+Deed of Trust. The collateral property's state is now the source of truth.
+
+SUPPORTED INITIAL STATES
+------------------------
+CA, TX, AZ, NV, WA, OR, CO, UT, VA, NC, AR, MO
+
+INSTALLATION
+------------
+1. Copy `src/config/stateDocumentConfig.ts` into your project.
+2. Copy `src/lib/stateAwareLoanDocuments.ts` into your project.
+3. Copy `src/components/StateDocumentMismatchWarning.tsx` into your project.
+4. Follow `ADMIN_DASHBOARD_INTEGRATION.txt`.
+5. Run this SQL in Supabase SQL Editor:
+   supabase/migrations/20260727_state_aware_documents.sql
+6. Redeploy on Vercel.
+7. Open the Missouri loan and click "Regenerate state documents."
+8. Confirm the security document now reads:
+   "Missouri Deed of Trust — Attorney Review Required"
+
+IMPORTANT LEGAL NOTICE
+----------------------
+This patch fixes state selection, titles, metadata, auditing, and mismatch
+prevention. It does not certify that any template contains every clause,
+notice, recording requirement, or disclosure required by current state or
+federal law. Every state template remains marked "Attorney Review Required."
+Licensed lending and real-estate counsel should approve the final document
+body before a borrower signs or a lien is recorded.
+
+NO CALIFORNIA FALLBACK
+----------------------
+An unsupported, blank, or malformed state now causes a visible error.
+The application will not silently generate California documents.

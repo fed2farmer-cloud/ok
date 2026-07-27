@@ -1,0 +1,93 @@
+SECUREDLANDING V2.9 — ADMIN DASHBOARD INTEGRATION
+=================================================
+
+1. Import the generator in AdminDashboard.tsx:
+
+import {
+  generateStateAwareLoanDocuments,
+} from "../lib/stateAwareLoanDocuments";
+
+2. Find the existing createClosingCenter(...) or Approved-status logic.
+
+3. DELETE the hard-coded generated_loan_documents array that contains:
+   "California Deed of Trust — Attorney Review Required"
+
+4. After the complete loan record has been loaded, call:
+
+await generateStateAwareLoanDocuments(loan);
+
+The `loan` object must include:
+- id
+- user_id
+- state (the COLLATERAL PROPERTY state)
+- full_name
+- business_name
+- property_address
+- county
+- apn or APN
+- acreage
+- land_value
+- loan_amount
+- repayment_term_months
+- borrower_interest_rate
+- investor_interest_rate
+- loan_number
+
+5. Recommended Approved flow:
+
+if (nextStatus === "Approved") {
+  const { data: currentLoan, error: loanError } = await supabase
+    .from("loan_applications")
+    .select("*")
+    .eq("id", loan.id)
+    .single();
+
+  if (loanError || !currentLoan) {
+    throw new Error(
+      loanError?.message ?? "Unable to load the approved loan."
+    );
+  }
+
+  await createClosingCenter(currentLoan);
+  await generateStateAwareLoanDocuments(currentLoan);
+}
+
+6. Add a "Regenerate state documents" admin button:
+
+async function regenerateStateDocuments(loan: LoanApplication) {
+  const confirmed = window.confirm(
+    `Replace generated documents using the ${loan.state} property templates?`
+  );
+  if (!confirmed) return;
+
+  try {
+    await generateStateAwareLoanDocuments(loan);
+    addToast("State-correct documents regenerated.", "success");
+    await loadData();
+  } catch (error) {
+    addToast(
+      error instanceof Error ? error.message : "Regeneration failed.",
+      "error"
+    );
+  }
+}
+
+Button:
+
+<button
+  type="button"
+  onClick={() => regenerateStateDocuments(loan)}
+  className="rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white"
+>
+  Regenerate state documents
+</button>
+
+7. On the borrower LoanForms/ClosingCenter page, render:
+
+<StateDocumentMismatchWarning
+  propertyState={loan.state}
+  documentState={document.document_state}
+  title={document.title}
+/>
+
+Do not allow review/signature while that warning is displayed.
