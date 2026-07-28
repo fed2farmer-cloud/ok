@@ -9,6 +9,7 @@ import AdminSignedDocumentReview from "../components/AdminSignedDocumentReview";
 import AdminPropertyPhotoReview from "../components/AdminPropertyPhotoReview";
 import AdminAccordionSection from "../components/AdminAccordionSection";
 import AdminLoanMediaPanel from "../components/AdminLoanMediaPanel";
+import AdminLoanReviewActions from "../components/AdminLoanReviewActions";
 
 
 type LoanApplication = {
@@ -39,6 +40,11 @@ type LoanApplication = {
   borrower_video_path?: string | null;
   borrower_video_status?: string | null;
   county?: string | null;
+  requested_loan_amount?: number | null;
+  approved_loan_amount?: number | null;
+  counteroffer_status?: string | null;
+  revision_status?: string | null;
+  revision_items?: string[] | null;
 };
 
 type LoanDocument = {
@@ -506,6 +512,39 @@ export default function AdminDashboard() {
       const loan = applications.find((item) => item.id === id);
       if (!loan) throw new Error("Loan application was not found.");
 
+      if (status === "Approved") {
+        const missingRequired = [
+          !loan.property_address && "Property address",
+          !loan.county && "County",
+          !loan.state && "State",
+          !loan.apn && "APN",
+          !loan.acreage && "Acreage",
+          !loan.land_value && "Land value",
+        ].filter(Boolean) as string[];
+
+        if (missingRequired.length > 0) {
+          throw new Error(
+            `Request a borrower revision before approval. Missing: ${missingRequired.join(", ")}.`
+          );
+        }
+
+        if (loan.status === "Revision Requested" || loan.revision_status === "pending_borrower") {
+          throw new Error("This application is waiting for borrower revisions and cannot be approved yet.");
+        }
+
+        if (loan.status === "Counteroffer Pending" || loan.counteroffer_status === "pending_borrower_acceptance") {
+          throw new Error("The borrower must accept or decline the revised loan offer before approval.");
+        }
+
+        const landValue = Number(loan.land_value || 0);
+        const requestedAmount = Number(loan.loan_amount || 0);
+        if (landValue <= 0 || requestedAmount > landValue * 0.5) {
+          throw new Error(
+            `Send a revised loan offer before approval. Maximum at 50% LTV is ${money(landValue * 0.5)}.`
+          );
+        }
+      }
+
       const loanAmount = Number(loan.loan_amount || 0);
       const payload: Record<string, unknown> = { status };
       if (status === "Funded") {
@@ -951,6 +990,11 @@ export default function AdminDashboard() {
                         <AdminVideoPlayer storagePath={loan.borrower_video_path} loanId={loan.id} onReviewed={() => void loadApplications(true)} />
                       </div>
                     )}
+
+                    <AdminLoanReviewActions
+                      loan={loan}
+                      onChanged={() => loadApplications(true)}
+                    />
 
                     <div className="mt-7 flex flex-wrap gap-3">
                       <button disabled={isSaving} onClick={() => void saveLoanTerms(loan.id)} className="rounded-xl bg-violet-600 px-5 py-3 font-bold text-white disabled:bg-slate-400">{isSaving ? "Saving…" : "Save review"}</button>
