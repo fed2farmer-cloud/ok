@@ -1,0 +1,19 @@
+MODIFIED FILES
+==============
+src/pages/AdminDashboard.tsx
+- Imports and renders AdminLoanReviewActions in every expanded loan card.
+- Blocks approval for missing information, pending revisions, pending counteroffers, and LTV above 50%.
+
+src/components/AdminLoanReviewActions.tsx
+- Working Request Revision modal.
+- Working Send Revised Loan Offer modal.
+- Sends notifications to the loan borrower user_id.
+- Preserves and increments revision count.
+
+SUPPORTING FILES INCLUDED
+=========================
+src/components/BorrowerRevisionNotice.tsx
+src/components/BorrowerCounterofferNotice.tsx
+supabase/migrations/20260727_revised_admin_features.sql
+INSTALL.txt
+FILE_MANIFEST.txt
