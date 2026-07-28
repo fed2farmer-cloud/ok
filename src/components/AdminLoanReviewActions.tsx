@@ -16,6 +16,7 @@ type RevisionItem =
 
 interface LoanApplication {
   id: string | number;
+  user_id?: string | null;
   loan_number?: string | number | null;
   full_name?: string | null;
   business_name?: string | null;
@@ -25,6 +26,7 @@ interface LoanApplication {
   borrower_interest_rate?: number | null;
   repayment_term_months?: number | null;
   status?: string | null;
+  revision_count?: number | null;
 }
 
 interface Props {
@@ -188,7 +190,7 @@ export default function AdminLoanReviewActions({
           revision_requested_by: user?.id ?? null,
           revision_message: revisionMessage.trim(),
           revision_items: selectedItems,
-          revision_count: 1,
+          revision_count: Number(loan.revision_count ?? 0) + 1,
           published_to_marketplace: false,
         })
         .eq("id", loan.id);
@@ -197,7 +199,7 @@ export default function AdminLoanReviewActions({
 
       await supabase.from("borrower_notifications").insert({
         loan_application_id: loan.id,
-        user_id: null,
+        user_id: loan.user_id ?? null,
         notification_type: "revision_requested",
         title: "Action required: revise your loan application",
         message: revisionMessage.trim(),
@@ -302,7 +304,7 @@ export default function AdminLoanReviewActions({
 
       await supabase.from("borrower_notifications").insert({
         loan_application_id: loan.id,
-        user_id: null,
+        user_id: loan.user_id ?? null,
         notification_type: "counteroffer_sent",
         title: "Revised loan offer available",
         message: adminNotes.trim(),
