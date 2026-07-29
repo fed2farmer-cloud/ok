@@ -26,7 +26,6 @@ interface LoanApplication {
   borrower_interest_rate?: number | null;
   repayment_term_months?: number | null;
   status?: string | null;
-  revision_count?: number | null;
 }
 
 interface Props {
@@ -87,6 +86,14 @@ function monthlyPayment(
     (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) /
     (Math.pow(1 + monthlyRate, months) - 1)
   );
+}
+
+function errorMessage(error: unknown, fallback: string): string {
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) return message;
+  }
+  return fallback;
 }
 
 export default function AdminLoanReviewActions({
@@ -172,11 +179,13 @@ export default function AdminLoanReviewActions({
       const { error: requestError } = await supabase
         .from("loan_revision_requests")
         .insert({
-          loan_application_id: loan.id,
+          loan_application_id: Number(loan.id),
+          borrower_user_id: loan.user_id ?? null,
           requested_by: user?.id ?? null,
+          revision_items: selectedItems,
           message: revisionMessage.trim(),
-          requested_items: selectedItems,
-          status: "pending",
+          status: "requested",
+          requested_at: new Date().toISOString(),
         });
 
       if (requestError) throw requestError;
@@ -187,10 +196,9 @@ export default function AdminLoanReviewActions({
           status: "Revision Requested",
           revision_status: "pending_borrower",
           revision_requested_at: new Date().toISOString(),
-          revision_requested_by: user?.id ?? null,
           revision_message: revisionMessage.trim(),
           revision_items: selectedItems,
-          revision_count: Number(loan.revision_count ?? 0) + 1,
+          revision_count: 1,
           published_to_marketplace: false,
         })
         .eq("id", loan.id);
@@ -198,7 +206,7 @@ export default function AdminLoanReviewActions({
       if (loanError) throw loanError;
 
       await supabase.from("borrower_notifications").insert({
-        loan_application_id: loan.id,
+        loan_application_id: Number(loan.id),
         user_id: loan.user_id ?? null,
         notification_type: "revision_requested",
         title: "Action required: revise your loan application",
@@ -214,11 +222,10 @@ export default function AdminLoanReviewActions({
       setSelectedItems([]);
       setRevisionMessage("");
       await refresh();
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error("Send revision request failed:", error);
       notify(
-        error instanceof Error
-          ? error.message
-          : "Unable to send revision request.",
+        errorMessage(error, "Unable to send revision request."),
         "error",
       );
     } finally {
@@ -271,18 +278,22 @@ export default function AdminLoanReviewActions({
       const { error: offerError } = await supabase
         .from("loan_counteroffers")
         .insert({
-          loan_application_id: loan.id,
-          requested_amount: requestedAmount,
-          proposed_amount: proposedAmount,
+          loan_application_id: Number(loan.id),
+          borrower_user_id: loan.user_id ?? null,
+          created_by: user?.id ?? null,
+          original_loan_amount: requestedAmount,
+          proposed_loan_amount: proposedAmount,
           land_value: landValue,
-          proposed_ltv: proposedLtv,
+          maximum_ltv_percent: 50,
+          resulting_ltv_percent: proposedLtv,
           borrower_interest_rate:
             loan.borrower_interest_rate ?? null,
           repayment_term_months:
             loan.repayment_term_months ?? null,
-          admin_notes: adminNotes.trim(),
-          status: "pending_borrower_acceptance",
-          created_by: user?.id ?? null,
+          estimated_monthly_payment: estimatedPayment,
+          explanation: adminNotes.trim(),
+          status: "pending",
+          sent_at: new Date().toISOString(),
         });
 
       if (offerError) throw offerError;
@@ -303,7 +314,7 @@ export default function AdminLoanReviewActions({
       if (loanError) throw loanError;
 
       await supabase.from("borrower_notifications").insert({
-        loan_application_id: loan.id,
+        loan_application_id: Number(loan.id),
         user_id: loan.user_id ?? null,
         notification_type: "counteroffer_sent",
         title: "Revised loan offer available",
@@ -323,11 +334,10 @@ export default function AdminLoanReviewActions({
       setApprovedAmount("");
       setAdminNotes("");
       await refresh();
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error("Send revised offer failed:", error);
       notify(
-        error instanceof Error
-          ? error.message
-          : "Unable to send revised loan offer.",
+        errorMessage(error, "Unable to send revised loan offer."),
         "error",
       );
     } finally {
