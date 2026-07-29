@@ -1,17 +1,11 @@
-# SecuredLanding v2.9 Revised Admin Features
+# SecuredLanding v2.9 Counteroffer Fix
 
-## Added
-- Request Revision admin button and modal.
-- Missing-information checklist.
-- Borrower revision notice and resubmission action.
-- Send Revised Loan Offer admin button and modal.
-- Automatic maximum amount calculation at 50% LTV.
-- Borrower accept/decline counteroffer component.
-- Counteroffer and revision audit tables.
-- Database trigger blocking approval above 50% LTV.
+## Corrected
+- Counteroffer insert field names now match `public.loan_counteroffers`.
+- Revision insert field names now match `public.loan_revision_requests`.
+- Borrower UUID is attached to both workflow records and notifications.
+- Supabase error objects are surfaced correctly.
+- Loan IDs are converted to numbers for bigint foreign keys.
 
-## Workflow protection
-- Revision-requested loans are removed from marketplace publication.
-- Counteroffer-pending loans are removed from marketplace publication.
-- Original requested amount is preserved.
-- Final loan amount changes only after borrower acceptance.
+## Build
+- Vite production build passed successfully.

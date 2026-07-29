@@ -1,17 +1,22 @@
-SECUREDLANDING V2.9 — INTEGRATED ADMIN REVISION FEATURES
+SecuredLanding v2.9 Counteroffer + Revision Fix
 
-1. Copy the included src files into the matching folders in GitHub.
-2. Run supabase/migrations/20260727_revised_admin_features.sql in Supabase SQL Editor.
-3. Commit and redeploy on Vercel.
-4. Open an expanded application in Admin Dashboard.
-5. Confirm these controls appear under Underwriting actions:
-   - Request Revision
-   - Send Revised Loan Offer
+Replace this file in your project:
 
-The Admin Dashboard now blocks approval when:
-- required property information is missing,
-- borrower revisions are pending,
-- a counteroffer is waiting for borrower acceptance,
-- the final loan amount exceeds 50% LTV.
+src/components/AdminLoanReviewActions.tsx
 
-Build validation: npm run build completed successfully.
+Fixes included:
+- Uses bigint-compatible numeric loan_application_id values.
+- Uses the actual loan_counteroffers columns:
+  original_loan_amount, proposed_loan_amount, resulting_ltv_percent,
+  explanation, estimated_monthly_payment, maximum_ltv_percent.
+- Uses the actual loan_revision_requests revision_items column.
+- Sends borrower_user_id and borrower notification user_id.
+- Uses valid workflow statuses for the new history tables.
+- Displays the real Supabase error message instead of only a generic alert.
+
+Database prerequisite:
+The corrected bigint migration must already be applied. Your SQL screenshots
+confirm that loan_applications.id and both workflow foreign keys are bigint.
+
+Validation:
+npm run build completed successfully.
