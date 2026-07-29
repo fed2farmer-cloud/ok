@@ -90,6 +90,12 @@ export default function MessageCenter() {
   }, []);
 
   useEffect(() => {
+    if (!userId) return;
+    const loanId = new URLSearchParams(window.location.search).get("loanId");
+    if (loanId) void openThread(loanId);
+  }, [userId]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, counteroffer]);
 
