@@ -1,23 +1,15 @@
-SECUREDLANDING v3.0 — MESSAGES COUNTEROFFER RESPONSE
+SecuredLanding v3.1 — Borrower Counteroffer Action
 
-1. Copy these files into the matching project folders:
+Replace these files:
+  src/pages/Dashboard.tsx
+  src/components/MessageCenter.tsx
 
-   src/components/AdminLoanReviewActions.tsx
-   src/components/MessageCenter.tsx
+Run this migration only if the v3.0 messages/counteroffer migration has not already been run:
+  supabase/migrations/20260729_messages_counteroffer_response.sql
 
-2. In Supabase, open SQL Editor and run:
-
-   supabase/migrations/20260729_messages_counteroffer_response.sql
-
-3. Commit and deploy the project.
-
-4. Test with two accounts:
-   - Admin sends a revised offer.
-   - Borrower opens Messages.
-   - Borrower opens the loan conversation.
-   - Borrower accepts, declines, or sends a question.
-
-IMPORTANT
-- Run the SQL migration before testing the Accept/Decline buttons.
-- This patch expects loan_applications.id and messages.loan_application_id
-  to use bigint-compatible loan IDs.
+Deploy the project and sign in as the borrower. A pending counteroffer will now display:
+- an Action Required banner on the borrower dashboard;
+- revised amount, LTV, estimated payment, and explanation on the loan card;
+- a Review & Respond in Messages button;
+- automatic opening of the correct loan conversation in Messages;
+- Accept and Decline controls inside Messages.

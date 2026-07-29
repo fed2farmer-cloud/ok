@@ -1,28 +1,11 @@
 # Test checklist
 
-## Admin
-- [ ] Send a revised loan offer.
-- [ ] Confirm success message appears.
-- [ ] Confirm loan status becomes `Counteroffer Pending`.
-- [ ] Confirm a row is added to `loan_counteroffers` with status `pending`.
-- [ ] Confirm a message is added with the borrower as recipient.
-
-## Borrower Messages
-- [ ] Open Messages and select the loan thread.
-- [ ] Confirm the revised-offer card displays.
-- [ ] Confirm original amount, proposed amount, LTV, rate, term, and payment display.
-- [ ] Send a question and confirm the admin receives it.
-
-## Accept
-- [ ] Click Accept Revised Offer.
-- [ ] Confirm counteroffer status becomes `accepted`.
-- [ ] Confirm loan status becomes `Counteroffer Accepted`.
-- [ ] Confirm `loan_amount` and `approved_loan_amount` use the revised amount.
-- [ ] Confirm an acceptance message appears for the admin.
-
-## Decline
-- [ ] Send another test offer on a different loan.
-- [ ] Click Decline Offer.
-- [ ] Confirm counteroffer status becomes `declined`.
-- [ ] Confirm loan status becomes `Counteroffer Declined`.
-- [ ] Confirm a decline message appears for the admin.
+1. Sign in as a borrower with a pending counteroffer.
+2. Confirm the dashboard shows the Action Required banner.
+3. Confirm the affected loan card shows original amount, revised amount, LTV, payment, and explanation.
+4. Tap Review & Respond in Messages.
+5. Confirm Messages opens the correct loan thread automatically.
+6. Confirm the counteroffer card shows Accept Revised Offer and Decline Offer.
+7. Accept one test offer and verify the admin dashboard changes to Counteroffer Accepted.
+8. Decline another test offer and verify the admin dashboard changes to Counteroffer Declined.
+9. Confirm the borrower can send a normal question in the same conversation.

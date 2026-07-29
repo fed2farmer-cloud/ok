@@ -1,10 +1,10 @@
-# SecuredLanding v3.0 Messages Counteroffer Response
+# SecuredLanding v3.1
 
-- Integrated revised loan offers into the existing Messages section.
-- Added borrower Accept and Decline actions.
-- Added secure atomic Supabase RPC for borrower responses.
-- Added automatic admin-to-borrower offer messages.
-- Added automatic borrower response messages to the administrator.
-- Fixed normal message replies to include `recipient_id`.
-- Improved mobile layout and dark fintech styling for Message Center.
-- Production build verified successfully.
+## Borrower counteroffer response improvements
+
+- Added a dashboard Action Required banner for pending revised loan offers.
+- Added a detailed counteroffer summary to each affected loan card.
+- Added a direct Review & Respond in Messages action.
+- Added `?loanId=` deep-link support so Messages opens the correct loan thread automatically.
+- Preserved the v3.0 Accept, Decline, and Ask a Question workflow.
+- Uses en-US USD formatting for loan amounts and payments.

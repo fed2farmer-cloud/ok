@@ -1,17 +1,11 @@
 MODIFIED
-src/components/AdminLoanReviewActions.tsx
-- Creates a secure Messages conversation when an admin sends a revised offer.
-- Includes offer amount, LTV, rate, term, payment estimate, and explanation.
-
+src/pages/Dashboard.tsx
 src/components/MessageCenter.tsx
-- Adds a responsive counteroffer card inside the existing Messages page.
-- Adds Accept Revised Offer and Decline Offer controls.
-- Preserves normal borrower/admin conversation messaging.
-- Fixes recipient_id when sending normal replies.
 
-NEW
+INCLUDED FOR DATABASE SETUP
 supabase/migrations/20260729_messages_counteroffer_response.sql
-- Adds secure borrower counteroffer response RPC.
-- Atomically updates the counteroffer and loan application.
-- Posts the borrower response back into the message thread.
-- Adds borrower counteroffer read policy.
+
+DOCUMENTATION
+INSTALL.txt
+CHANGELOG.md
+TEST_CHECKLIST.md
