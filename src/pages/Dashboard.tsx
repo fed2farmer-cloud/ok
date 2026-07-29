@@ -60,12 +60,29 @@ type LoanDocument = {
   created_at?: string | null;
 };
 
+type Counteroffer = {
+  id: string | number;
+  loan_application_id: string | number;
+  original_loan_amount?: number | string | null;
+  proposed_loan_amount?: number | string | null;
+  land_value?: number | string | null;
+  resulting_ltv_percent?: number | string | null;
+  borrower_interest_rate?: number | string | null;
+  repayment_term_months?: number | string | null;
+  estimated_monthly_payment?: number | string | null;
+  explanation?: string | null;
+  status?: string | null;
+  sent_at?: string | null;
+};
+
+
 export default function Dashboard() {
   const [email, setEmail] = useState("");
   const [currentUserId, setCurrentUserId] = useState("");
   const [applications, setApplications] = useState<LoanApplication[]>([]);
   const [marketplaceLoans, setMarketplaceLoans] = useState<MarketplaceLoan[]>([]);
   const [documents, setDocuments] = useState<LoanDocument[]>([]);
+  const [counteroffers, setCounteroffers] = useState<Counteroffer[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -110,17 +127,34 @@ export default function Dashboard() {
       if (applicationIds.length === 0) {
         setMarketplaceLoans([]);
         setDocuments([]);
+        setCounteroffers([]);
         setLastUpdated(new Date());
         return;
       }
 
-      const [{ data: marketplaceData }, { data: documentData }] = await Promise.all([
+      const [
+        { data: marketplaceData },
+        { data: documentData },
+        { data: counterofferData, error: counterofferError },
+      ] = await Promise.all([
         supabase.from("marketplace_loans").select("*").in("loan_application_id", applicationIds).order("created_at", { ascending: false }),
         supabase.from("loan_documents").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase
+          .from("loan_counteroffers")
+          .select("*")
+          .in("loan_application_id", applicationIds.map(Number))
+          .eq("borrower_user_id", user.id)
+          .order("sent_at", { ascending: false }),
       ]);
 
       setMarketplaceLoans((marketplaceData as MarketplaceLoan[] | null) || []);
       setDocuments((documentData as LoanDocument[] | null) || []);
+      if (counterofferError) {
+        console.error("Counteroffer load failed:", counterofferError.message);
+        setCounteroffers([]);
+      } else {
+        setCounteroffers((counterofferData as Counteroffer[] | null) || []);
+      }
       setLastUpdated(new Date());
     } catch (error: any) {
       setErrorMessage(error?.message || "Unable to load the borrower dashboard.");
@@ -176,6 +210,20 @@ export default function Dashboard() {
       return lid === id && ownedByUser;
     });
   }
+
+  function getPendingCounteroffer(application: LoanApplication) {
+    const applicationId = String(getApplicationId(application));
+    return counteroffers.find((offer) =>
+      String(offer.loan_application_id) === applicationId &&
+      String(offer.status || "").toLowerCase() === "pending"
+    );
+  }
+
+  function openCounterofferMessages(application: LoanApplication) {
+    const applicationId = encodeURIComponent(String(getApplicationId(application)));
+    window.location.href = `/messages?loanId=${applicationId}`;
+  }
+
 
   function getFundingValues(application: LoanApplication, ml?: MarketplaceLoan) {
     const goal = Number(ml?.funding_goal ?? ml?.loan_amount ?? application.loan_amount ?? 0);
@@ -236,6 +284,29 @@ export default function Dashboard() {
           </div>
         </section>
 
+
+        {counteroffers.some((offer) => String(offer.status || "").toLowerCase() === "pending") && (
+          <section className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">Action required</p>
+                <h2 className="mt-1 text-xl font-black text-slate-950">You have a revised loan offer</h2>
+                <p className="mt-1 text-sm text-slate-700">Review the offer in Messages, then accept, decline, or ask the administrator a question.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const first = counteroffers.find((offer) => String(offer.status || "").toLowerCase() === "pending");
+                  window.location.href = first ? `/messages?loanId=${encodeURIComponent(String(first.loan_application_id))}` : "/messages";
+                }}
+                className="rounded-xl bg-amber-500 px-5 py-3 text-sm font-black text-slate-950 hover:bg-amber-400"
+              >
+                Review Revised Offer
+              </button>
+            </div>
+          </section>
+        )}
+
         {errorMessage && (
           <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{errorMessage}</div>
         )}
@@ -280,6 +351,7 @@ export default function Dashboard() {
                 const isExpanded = expandedLoan === applicationId;
                 const rate = Number(application.borrower_interest_rate || application.interest_rate_percent || 9);
                 const term = Number(application.repayment_term_months || 36);
+                const pendingCounteroffer = getPendingCounteroffer(application);
 
                 return (
                   <article key={applicationId} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -317,6 +389,33 @@ export default function Dashboard() {
                           <p><strong>Submitted:</strong> {formatDate(application.created_at)}</p>
                         </div>
                       </div>
+
+                      {pendingCounteroffer && (
+                        <div className="mt-5 rounded-2xl border border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 p-5">
+                          <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                              <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">New revised offer</p>
+                              <h4 className="mt-1 text-lg font-black text-slate-950">Administrator response required</h4>
+                              <div className="mt-3 grid gap-x-6 gap-y-1 text-sm text-slate-700 sm:grid-cols-2">
+                                <p><strong>Original request:</strong> {money(pendingCounteroffer.original_loan_amount ?? application.loan_amount)}</p>
+                                <p><strong>Revised amount:</strong> {money(pendingCounteroffer.proposed_loan_amount)}</p>
+                                <p><strong>Resulting LTV:</strong> {Number(pendingCounteroffer.resulting_ltv_percent || 0).toFixed(2)}%</p>
+                                <p><strong>Estimated payment:</strong> {money(pendingCounteroffer.estimated_monthly_payment)}</p>
+                              </div>
+                              {pendingCounteroffer.explanation && (
+                                <p className="mt-3 text-sm text-slate-700"><strong>Explanation:</strong> {pendingCounteroffer.explanation}</p>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => openCounterofferMessages(application)}
+                              className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white hover:bg-blue-500"
+                            >
+                              Review & Respond in Messages
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Funding progress */}
                       <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
