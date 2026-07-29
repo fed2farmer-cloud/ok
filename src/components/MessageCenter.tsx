@@ -34,6 +34,8 @@ interface Counteroffer {
   estimated_monthly_payment?: number | string | null;
   explanation?: string | null;
   status: string;
+  accepted_at?: string | null;
+  declined_at?: string | null;
   sent_at?: string | null;
 }
 
@@ -176,7 +178,6 @@ export default function MessageCenter() {
       .select("*")
       .eq("loan_application_id", Number(loanId))
       .eq("borrower_user_id", userId)
-      .eq("status", "pending")
       .order("sent_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -261,6 +262,8 @@ export default function MessageCenter() {
       const { error } = await supabase.rpc("respond_to_loan_counteroffer", {
         p_counteroffer_id: Number(counteroffer.id),
         p_accept: accepted,
+        p_user_agent: navigator.userAgent,
+        p_agreement_version: "counteroffer-v1.0",
       });
 
       if (error) throw error;
@@ -366,8 +369,18 @@ export default function MessageCenter() {
                       </p>
                       <h3 className="mt-1 text-xl font-black">Revised loan offer</h3>
                     </div>
-                    <span className="rounded-full bg-amber-400/20 px-3 py-1 text-xs font-bold text-amber-300">
-                      Awaiting your response
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${
+                      counteroffer.status === "accepted"
+                        ? "bg-emerald-400/20 text-emerald-300"
+                        : counteroffer.status === "declined"
+                          ? "bg-rose-400/20 text-rose-300"
+                          : "bg-amber-400/20 text-amber-300"
+                    }`}>
+                      {counteroffer.status === "accepted"
+                        ? "Offer accepted"
+                        : counteroffer.status === "declined"
+                          ? "Offer declined"
+                          : "Awaiting your response"}
                     </span>
                   </div>
 
@@ -387,27 +400,41 @@ export default function MessageCenter() {
                     </div>
                   )}
 
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={() => void respondToCounteroffer(true)}
-                      disabled={responding}
-                      className="rounded-xl bg-emerald-600 px-4 py-3 font-black text-white disabled:opacity-50"
-                    >
-                      {responding ? "Saving…" : "Accept Revised Offer"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void respondToCounteroffer(false)}
-                      disabled={responding}
-                      className="rounded-xl bg-rose-600 px-4 py-3 font-black text-white disabled:opacity-50"
-                    >
-                      Decline Offer
-                    </button>
-                  </div>
-                  <p className="mt-3 text-xs text-blue-200">
-                    Use the message box below to ask the administrator a question before responding.
-                  </p>
+                  {counteroffer.status === "pending" ? (
+                    <>
+                      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => void respondToCounteroffer(true)}
+                          disabled={responding}
+                          className="rounded-xl bg-emerald-600 px-4 py-3 font-black text-white disabled:opacity-50"
+                        >
+                          {responding ? "Saving…" : "Accept Revised Offer"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void respondToCounteroffer(false)}
+                          disabled={responding}
+                          className="rounded-xl bg-rose-600 px-4 py-3 font-black text-white disabled:opacity-50"
+                        >
+                          Decline Offer
+                        </button>
+                      </div>
+                      <p className="mt-3 text-xs text-blue-200">
+                        Use the message box below to ask the administrator a question before responding.
+                      </p>
+                    </>
+                  ) : (
+                    <div className={`mt-5 rounded-xl border p-4 text-sm font-bold ${
+                      counteroffer.status === "accepted"
+                        ? "border-emerald-500/50 bg-emerald-950/50 text-emerald-200"
+                        : "border-rose-500/50 bg-rose-950/50 text-rose-200"
+                    }`}>
+                      {counteroffer.status === "accepted"
+                        ? `Accepted${counteroffer.accepted_at ? ` on ${new Date(counteroffer.accepted_at).toLocaleString()}` : ""}. The administrator can now continue underwriting.`
+                        : `Declined${counteroffer.declined_at ? ` on ${new Date(counteroffer.declined_at).toLocaleString()}` : ""}. Contact the administrator in this conversation with questions.`}
+                    </div>
+                  )}
                 </section>
               )}
 
