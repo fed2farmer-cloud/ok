@@ -1,23 +1,49 @@
-# SecuredLanding v3.3.1 — Investment Certificate UI
+# SecuredLanding v3.3.2 — Counteroffer RPC Compatibility
 
-The certificate database migration has already been applied and verified. This patch exposes those records in the investor interface.
+## Problem fixed
 
-## Replace these files
+The borrower page calls:
 
-- `src/App.tsx`
-- `src/InvestorWallet.tsx`
-- `src/pages/InvestorDashboard.tsx`
+```text
+respond_to_loan_counteroffer(
+  p_accept,
+  p_agreement_version,
+  p_counteroffer_id,
+  p_user_agent
+)
+```
 
-## Add this new file
+The database currently contains only:
 
-- `src/pages/InvestmentCertificateDetails.tsx`
+```text
+respond_to_loan_counteroffer(
+  p_counteroffer_id,
+  p_accept
+)
+```
 
-## Deploy
+PostgREST therefore reports that the four-parameter function cannot be found.
 
-1. Upload the files to the matching repository paths.
-2. Commit the changes to the branch connected to Vercel.
-3. Confirm the Vercel build completes.
-4. Sign in as an investor and open **Investor Wallet**.
-5. Tap **View Certificate** beneath an investment.
+## Installation
 
-No additional SQL is required for this UI patch.
+1. Open **Supabase → SQL Editor**.
+2. Open `supabase/migrations/20260729_v3_3_2_counteroffer_rpc_compatibility.sql`.
+3. Copy the complete SQL into a new query.
+4. Select **Run**.
+5. Run `VERIFY.sql`.
+6. Wait about 5–10 seconds, refresh SecuredLanding, and test **Accept** or **Decline** again.
+
+## Expected verification
+
+The verification query should show two overloads:
+
+```text
+p_counteroffer_id bigint, p_accept boolean
+p_accept boolean, p_agreement_version text, p_counteroffer_id bigint, p_user_agent text
+```
+
+## Safety
+
+The patch does not replace the existing counteroffer logic. It adds a compatible
+four-argument wrapper and forwards the action to the existing two-argument
+function, preserving its current authorization and workflow behavior.

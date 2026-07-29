@@ -1,22 +1,13 @@
+-- Expected result: two rows, one with two arguments and one with four.
 select
-  i.id,
-  i.certificate_number,
-  i.certificate_uuid,
-  i.original_investor_id,
-  i.current_owner_id,
-  i.transfer_count,
-  i.transfer_locked
-from public.investments i
-order by i.created_at desc
-limit 20;
+  p.proname,
+  pg_get_function_identity_arguments(p.oid) as arguments,
+  pg_get_function_result(p.oid) as result_type
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname = 'respond_to_loan_counteroffer'
+order by arguments;
 
-select
-  h.certificate_number,
-  h.transfer_type,
-  h.to_owner_id,
-  h.principal_transferred,
-  h.transfer_status,
-  h.transferred_at
-from public.investment_ownership_history h
-order by h.transferred_at desc
-limit 20;
+-- Confirm PostgREST received the schema reload notification by waiting a few
+-- seconds, refreshing the app, and accepting/rejecting the counteroffer again.
