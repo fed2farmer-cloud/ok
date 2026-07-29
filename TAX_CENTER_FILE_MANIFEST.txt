@@ -1,0 +1,11 @@
+MODIFIED
+src/App.tsx
+src/components/AppLayout.tsx
+
+NEW
+src/pages/TaxCenter.tsx
+src/pages/AdminTaxDashboard.tsx
+supabase/migrations/20260729_v3_3_tax_center.sql
+TAX_CENTER_INSTALL.txt
+TAX_CENTER_TEST_CHECKLIST.md
+TAX_CENTER_FILE_MANIFEST.txt

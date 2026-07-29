@@ -1,0 +1,13 @@
+SECUREDLANDING TAX CENTER PATCH
+
+1. Copy the included src files into the matching project folders.
+2. Run supabase/migrations/20260729_v3_3_tax_center.sql in Supabase SQL Editor.
+3. Deploy to Vercel.
+4. Admin route: /admin/tax
+5. Borrower/investor route: /tax-center
+
+IMPORTANT:
+- The tax-documents bucket is private.
+- Upload paths must begin with the recipient's Supabase user UUID.
+- This foundation stores only a masked taxpayer-ID last four digits. Do not store full SSNs/TINs in ordinary tables.
+- Upload final IRS forms only after review by the company's tax professional.
