@@ -313,21 +313,59 @@ export default function AdminLoanReviewActions({
 
       if (loanError) throw loanError;
 
-      await supabase.from("borrower_notifications").insert({
-        loan_application_id: Number(loan.id),
-        user_id: loan.user_id ?? null,
-        notification_type: "counteroffer_sent",
-        title: "Revised loan offer available",
-        message: adminNotes.trim(),
-        metadata: {
-          requested_amount: requestedAmount,
-          proposed_amount: proposedAmount,
-          land_value: landValue,
-          proposed_ltv: proposedLtv,
-          estimated_monthly_payment: estimatedPayment,
-          loan_number: loan.loan_number ?? null,
-        },
-      });
+      const { error: notificationError } = await supabase
+        .from("borrower_notifications")
+        .insert({
+          loan_application_id: Number(loan.id),
+          user_id: loan.user_id ?? null,
+          notification_type: "counteroffer_sent",
+          title: "Revised loan offer available",
+          message: adminNotes.trim(),
+          metadata: {
+            requested_amount: requestedAmount,
+            proposed_amount: proposedAmount,
+            land_value: landValue,
+            proposed_ltv: proposedLtv,
+            estimated_monthly_payment: estimatedPayment,
+            loan_number: loan.loan_number ?? null,
+          },
+        });
+
+      if (notificationError) throw notificationError;
+
+      if (!user?.id || !loan.user_id) {
+        throw new Error(
+          "The administrator or borrower user ID is missing, so the message thread could not be created.",
+        );
+      }
+
+      const messageBody = [
+        `A revised loan offer is ready for Loan #${loan.loan_number ?? loan.id}.`,
+        `Original request: ${money(requestedAmount)}`,
+        `Revised offer: ${money(proposedAmount)}`,
+        `Land value: ${money(landValue)}`,
+        `Resulting LTV: ${proposedLtv.toFixed(2)}%`,
+        `Interest rate: ${numberValue(loan.borrower_interest_rate).toFixed(2)}%`,
+        `Term: ${numberValue(loan.repayment_term_months)} months`,
+        `Estimated monthly payment: ${money(estimatedPayment)}`,
+        "",
+        adminNotes.trim(),
+        "",
+        "Open Messages to accept, decline, or ask a question about this offer.",
+      ].join("\n");
+
+      const { error: messageError } = await supabase
+        .from("messages")
+        .insert({
+          sender_id: user.id,
+          recipient_id: loan.user_id,
+          sender_role: "admin",
+          loan_application_id: Number(loan.id),
+          body: messageBody,
+          read: false,
+        });
+
+      if (messageError) throw messageError;
 
       notify("Revised loan offer sent to the borrower.", "success");
       setCounterofferOpen(false);
