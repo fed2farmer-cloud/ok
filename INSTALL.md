@@ -1,23 +1,23 @@
-# SecuredLanding v3.3 — Investment Certificate & Ownership Registry
+# SecuredLanding v3.3.1 — Investment Certificate UI
 
-## Install
+The certificate database migration has already been applied and verified. This patch exposes those records in the investor interface.
 
-1. Run the full SQL migration in Supabase SQL Editor:
-   `supabase/migrations/20260729_v3_3_investment_certificates.sql`
-2. Replace these project files:
-   - `src/features/investorprotection/portfolioV29Service.ts`
-   - `src/components/PortfolioPositionCard.tsx`
-3. Commit and redeploy through Vercel.
-4. Open an investor Portfolio page and confirm every investment shows a certificate number.
+## Replace these files
 
-## Certificate format
+- `src/App.tsx`
+- `src/InvestorWallet.tsx`
+- `src/pages/InvestorDashboard.tsx`
 
-`SLI-YYYY-PUBLICLOANNUMBER-INVESTMENTID`
+## Add this new file
 
-Example: `SLI-2026-889568-000123`
+- `src/pages/InvestmentCertificateDetails.tsx`
 
-The public certificate number, certificate UUID, original owner, and issue date are immutable. Future secondary-market sales should update `current_owner_id` and append a row to `investment_ownership_history`; they should never replace the certificate identity.
+## Deploy
 
-## Important
+1. Upload the files to the matching repository paths.
+2. Commit the changes to the branch connected to Vercel.
+3. Confirm the Vercel build completes.
+4. Sign in as an investor and open **Investor Wallet**.
+5. Tap **View Certificate** beneath an investment.
 
-This patch creates the ownership registry foundation only. It does not activate investor-to-investor sales, pricing, suitability checks, payment settlement, tax reporting, or transfer compliance.
+No additional SQL is required for this UI patch.

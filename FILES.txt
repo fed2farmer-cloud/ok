@@ -1,10 +1,6 @@
-NEW
-supabase/migrations/20260729_v3_3_investment_certificates.sql
-VERIFY.sql
-INSTALL.md
-CHANGELOG.md
-FILES.txt
-
-MODIFIED
-src/features/investorprotection/portfolioV29Service.ts
-src/components/PortfolioPositionCard.tsx
+MODIFIED  src/App.tsx
+MODIFIED  src/InvestorWallet.tsx
+MODIFIED  src/pages/InvestorDashboard.tsx
+NEW       src/pages/InvestmentCertificateDetails.tsx
+DOC       INSTALL.md
+DOC       CHANGELOG.md

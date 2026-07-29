@@ -1,8 +1,9 @@
-# v3.3 Investment Certificates
+# v3.3.1
 
-- Adds immutable UUID and public certificate number to every investment.
-- Backfills certificates for all existing investments.
-- Automatically assigns certificates to new investments regardless of payment path.
-- Adds original owner, current owner, transfer count, and transfer lock fields.
-- Creates an append-only ownership-history foundation for future resale.
-- Adds certificate details to the investor portfolio view and cards.
+- Displays permanent certificate numbers in Investor Wallet.
+- Displays certificate numbers in Active Positions.
+- Adds a branded certificate details page.
+- Adds printable certificate presentation.
+- Adds ownership-history timeline.
+- Adds copy-certificate-number action.
+- Converts raw underscore statuses to readable labels.
