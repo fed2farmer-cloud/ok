@@ -1,11 +1,9 @@
 MODIFIED
-src/pages/Dashboard.tsx
 src/components/MessageCenter.tsx
 
-INCLUDED FOR DATABASE SETUP
-supabase/migrations/20260729_messages_counteroffer_response.sql
-
-DOCUMENTATION
+NEW
+supabase/migrations/20260729_counteroffer_production_ready.sql
 INSTALL.txt
-CHANGELOG.md
+FILE_MANIFEST.txt
 TEST_CHECKLIST.md
+CHANGELOG.md

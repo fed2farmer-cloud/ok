@@ -1,9 +1,8 @@
-# v3.3.1
+# SecuredLanding v3.2
 
-- Displays permanent certificate numbers in Investor Wallet.
-- Displays certificate numbers in Active Positions.
-- Adds a branded certificate details page.
-- Adds printable certificate presentation.
-- Adds ownership-history timeline.
-- Adds copy-certificate-number action.
-- Converts raw underscore statuses to readable labels.
+- Added immutable counteroffer response audit records.
+- Added agreement-version and browser/device user-agent capture.
+- Updated the Messages counteroffer card to retain accepted/declined history.
+- Removed response buttons after a final borrower decision.
+- Preserved atomic loan, counteroffer, message, and audit updates through one RPC.
+- Kept accepted loans unpublished until an administrator completes approval.

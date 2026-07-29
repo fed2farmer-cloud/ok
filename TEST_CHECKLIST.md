@@ -1,11 +1,10 @@
 # Test checklist
 
-1. Sign in as a borrower with a pending counteroffer.
-2. Confirm the dashboard shows the Action Required banner.
-3. Confirm the affected loan card shows original amount, revised amount, LTV, payment, and explanation.
-4. Tap Review & Respond in Messages.
-5. Confirm Messages opens the correct loan thread automatically.
-6. Confirm the counteroffer card shows Accept Revised Offer and Decline Offer.
-7. Accept one test offer and verify the admin dashboard changes to Counteroffer Accepted.
-8. Decline another test offer and verify the admin dashboard changes to Counteroffer Declined.
-9. Confirm the borrower can send a normal question in the same conversation.
+- Pending offer shows Accept and Decline buttons.
+- Accept changes offer to accepted and hides both buttons.
+- Decline changes offer to declined and hides both buttons.
+- A permanent accepted/declined status and timestamp remain visible.
+- A response message appears in the conversation.
+- `counteroffer_acceptance_audit` contains exactly one record for the offer.
+- Loan amount and remaining amount update only when accepted.
+- Marketplace publication remains disabled until admin approval.
