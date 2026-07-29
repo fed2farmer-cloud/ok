@@ -1,22 +1,23 @@
-SecuredLanding v2.9 Counteroffer + Revision Fix
+SECUREDLANDING v3.0 — MESSAGES COUNTEROFFER RESPONSE
 
-Replace this file in your project:
+1. Copy these files into the matching project folders:
 
-src/components/AdminLoanReviewActions.tsx
+   src/components/AdminLoanReviewActions.tsx
+   src/components/MessageCenter.tsx
 
-Fixes included:
-- Uses bigint-compatible numeric loan_application_id values.
-- Uses the actual loan_counteroffers columns:
-  original_loan_amount, proposed_loan_amount, resulting_ltv_percent,
-  explanation, estimated_monthly_payment, maximum_ltv_percent.
-- Uses the actual loan_revision_requests revision_items column.
-- Sends borrower_user_id and borrower notification user_id.
-- Uses valid workflow statuses for the new history tables.
-- Displays the real Supabase error message instead of only a generic alert.
+2. In Supabase, open SQL Editor and run:
 
-Database prerequisite:
-The corrected bigint migration must already be applied. Your SQL screenshots
-confirm that loan_applications.id and both workflow foreign keys are bigint.
+   supabase/migrations/20260729_messages_counteroffer_response.sql
 
-Validation:
-npm run build completed successfully.
+3. Commit and deploy the project.
+
+4. Test with two accounts:
+   - Admin sends a revised offer.
+   - Borrower opens Messages.
+   - Borrower opens the loan conversation.
+   - Borrower accepts, declines, or sends a question.
+
+IMPORTANT
+- Run the SQL migration before testing the Accept/Decline buttons.
+- This patch expects loan_applications.id and messages.loan_application_id
+  to use bigint-compatible loan IDs.

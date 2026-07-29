@@ -1,11 +1,10 @@
-# SecuredLanding v2.9 Counteroffer Fix
+# SecuredLanding v3.0 Messages Counteroffer Response
 
-## Corrected
-- Counteroffer insert field names now match `public.loan_counteroffers`.
-- Revision insert field names now match `public.loan_revision_requests`.
-- Borrower UUID is attached to both workflow records and notifications.
-- Supabase error objects are surfaced correctly.
-- Loan IDs are converted to numbers for bigint foreign keys.
-
-## Build
-- Vite production build passed successfully.
+- Integrated revised loan offers into the existing Messages section.
+- Added borrower Accept and Decline actions.
+- Added secure atomic Supabase RPC for borrower responses.
+- Added automatic admin-to-borrower offer messages.
+- Added automatic borrower response messages to the administrator.
+- Fixed normal message replies to include `recipient_id`.
+- Improved mobile layout and dark fintech styling for Message Center.
+- Production build verified successfully.

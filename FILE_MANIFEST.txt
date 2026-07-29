@@ -1,19 +1,17 @@
-MODIFIED FILES
-==============
-src/pages/AdminDashboard.tsx
-- Imports and renders AdminLoanReviewActions in every expanded loan card.
-- Blocks approval for missing information, pending revisions, pending counteroffers, and LTV above 50%.
-
+MODIFIED
 src/components/AdminLoanReviewActions.tsx
-- Working Request Revision modal.
-- Working Send Revised Loan Offer modal.
-- Sends notifications to the loan borrower user_id.
-- Preserves and increments revision count.
+- Creates a secure Messages conversation when an admin sends a revised offer.
+- Includes offer amount, LTV, rate, term, payment estimate, and explanation.
 
-SUPPORTING FILES INCLUDED
-=========================
-src/components/BorrowerRevisionNotice.tsx
-src/components/BorrowerCounterofferNotice.tsx
-supabase/migrations/20260727_revised_admin_features.sql
-INSTALL.txt
-FILE_MANIFEST.txt
+src/components/MessageCenter.tsx
+- Adds a responsive counteroffer card inside the existing Messages page.
+- Adds Accept Revised Offer and Decline Offer controls.
+- Preserves normal borrower/admin conversation messaging.
+- Fixes recipient_id when sending normal replies.
+
+NEW
+supabase/migrations/20260729_messages_counteroffer_response.sql
+- Adds secure borrower counteroffer response RPC.
+- Atomically updates the counteroffer and loan application.
+- Posts the borrower response back into the message thread.
+- Adds borrower counteroffer read policy.

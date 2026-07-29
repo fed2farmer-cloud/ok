@@ -1,12 +1,28 @@
-# SecuredLanding v2.5.0 Test Checklist
+# Test checklist
 
-- [ ] Public header displays the complete Secured Landing logo without clipping.
-- [ ] Borrower can upload and preview an introduction video.
-- [ ] Admin sees the video player on the loan card.
-- [ ] Admin can approve, request changes, or reject the video.
-- [ ] Approved loan can be published to `marketplace_loans`.
-- [ ] Investor marketplace displays approved borrower video.
-- [ ] Admin approval creates generated loan documents.
-- [ ] Borrower Loan Forms page loads `terms_snapshot` without a schema error.
-- [ ] No red schema-cache error appears on the Admin Dashboard.
-- [ ] Production build completes successfully.
+## Admin
+- [ ] Send a revised loan offer.
+- [ ] Confirm success message appears.
+- [ ] Confirm loan status becomes `Counteroffer Pending`.
+- [ ] Confirm a row is added to `loan_counteroffers` with status `pending`.
+- [ ] Confirm a message is added with the borrower as recipient.
+
+## Borrower Messages
+- [ ] Open Messages and select the loan thread.
+- [ ] Confirm the revised-offer card displays.
+- [ ] Confirm original amount, proposed amount, LTV, rate, term, and payment display.
+- [ ] Send a question and confirm the admin receives it.
+
+## Accept
+- [ ] Click Accept Revised Offer.
+- [ ] Confirm counteroffer status becomes `accepted`.
+- [ ] Confirm loan status becomes `Counteroffer Accepted`.
+- [ ] Confirm `loan_amount` and `approved_loan_amount` use the revised amount.
+- [ ] Confirm an acceptance message appears for the admin.
+
+## Decline
+- [ ] Send another test offer on a different loan.
+- [ ] Click Decline Offer.
+- [ ] Confirm counteroffer status becomes `declined`.
+- [ ] Confirm loan status becomes `Counteroffer Declined`.
+- [ ] Confirm a decline message appears for the admin.
