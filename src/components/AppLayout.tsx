@@ -10,16 +10,19 @@ const BORROWER_LINKS: NavItem[] = [
   { href: "/loan-forms", label: "Loan Forms" },
   { href: "/loan-documents", label: "Documents" },
   { href: "/messages", label: "Messages" },
+  { href: "/tax-center", label: "Tax Documents" },
 ];
 const INVESTOR_LINKS: NavItem[] = [
   { href: "/investor", label: "Portfolio" },
   { href: "/investor-wallet", label: "Wallet" },
   { href: "/marketplace", label: "Marketplace" },
   { href: "/messages", label: "Messages" },
+  { href: "/tax-center", label: "Tax Documents" },
 ];
 const ADMIN_LINKS: NavItem[] = [
   { href: "/admin", label: "Operations" },
   { href: "/messages", label: "Messages" },
+  { href: "/admin/tax", label: "Tax Reporting" },
 ];
 function linksByRole(role: string | null) {
   if (role === "investor") return INVESTOR_LINKS;
