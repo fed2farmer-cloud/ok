@@ -14,6 +14,7 @@ interface Investment {
   status: string;
   created_at: string;
   business_name?: string | null;
+  certificate_number?: string | null;
 }
 
 interface Wallet {
@@ -387,7 +388,7 @@ export default function InvestorDashboard() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50 text-left">
-                    {["Loan", "Amount", "Rate", "Term", "Status", "Date"].map((h) => (
+                    {["Loan / Certificate", "Amount", "Rate", "Term", "Status", "Date"].map((h) => (
                       <th
                         key={h}
                         className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500"
@@ -404,7 +405,16 @@ export default function InvestorDashboard() {
                       className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
                     >
                       <td className="px-5 py-3 font-semibold text-slate-800">
-                        {inv.business_name ?? `Loan #${inv.loan_id}`}
+                        <p>{inv.business_name ?? `Loan #${inv.loan_id}`}</p>
+                        {inv.certificate_number && (
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/investment-certificate/${encodeURIComponent(inv.certificate_number!)}`)}
+                            className="mt-1 block break-all text-left font-mono text-[10px] font-bold text-amber-700 hover:underline"
+                          >
+                            {inv.certificate_number}
+                          </button>
+                        )}
                       </td>
                       <td className="px-5 py-3 font-semibold text-emerald-700">
                         {money(inv.amount)}
