@@ -1,6 +1,10 @@
-NEW FILES
-supabase/migrations/20260726_v3_2_3_signature_rpc_repair.sql
-RESET_PARTIAL_TABLES.sql
+NEW
+supabase/migrations/20260729_v3_3_investment_certificates.sql
 VERIFY.sql
 INSTALL.md
 CHANGELOG.md
+FILES.txt
+
+MODIFIED
+src/features/investorprotection/portfolioV29Service.ts
+src/components/PortfolioPositionCard.tsx

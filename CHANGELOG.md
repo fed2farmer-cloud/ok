@@ -1,10 +1,8 @@
-# SecuredLanding v3.1
+# v3.3 Investment Certificates
 
-## Borrower counteroffer response improvements
-
-- Added a dashboard Action Required banner for pending revised loan offers.
-- Added a detailed counteroffer summary to each affected loan card.
-- Added a direct Review & Respond in Messages action.
-- Added `?loanId=` deep-link support so Messages opens the correct loan thread automatically.
-- Preserved the v3.0 Accept, Decline, and Ask a Question workflow.
-- Uses en-US USD formatting for loan amounts and payments.
+- Adds immutable UUID and public certificate number to every investment.
+- Backfills certificates for all existing investments.
+- Automatically assigns certificates to new investments regardless of payment path.
+- Adds original owner, current owner, transfer count, and transfer lock fields.
+- Creates an append-only ownership-history foundation for future resale.
+- Adds certificate details to the investor portfolio view and cards.

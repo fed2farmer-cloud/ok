@@ -1,24 +1,23 @@
-# SecuredLanding v3.2.3 RPC Repair
+# SecuredLanding v3.3 — Investment Certificate & Ownership Registry
 
-This patch fixes the missing Supabase RPC:
+## Install
 
-`public.ensure_borrower_signature_requests(p_loan_application_id bigint)`
+1. Run the full SQL migration in Supabase SQL Editor:
+   `supabase/migrations/20260729_v3_3_investment_certificates.sql`
+2. Replace these project files:
+   - `src/features/investorprotection/portfolioV29Service.ts`
+   - `src/components/PortfolioPositionCard.tsx`
+3. Commit and redeploy through Vercel.
+4. Open an investor Portfolio page and confirm every investment shows a certificate number.
 
-## Run order
+## Certificate format
 
-1. In Supabase, open **SQL Editor** and create a new query.
-2. Copy the complete contents of:
-   `supabase/migrations/20260726_v3_2_3_signature_rpc_repair.sql`
-3. Press **Run** once.
-4. At the bottom, confirm the final result contains one row with:
-   - function name: `ensure_borrower_signature_requests`
-   - arguments: `p_loan_application_id bigint`
-5. Wait 15–30 seconds, fully close the SecuredLanding browser tab, reopen it, and test the Borrower Closing Center.
+`SLI-YYYY-PUBLICLOANNUMBER-INVESTMENTID`
 
-## Only when the migration reports incompatible UUID columns
+Example: `SLI-2026-889568-000123`
 
-Run `RESET_PARTIAL_TABLES.sql`, then rerun the main migration. This reset removes only the unfinished electronic-signature tables. It does not remove loans, generated documents, users, investments, wallet transactions, or payments.
+The public certificate number, certificate UUID, original owner, and issue date are immutable. Future secondary-market sales should update `current_owner_id` and append a row to `investment_ownership_history`; they should never replace the certificate identity.
 
-## Deployment
+## Important
 
-This is a Supabase database patch. No GitHub upload and no Vercel deployment are required.
+This patch creates the ownership registry foundation only. It does not activate investor-to-investor sales, pricing, suitability checks, payment settlement, tax reporting, or transfer compliance.
