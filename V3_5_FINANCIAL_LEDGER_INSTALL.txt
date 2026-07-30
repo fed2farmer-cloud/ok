@@ -1,0 +1,14 @@
+SECUREDLANDING v3.5 — FINANCIAL LEDGER & END-TO-END FUNDING
+
+1. Copy the included files into the matching paths in your project.
+2. Open Supabase SQL Editor for the SAME project used by the deployed app.
+3. Run supabase/migrations/20260730_v3_5_financial_ledger_funding.sql.
+4. Deploy the source changes to Vercel.
+5. Sign in as an administrator and open /admin/ledger.
+6. Click "Release Expired Holds" to move expired investor protection funds into the loan's disbursable account.
+7. Test a small disbursement using a funded test loan.
+
+IMPORTANT
+- This migration is a ledger foundation, not payment-processor settlement certification.
+- Continue using sandbox/test funds until NMI/Plaid webhooks and reconciliation are production tested.
+- Do not manually edit ledger entries after posting. Use reversal transactions in future releases.

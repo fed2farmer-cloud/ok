@@ -1,0 +1,13 @@
+[ ] SQL migration completes without errors
+[ ] /admin/ledger loads for an admin
+[ ] Non-admin users cannot access ledger tables
+[ ] Existing protected investments appear in funding_holds
+[ ] Release Expired Holds ignores unexpired holds
+[ ] Expired holds become released
+[ ] Released amount appears in Loan Disbursable Funds
+[ ] Disbursement above eligible balance is rejected
+[ ] Valid disbursement creates two equal ledger entries
+[ ] Ledger transaction debit total equals credit total
+[ ] Borrower disbursement record is created
+[ ] Re-running release is idempotent
+[ ] npm run build passes

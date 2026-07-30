@@ -1,0 +1,11 @@
+MODIFIED
+src/App.tsx
+src/components/AppLayout.tsx
+
+NEW
+src/lib/financialLedger.ts
+src/pages/AdminFinancialLedger.tsx
+supabase/migrations/20260730_v3_5_financial_ledger_funding.sql
+V3_5_FINANCIAL_LEDGER_INSTALL.txt
+V3_5_FINANCIAL_LEDGER_TEST_CHECKLIST.txt
+V3_5_FINANCIAL_LEDGER_FILE_MANIFEST.txt
