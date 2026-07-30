@@ -1,7 +1,16 @@
-TypeScript validation exit code: 0
+SecuredLanding Admin Property Identification Fix
 
-STDOUT:
-(none)
+Build test:
+npm run build
 
-STDERR:
-(none)
+Result:
+PASS
+
+Implemented:
+- Admin can manually edit APN, property address, county, and state.
+- Property edits save to loan_applications.
+- Marketplace publishing uses the edited APN and state.
+- Approval accepts either:
+  1. A parcel number (APN), or
+  2. A complete property address, county, and state.
+- Approval is no longer blocked for a missing street address when an APN is present.
