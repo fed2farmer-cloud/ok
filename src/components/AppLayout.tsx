@@ -23,6 +23,7 @@ const ADMIN_LINKS: NavItem[] = [
   { href: "/admin", label: "Operations" },
   { href: "/messages", label: "Messages" },
   { href: "/admin/tax", label: "Tax Reporting" },
+  { href: "/admin/ledger", label: "Ledger & Funding" },
 ];
 function linksByRole(role: string | null) {
   if (role === "investor") return INVESTOR_LINKS;
