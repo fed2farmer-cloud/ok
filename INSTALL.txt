@@ -1,17 +1,12 @@
-SECUREDLANDING v3.4.1 TAX ADMIN PATCH
+SecuredLanding Borrower Counteroffer Fix
 
-Copy these files into the matching locations in your project:
+Replace:
+- src/App.tsx
+- src/pages/BorrowerOffer.tsx
 
-src/App.tsx
-src/components/AppLayout.tsx
-src/pages/TaxCenter.tsx
-src/pages/AdminTaxDashboard.tsx
-supabase/migrations/20260730_v3_4_tax_admin.sql
+The BorrowerOffer RPC call sends only:
+- p_counteroffer_id
+- p_accept
 
-Then:
-1. Run 20260730_v3_4_tax_admin.sql in Supabase SQL Editor.
-2. Commit and push the source files to GitHub.
-3. Deploy through Vercel.
-4. Test /tax-center and /admin/tax.
-
-The v3.3 Tax Center migration must already be installed.
+This matches the existing Supabase function signature:
+respond_to_loan_counteroffer(bigint, boolean)
