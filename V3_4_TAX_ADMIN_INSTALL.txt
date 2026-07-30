@@ -1,0 +1,20 @@
+SECUREDLANDING v3.4 — TAX ADMINISTRATION
+
+1. Upload all project files to your repository.
+2. In Supabase SQL Editor, run:
+   supabase/migrations/20260730_v3_4_tax_admin.sql
+3. Confirm the existing v3.3 Tax Center migration has already been run.
+4. Deploy through Vercel.
+5. Sign in as an administrator and open /admin/tax.
+
+The Tax Reporting Center can now:
+- Upload PDF forms to the private tax-documents bucket
+- Assign forms to borrowers or investors by user UUID
+- Associate forms with a loan or investment
+- Search and filter issued documents
+- Preview documents through short-lived signed URLs
+- Mark forms Pending, Available, Corrected, or Voided
+- Record lifecycle changes in tax_document_audit
+
+Expected storage path:
+{recipient-user-uuid}/{tax-year}/{generated-file-name}.pdf
