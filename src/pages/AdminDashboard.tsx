@@ -70,6 +70,10 @@ type EditingValues = {
   risk_score: string;
   underwriter_notes: string;
   published_to_marketplace: boolean;
+  apn: string;
+  property_address: string;
+  county: string;
+  state: string;
 };
 
 /** Inline video player with approve/reject controls for admin */
@@ -198,6 +202,10 @@ export default function AdminDashboard() {
         risk_score: loan.risk_score || "Pending",
         underwriter_notes: loan.underwriter_notes || "",
         published_to_marketplace: Boolean(loan.published_to_marketplace),
+        apn: loan.apn || "",
+        property_address: loan.property_address || "",
+        county: loan.county || "",
+        state: loan.state || "",
       };
     });
     setEditing(nextEditing);
@@ -344,6 +352,10 @@ export default function AdminDashboard() {
           risk_score: values.risk_score,
           underwriter_notes: values.underwriter_notes,
           published_to_marketplace: values.published_to_marketplace,
+          apn: values.apn.trim() || null,
+          property_address: values.property_address.trim() || null,
+          county: values.county.trim() || null,
+          state: values.state.trim() || null,
         })
         .eq("id", id);
 
@@ -358,8 +370,8 @@ export default function AdminDashboard() {
               loan_number: loan.loan_number,
               business_name: loan.business_name || "Land-backed loan",
               borrower_name: loan.full_name || "",
-              apn: loan.apn || "",
-              state: loan.state || "",
+              apn: values.apn.trim() || loan.apn || "",
+              state: values.state.trim() || loan.state || "",
               acreage: Number(loan.acreage || 0),
               land_value: Number(loan.land_value || 0),
               loan_amount: loanAmount,
@@ -513,11 +525,19 @@ export default function AdminDashboard() {
       if (!loan) throw new Error("Loan application was not found.");
 
       if (status === "Approved") {
+        const currentValues = editing[id];
+        const apn = String(currentValues?.apn ?? loan.apn ?? "").trim();
+        const propertyAddress = String(
+          currentValues?.property_address ?? loan.property_address ?? "",
+        ).trim();
+        const county = String(currentValues?.county ?? loan.county ?? "").trim();
+        const state = String(currentValues?.state ?? loan.state ?? "").trim();
+        const hasParcelNumber = apn.length > 0;
+        const hasCompleteAddress =
+          propertyAddress.length > 0 && county.length > 0 && state.length > 0;
+
         const missingRequired = [
-          !loan.property_address && "Property address",
-          !loan.county && "County",
-          !loan.state && "State",
-          !loan.apn && "APN",
+          !hasParcelNumber && !hasCompleteAddress && "APN or complete property address",
           !loan.acreage && "Acreage",
           !loan.land_value && "Land value",
         ].filter(Boolean) as string[];
@@ -575,8 +595,8 @@ export default function AdminDashboard() {
               loan_number: loan.loan_number,
               business_name: loan.business_name || "Land-backed loan",
               borrower_name: loan.full_name || "",
-              apn: loan.apn || "",
-              state: loan.state || "",
+              apn: values.apn.trim() || loan.apn || "",
+              state: values.state.trim() || loan.state || "",
               acreage: Number(loan.acreage || 0),
               land_value: Number(loan.land_value || 0),
               loan_amount: loanAmount,
@@ -903,6 +923,77 @@ export default function AdminDashboard() {
                         <p className="text-sm text-slate-300">Loan-to-value</p>
                         <p className="mt-2 text-4xl font-black">{ltv.toFixed(2)}%</p>
                         <p className="mt-3 text-sm text-slate-300">Land value {money(landValue)} · Request {money(loanAmount)}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h3 className="font-black text-slate-950">Property identification</h3>
+                          <p className="mt-1 text-sm text-slate-600">
+                            Admins may correct the property details manually. A parcel number (APN) is sufficient for approval; otherwise enter the full address, county, and state.
+                          </p>
+                        </div>
+                        <span className={`rounded-full px-3 py-1 text-xs font-black ${
+                          String(values?.apn || "").trim() ||
+                          (String(values?.property_address || "").trim() &&
+                            String(values?.county || "").trim() &&
+                            String(values?.state || "").trim())
+                            ? "bg-emerald-600 text-white"
+                            : "bg-amber-200 text-amber-900"
+                        }`}>
+                          {String(values?.apn || "").trim()
+                            ? "APN verified"
+                            : String(values?.property_address || "").trim() &&
+                                String(values?.county || "").trim() &&
+                                String(values?.state || "").trim()
+                              ? "Address complete"
+                              : "Property ID incomplete"}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 grid gap-4 md:grid-cols-2">
+                        <label className="text-sm font-bold text-slate-700">
+                          Parcel number (APN)
+                          <input
+                            type="text"
+                            value={values?.apn ?? ""}
+                            onChange={(event) => updateEdit(loan.id, "apn", event.target.value)}
+                            placeholder="Enter parcel number"
+                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                          />
+                        </label>
+                        <label className="text-sm font-bold text-slate-700">
+                          Property address
+                          <input
+                            type="text"
+                            value={values?.property_address ?? ""}
+                            onChange={(event) => updateEdit(loan.id, "property_address", event.target.value)}
+                            placeholder="Street or legal property address"
+                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                          />
+                        </label>
+                        <label className="text-sm font-bold text-slate-700">
+                          County
+                          <input
+                            type="text"
+                            value={values?.county ?? ""}
+                            onChange={(event) => updateEdit(loan.id, "county", event.target.value)}
+                            placeholder="County"
+                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                          />
+                        </label>
+                        <label className="text-sm font-bold text-slate-700">
+                          State
+                          <input
+                            type="text"
+                            value={values?.state ?? ""}
+                            onChange={(event) => updateEdit(loan.id, "state", event.target.value.toUpperCase())}
+                            placeholder="CA"
+                            maxLength={20}
+                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                          />
+                        </label>
                       </div>
                     </div>
 
