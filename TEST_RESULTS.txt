@@ -1,16 +1,27 @@
-SecuredLanding Admin Property Identification Fix
+SecuredLanding Admin Dashboard Property Editing
 
-Build test:
+Files included:
+- src/pages/AdminDashboard.tsx
+- supabase/migrations/20260730_admin_property_fields.sql
+
+Implemented:
+- Admin can manually edit APN, property address, city, county, state, and ZIP code.
+- Added Save Property Information button.
+- Approval proceeds when an APN is present.
+- Without an APN, approval requires property address, county, and state.
+- Property edits are saved to loan_applications.
+- Edited APN and state are used when publishing to marketplace_loans.
+- Added city and zip_code columns safely with IF NOT EXISTS.
+
+Test performed:
 npm run build
 
 Result:
 PASS
 
-Implemented:
-- Admin can manually edit APN, property address, county, and state.
-- Property edits save to loan_applications.
-- Marketplace publishing uses the edited APN and state.
-- Approval accepts either:
-  1. A parcel number (APN), or
-  2. A complete property address, county, and state.
-- Approval is no longer blocked for a missing street address when an APN is present.
+Vite result:
+142 modules transformed.
+Production build completed successfully.
+
+Non-blocking warning:
+The generated JavaScript chunk is larger than 500 kB. This did not fail the build.
