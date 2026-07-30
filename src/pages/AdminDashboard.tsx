@@ -40,6 +40,8 @@ type LoanApplication = {
   borrower_video_path?: string | null;
   borrower_video_status?: string | null;
   county?: string | null;
+  city?: string | null;
+  zip_code?: string | null;
   requested_loan_amount?: number | null;
   approved_loan_amount?: number | null;
   counteroffer_status?: string | null;
@@ -72,8 +74,10 @@ type EditingValues = {
   published_to_marketplace: boolean;
   apn: string;
   property_address: string;
+  city: string;
   county: string;
   state: string;
+  zip_code: string;
 };
 
 /** Inline video player with approve/reject controls for admin */
@@ -204,8 +208,10 @@ export default function AdminDashboard() {
         published_to_marketplace: Boolean(loan.published_to_marketplace),
         apn: loan.apn || "",
         property_address: loan.property_address || "",
+        city: loan.city || "",
         county: loan.county || "",
         state: loan.state || "",
+        zip_code: loan.zip_code || "",
       };
     });
     setEditing(nextEditing);
@@ -311,6 +317,50 @@ export default function AdminDashboard() {
     );
   }
 
+  async function savePropertyInformation(id: string) {
+    if (!supabase) return;
+    setMessage("");
+    setErrorMessage("");
+
+    const loan = applications.find((item) => item.id === id);
+    const values = editing[id];
+    if (!loan || !values) {
+      setErrorMessage("Loan application data was not found.");
+      return;
+    }
+
+    const propertyPayload = {
+      apn: values.apn.trim() || null,
+      property_address: values.property_address.trim() || null,
+      city: values.city.trim() || null,
+      county: values.county.trim() || null,
+      state: values.state.trim().toUpperCase() || null,
+      zip_code: values.zip_code.trim() || null,
+    };
+
+    setSavingId(id);
+    try {
+      const { error } = await supabase
+        .from("loan_applications")
+        .update(propertyPayload)
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setApplications((current) =>
+        current.map((item) =>
+          item.id === id ? { ...item, ...propertyPayload } : item,
+        ),
+      );
+      setMessage(`Property information for loan #${loan.loan_number ?? id} was saved successfully.`);
+      await loadApplications(true);
+    } catch (error: any) {
+      setErrorMessage(error?.message || "Unable to save property information.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   async function saveLoanTerms(id: string) {
     if (!supabase) return;
     setMessage("");
@@ -354,8 +404,10 @@ export default function AdminDashboard() {
           published_to_marketplace: values.published_to_marketplace,
           apn: values.apn.trim() || null,
           property_address: values.property_address.trim() || null,
+          city: values.city.trim() || null,
           county: values.county.trim() || null,
-          state: values.state.trim() || null,
+          state: values.state.trim().toUpperCase() || null,
+          zip_code: values.zip_code.trim() || null,
         })
         .eq("id", id);
 
@@ -370,8 +422,8 @@ export default function AdminDashboard() {
               loan_number: loan.loan_number,
               business_name: loan.business_name || "Land-backed loan",
               borrower_name: loan.full_name || "",
-              apn: values.apn.trim() || loan.apn || "",
-              state: values.state.trim() || loan.state || "",
+              apn: values.apn.trim(),
+              state: values.state.trim().toUpperCase(),
               acreage: Number(loan.acreage || 0),
               land_value: Number(loan.land_value || 0),
               loan_amount: loanAmount,
@@ -525,19 +577,17 @@ export default function AdminDashboard() {
       if (!loan) throw new Error("Loan application was not found.");
 
       if (status === "Approved") {
-        const currentValues = editing[id];
-        const apn = String(currentValues?.apn ?? loan.apn ?? "").trim();
-        const propertyAddress = String(
-          currentValues?.property_address ?? loan.property_address ?? "",
-        ).trim();
-        const county = String(currentValues?.county ?? loan.county ?? "").trim();
-        const state = String(currentValues?.state ?? loan.state ?? "").trim();
+        const values = editing[id];
+        const apn = String(values?.apn ?? loan.apn ?? "").trim();
+        const propertyAddress = String(values?.property_address ?? loan.property_address ?? "").trim();
+        const county = String(values?.county ?? loan.county ?? "").trim();
+        const state = String(values?.state ?? loan.state ?? "").trim();
         const hasParcelNumber = apn.length > 0;
         const hasCompleteAddress =
           propertyAddress.length > 0 && county.length > 0 && state.length > 0;
 
         const missingRequired = [
-          !hasParcelNumber && !hasCompleteAddress && "APN or complete property address",
+          !hasParcelNumber && !hasCompleteAddress && "Parcel number (APN) or complete property address, county, and state",
           !loan.acreage && "Acreage",
           !loan.land_value && "Land value",
         ].filter(Boolean) as string[];
@@ -595,8 +645,8 @@ export default function AdminDashboard() {
               loan_number: loan.loan_number,
               business_name: loan.business_name || "Land-backed loan",
               borrower_name: loan.full_name || "",
-              apn: values.apn.trim() || loan.apn || "",
-              state: values.state.trim() || loan.state || "",
+              apn: values.apn.trim(),
+              state: values.state.trim().toUpperCase(),
               acreage: Number(loan.acreage || 0),
               land_value: Number(loan.land_value || 0),
               loan_amount: loanAmount,
@@ -915,7 +965,10 @@ export default function AdminDashboard() {
                         <div className="mt-3 space-y-2 text-sm text-slate-700">
                           <p><strong>APN:</strong> {loan.apn || "Not provided"}</p>
                           <p><strong>Address:</strong> {loan.property_address || "Not provided"}</p>
+                          <p><strong>City:</strong> {loan.city || "Not provided"}</p>
+                          <p><strong>County:</strong> {loan.county || "Not provided"}</p>
                           <p><strong>State:</strong> {loan.state || "Not provided"}</p>
+                          <p><strong>ZIP:</strong> {loan.zip_code || "Not provided"}</p>
                           <p><strong>Acres:</strong> {loan.acreage ?? "Not provided"}</p>
                         </div>
                       </div>
@@ -923,77 +976,6 @@ export default function AdminDashboard() {
                         <p className="text-sm text-slate-300">Loan-to-value</p>
                         <p className="mt-2 text-4xl font-black">{ltv.toFixed(2)}%</p>
                         <p className="mt-3 text-sm text-slate-300">Land value {money(landValue)} · Request {money(loanAmount)}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <h3 className="font-black text-slate-950">Property identification</h3>
-                          <p className="mt-1 text-sm text-slate-600">
-                            Admins may correct the property details manually. A parcel number (APN) is sufficient for approval; otherwise enter the full address, county, and state.
-                          </p>
-                        </div>
-                        <span className={`rounded-full px-3 py-1 text-xs font-black ${
-                          String(values?.apn || "").trim() ||
-                          (String(values?.property_address || "").trim() &&
-                            String(values?.county || "").trim() &&
-                            String(values?.state || "").trim())
-                            ? "bg-emerald-600 text-white"
-                            : "bg-amber-200 text-amber-900"
-                        }`}>
-                          {String(values?.apn || "").trim()
-                            ? "APN verified"
-                            : String(values?.property_address || "").trim() &&
-                                String(values?.county || "").trim() &&
-                                String(values?.state || "").trim()
-                              ? "Address complete"
-                              : "Property ID incomplete"}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 grid gap-4 md:grid-cols-2">
-                        <label className="text-sm font-bold text-slate-700">
-                          Parcel number (APN)
-                          <input
-                            type="text"
-                            value={values?.apn ?? ""}
-                            onChange={(event) => updateEdit(loan.id, "apn", event.target.value)}
-                            placeholder="Enter parcel number"
-                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                          />
-                        </label>
-                        <label className="text-sm font-bold text-slate-700">
-                          Property address
-                          <input
-                            type="text"
-                            value={values?.property_address ?? ""}
-                            onChange={(event) => updateEdit(loan.id, "property_address", event.target.value)}
-                            placeholder="Street or legal property address"
-                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                          />
-                        </label>
-                        <label className="text-sm font-bold text-slate-700">
-                          County
-                          <input
-                            type="text"
-                            value={values?.county ?? ""}
-                            onChange={(event) => updateEdit(loan.id, "county", event.target.value)}
-                            placeholder="County"
-                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                          />
-                        </label>
-                        <label className="text-sm font-bold text-slate-700">
-                          State
-                          <input
-                            type="text"
-                            value={values?.state ?? ""}
-                            onChange={(event) => updateEdit(loan.id, "state", event.target.value.toUpperCase())}
-                            placeholder="CA"
-                            maxLength={20}
-                            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                          />
-                        </label>
                       </div>
                     </div>
 
@@ -1010,6 +992,43 @@ export default function AdminDashboard() {
                           <p className="mt-2 font-black text-slate-950">{value}</p>
                         </div>
                       ))}
+                    </div>
+
+                    <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <h3 className="font-black text-slate-950">Property identification</h3>
+                          <p className="mt-1 text-sm text-slate-600">An APN alone is sufficient for approval. Without an APN, enter the property address, county, and state.</p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={isSaving}
+                          onClick={() => void savePropertyInformation(loan.id)}
+                          className="rounded-xl bg-blue-700 px-4 py-3 text-sm font-black text-white disabled:opacity-50"
+                        >
+                          {isSaving ? "Saving…" : "Save Property Information"}
+                        </button>
+                      </div>
+                      <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <label className="text-sm font-bold text-slate-700">Parcel number (APN)
+                          <input value={values?.apn ?? ""} onChange={(event) => updateEdit(loan.id, "apn", event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100" />
+                        </label>
+                        <label className="text-sm font-bold text-slate-700 lg:col-span-2">Property address
+                          <input value={values?.property_address ?? ""} onChange={(event) => updateEdit(loan.id, "property_address", event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100" />
+                        </label>
+                        <label className="text-sm font-bold text-slate-700">City
+                          <input value={values?.city ?? ""} onChange={(event) => updateEdit(loan.id, "city", event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100" />
+                        </label>
+                        <label className="text-sm font-bold text-slate-700">County
+                          <input value={values?.county ?? ""} onChange={(event) => updateEdit(loan.id, "county", event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100" />
+                        </label>
+                        <label className="text-sm font-bold text-slate-700">State
+                          <input maxLength={2} value={values?.state ?? ""} onChange={(event) => updateEdit(loan.id, "state", event.target.value.toUpperCase())} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 uppercase outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100" />
+                        </label>
+                        <label className="text-sm font-bold text-slate-700">ZIP code
+                          <input inputMode="numeric" value={values?.zip_code ?? ""} onChange={(event) => updateEdit(loan.id, "zip_code", event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100" />
+                        </label>
+                      </div>
                     </div>
 
                     <div className="mt-6 grid gap-4 md:grid-cols-3">
