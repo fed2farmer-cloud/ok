@@ -1,18 +1,7 @@
-TypeScript validation
-
-Command:
-tsc -p /mnt/data/borrower_offer_typecheck/tsconfig.json
-
-Exit code: 0
+TypeScript validation exit code: 0
 
 STDOUT:
 (none)
 
 STDERR:
 (none)
-
-Validation scope:
-- JSX/TypeScript syntax
-- default export compatibility
-- App.tsx import compatibility
-- corrected two-parameter Supabase RPC call
