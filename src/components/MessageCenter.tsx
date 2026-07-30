@@ -262,8 +262,6 @@ export default function MessageCenter() {
       const { error } = await supabase.rpc("respond_to_loan_counteroffer", {
         p_counteroffer_id: Number(counteroffer.id),
         p_accept: accepted,
-        p_user_agent: navigator.userAgent,
-        p_agreement_version: "counteroffer-v1.0",
       });
 
       if (error) throw error;
