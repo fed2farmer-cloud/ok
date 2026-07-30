@@ -18,9 +18,9 @@ import LoanForms from "./pages/LoanForms";
 import ClosingCenter from "./pages/ClosingCenter";
 import FundingCampaign from "./pages/FundingCampaign";
 import BorrowerDocumentSignature from "./pages/BorrowerDocumentSignature";
-import BorrowerOffer from "./pages/BorrowerOffer";
 import TaxCenter from "./pages/TaxCenter";
 import AdminTaxDashboard from "./pages/AdminTaxDashboard";
+import AdminFinancialLedger from "./pages/AdminFinancialLedger";
 
 import LoanDocuments from "./LoanDocuments";
 import InvestorWallet from "./InvestorWallet";
@@ -47,20 +47,7 @@ export default function App() {
         <Route path="/loan-forms" element={<LoanForms />} />
         <Route path="/closing-center" element={<ClosingCenter />} />
         <Route path="/funding-campaign" element={<FundingCampaign />} />
-        <Route
-          path="/sign-document/:requestId"
-          element={<BorrowerDocumentSignature />}
-        />
-
-        <Route
-          path="/borrower-offer/:counterofferId"
-          element={<BorrowerOffer />}
-        />
-        <Route
-          path="/counteroffer/:counterofferId"
-          element={<BorrowerOffer />}
-        />
-        <Route path="/loan-offer/:id" element={<BorrowerOffer />} />
+        <Route path="/sign-document/:requestId" element={<BorrowerDocumentSignature />} />
 
         <Route path="/marketplace" element={<InvestorMarketplace />} />
         <Route path="/investor-wallet" element={<InvestorWallet />} />
@@ -72,7 +59,9 @@ export default function App() {
         <Route path="/kyc" element={<KYCPage />} />
         <Route path="/tax-center" element={<TaxCenter />} />
         <Route path="/admin/tax" element={<AdminTaxDashboard />} />
+        <Route path="/admin/ledger" element={<AdminFinancialLedger />} />
 
+        {/* Showcase / marketing pages */}
         <Route path="/lords-farms" element={<LordFarmsDeal />} />
         <Route path="/invest" element={<Invest />} />
         <Route path="/investment-details" element={<InvestmentDetails />} />
