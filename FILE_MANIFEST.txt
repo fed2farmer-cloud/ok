@@ -1,9 +1,15 @@
-MODIFIED
-src/components/MessageCenter.tsx
+SECUREDLANDING v3.4.1 TAX ADMIN PATCH
 
-NEW
-supabase/migrations/20260729_counteroffer_production_ready.sql
-INSTALL.txt
-FILE_MANIFEST.txt
-TEST_CHECKLIST.md
-CHANGELOG.md
+MODIFIED FILES
+- src/App.tsx
+- src/components/AppLayout.tsx
+
+NEW OR REPLACEMENT FILES
+- src/pages/TaxCenter.tsx
+- src/pages/AdminTaxDashboard.tsx
+- supabase/migrations/20260730_v3_4_tax_admin.sql
+
+DOCUMENTATION
+- INSTALL.txt
+- FILE_MANIFEST.txt
+- TEST_CHECKLIST.md

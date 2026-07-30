@@ -1,10 +1,12 @@
-# Test checklist
+# SecuredLanding v3.4.1 Test Checklist
 
-- Pending offer shows Accept and Decline buttons.
-- Accept changes offer to accepted and hides both buttons.
-- Decline changes offer to declined and hides both buttons.
-- A permanent accepted/declined status and timestamp remain visible.
-- A response message appears in the conversation.
-- `counteroffer_acceptance_audit` contains exactly one record for the offer.
-- Loan amount and remaining amount update only when accepted.
-- Marketplace publication remains disabled until admin approval.
+- Run the SQL migration without errors.
+- Confirm `/tax-center` opens for an authenticated borrower or investor.
+- Confirm `/admin/tax` redirects non-admin users.
+- Confirm an admin can upload a PDF to the private `tax-documents` bucket.
+- Confirm an admin can assign the document to a borrower or investor UUID.
+- Confirm an available document appears in the recipient Tax Center.
+- Confirm the recipient can download the PDF through a signed link.
+- Confirm another user cannot access that PDF.
+- Confirm `tax_document_audit` records creation and status changes.
+- Run `npm run build` successfully.

@@ -1,10 +1,17 @@
-SECUREDLANDING V3.2 — COUNTEROFFER PRODUCTION-READY PATCH
+SECUREDLANDING v3.4.1 TAX ADMIN PATCH
 
-1. Copy src/components/MessageCenter.tsx into your project.
-2. Run supabase/migrations/20260729_counteroffer_production_ready.sql in Supabase SQL Editor.
-3. Deploy the project.
-4. Sign in as a borrower and test Accept and Decline.
+Copy these files into the matching locations in your project:
 
-Important:
-- The SQL records a timestamp, authenticated borrower ID, agreement version, and browser user-agent.
-- It does not claim to capture a reliable client IP address. Capture IP through a trusted server/Edge Function if legally required.
+src/App.tsx
+src/components/AppLayout.tsx
+src/pages/TaxCenter.tsx
+src/pages/AdminTaxDashboard.tsx
+supabase/migrations/20260730_v3_4_tax_admin.sql
+
+Then:
+1. Run 20260730_v3_4_tax_admin.sql in Supabase SQL Editor.
+2. Commit and push the source files to GitHub.
+3. Deploy through Vercel.
+4. Test /tax-center and /admin/tax.
+
+The v3.3 Tax Center migration must already be installed.
