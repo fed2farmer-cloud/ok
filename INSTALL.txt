@@ -1,12 +1,20 @@
-SecuredLanding Borrower Counteroffer Fix
+SecuredLanding Admin Approval Fix
+================================
 
 Replace:
-- src/App.tsx
-- src/pages/BorrowerOffer.tsx
+  src/pages/AdminDashboard.tsx
 
-The BorrowerOffer RPC call sends only:
-- p_counteroffer_id
-- p_accept
+with the AdminDashboard.tsx included in this ZIP.
 
-This matches the existing Supabase function signature:
-respond_to_loan_counteroffer(bigint, boolean)
+Fixes:
+1. Accepted revised offers no longer remain blocked by stale
+   revision_status='pending_borrower' or
+   counteroffer_status='pending_borrower_acceptance' values.
+2. Approval is blocked only when the application's primary status is
+   actually 'Revision Requested' or 'Counteroffer Pending'.
+3. Existing 50% LTV and required-property checks remain intact.
+4. Property-information saves now verify that Supabase actually updated
+   the loan row. If RLS/policies prevent the update, the dashboard shows
+   a useful error instead of reporting a false success.
+
+No SQL migration is required for this patch.
