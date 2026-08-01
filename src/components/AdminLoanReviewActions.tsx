@@ -357,9 +357,15 @@ export default function AdminLoanReviewActions({
       const { error: messageError } = await supabase
         .from("messages")
         .insert({
+          // Keep both legacy and current participant columns populated.
+          // The production messages table requires sender_user_id/recipient_user_id.
+          sender_user_id: user.id,
+          recipient_user_id: loan.user_id,
           sender_id: user.id,
           recipient_id: loan.user_id,
           sender_role: "admin",
+          message_type: "counteroffer",
+          subject: `Revised loan offer - Loan #${loan.loan_number ?? loan.id}`,
           loan_application_id: Number(loan.id),
           body: messageBody,
           read: false,
