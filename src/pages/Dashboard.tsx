@@ -168,21 +168,37 @@ export default function Dashboard() {
     loadDashboard();
   }, [loadDashboard]);
 
-  // Supabase Realtime: live funding sync
+  // Supabase Realtime: keep funding and counteroffer state synchronized.
   useEffect(() => {
     if (!supabase) return;
     let cleanup: (() => void) | undefined;
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user || !supabase) return;
       const ch = supabase
-        .channel("borrower-marketplace-rt")
+        .channel(`borrower-dashboard-rt:${user.id}`)
         .on("postgres_changes", { event: "*", schema: "public", table: "marketplace_loans" }, () => {
-          loadDashboard(true);
+          void loadDashboard(true);
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "loan_counteroffers", filter: `borrower_user_id=eq.${user.id}` }, () => {
+          void loadDashboard(true);
         })
         .subscribe();
-      cleanup = () => { supabase?.removeChannel(ch); };
+      cleanup = () => { void supabase?.removeChannel(ch); };
     });
     return () => cleanup?.();
+  }, [loadDashboard]);
+
+  // Refresh after returning from Messages or resuming the browser.
+  useEffect(() => {
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") void loadDashboard(true);
+    };
+    window.addEventListener("focus", refreshIfVisible);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    return () => {
+      window.removeEventListener("focus", refreshIfVisible);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
+    };
   }, [loadDashboard]);
 
   function money(value: unknown) {
@@ -248,6 +264,20 @@ export default function Dashboard() {
     return "bg-amber-100 text-amber-700";
   }
 
+  // Only the newest counteroffer for each loan can require action. An older
+  // pending row must not resurrect the banner after a newer offer was answered.
+  const pendingCounteroffers = useMemo(() => {
+    const latestByLoan = new Map<string, Counteroffer>();
+    for (const offer of counteroffers) {
+      const loanId = String(offer.loan_application_id ?? "");
+      if (!loanId || latestByLoan.has(loanId)) continue;
+      latestByLoan.set(loanId, offer);
+    }
+    return Array.from(latestByLoan.values()).filter(
+      (offer) => String(offer.status || "").toLowerCase() === "pending",
+    );
+  }, [counteroffers]);
+
   const totalRequested = useMemo(() => applications.reduce((s, a) => s + Number(a.loan_amount || 0), 0), [applications]);
   const totalFunded = useMemo(() => marketplaceLoans.reduce((s, l) => s + Number(l.amount_funded || 0), 0), [marketplaceLoans]);
 
@@ -285,7 +315,7 @@ export default function Dashboard() {
         </section>
 
 
-        {counteroffers.some((offer) => String(offer.status || "").toLowerCase() === "pending") && (
+        {pendingCounteroffers.length > 0 && (
           <section className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
@@ -296,7 +326,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => {
-                  const first = counteroffers.find((offer) => String(offer.status || "").toLowerCase() === "pending");
+                  const first = pendingCounteroffers[0];
                   window.location.href = first ? `/messages?loanId=${encodeURIComponent(String(first.loan_application_id))}` : "/messages";
                 }}
                 className="rounded-xl bg-amber-500 px-5 py-3 text-sm font-black text-slate-950 hover:bg-amber-400"
