@@ -1,20 +1,22 @@
-SecuredLanding Admin Approval Fix
-================================
+SecuredLanding Approval / Generated Document Status Fix
+=======================================================
 
-Replace:
-  src/pages/AdminDashboard.tsx
+1. Replace:
+   src/pages/AdminDashboard.tsx
 
-with the AdminDashboard.tsx included in this ZIP.
+2. Commit and redeploy.
 
-Fixes:
-1. Accepted revised offers no longer remain blocked by stale
-   revision_status='pending_borrower' or
-   counteroffer_status='pending_borrower_acceptance' values.
-2. Approval is blocked only when the application's primary status is
-   actually 'Revision Requested' or 'Counteroffer Pending'.
-3. Existing 50% LTV and required-property checks remain intact.
-4. Property-information saves now verify that Supabase actually updated
-   the loan row. If RLS/policies prevent the update, the dashboard shows
-   a useful error instead of reporting a false success.
+This package builds on the previous accepted-revised-offer approval fix.
 
-No SQL migration is required for this patch.
+Changes:
+- Approval-created generated loan documents use `pending` instead of
+  `ready_for_review`, because the production database rejected
+  `ready_for_review` under generated_loan_documents_status_check.
+- The stale revised-offer heading no longer says
+  "Administrator response required"; it displays "Revised offer accepted".
+- Previous stale revision-status approval fix is retained.
+- Previous property-save verification is retained.
+
+If the database still rejects `pending`, run DIAGNOSTIC.sql in Supabase and
+send the result. That will show the exact status values permitted by the
+production CHECK constraint so the app can be matched exactly.
