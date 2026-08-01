@@ -19,85 +19,40 @@ export default function PaymentForm() {
       return false;
     }
 
-    if (!loanId.trim()) {
-      alert("No loan selected.");
+    const publicLoanNumber = Number(loanId);
+    const totalAmount = Number(params.get("totalAmount") || cleanAmount);
+    const walletAmount = Number(params.get("walletAmount") || 0);
+
+    if (!Number.isSafeInteger(publicLoanNumber) || publicLoanNumber <= 0) {
+      alert("No valid loan selected.");
       return false;
     }
-
-    if (Number(cleanAmount) < 100) {
+    if (!Number.isFinite(totalAmount) || totalAmount < 100) {
       alert("Minimum investment is $100.");
       return false;
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       alert("Please log in first.");
       return false;
     }
 
-    const { error: investError } = await supabase.from("investments").insert({
-      investor_id: user.id,
-      loan_id: loanId,
-      amount: Number(cleanAmount),
-      investor_interest_rate: 9,
-      borrower_interest_rate: 10,
-      company_spread_rate: 1,
-      term_months: 36,
-      status: "active",
+    // One database transaction resolves the public loan number to the canonical
+    // application, records the TOTAL investment, consumes any split-wallet cash
+    // (even a remainder below $100), and refreshes marketplace funding totals.
+    const { error } = await supabase.rpc("finalize_external_investment_v1", {
+      p_loan_number: publicLoanNumber,
+      p_total_amount: totalAmount,
+      p_wallet_amount: Math.max(walletAmount, 0),
     });
 
-    if (investError) {
-      alert("Investment save failed: " + investError.message);
+    if (error) {
+      alert("Payment worked, but investment finalization failed: " + error.message);
       return false;
     }
 
-    const { data: marketplaceLoan, error: loanFetchError } = await supabase
-      .from("marketplace_loans")
-      .select("*")
-      .eq("loan_application_id", loanId)
-      .single();
-
-    if (loanFetchError || !marketplaceLoan) {
-      alert("Investment saved, but marketplace loan was not found.");
-      return true;
-    }
-
-    const newFunded =
-      Number(marketplaceLoan.amount_funded || 0) + Number(cleanAmount);
-
-    const fundingGoal = Number(
-      marketplaceLoan.funding_goal || marketplaceLoan.loan_amount || 0
-    );
-
-    const newRemaining = Math.max(fundingGoal - newFunded, 0);
-    const newStatus = newRemaining <= 0 ? "Funded" : "Open";
-
-    const { error: updateMarketError } = await supabase
-      .from("marketplace_loans")
-      .update({
-        amount_funded: newFunded,
-        amount_remaining: newRemaining,
-        status: newStatus,
-      })
-      .eq("loan_application_id", loanId);
-
-    if (updateMarketError) {
-      alert("Investment saved, but marketplace update failed.");
-      return true;
-    }
-
-    await supabase
-      .from("loan_applications")
-      .update({
-        amount_funded: newFunded,
-        amount_remaining: newRemaining,
-        status: newStatus === "Funded" ? "Funded" : "Approved",
-      })
-      .eq("id", loanId);
-
+    window.sessionStorage.removeItem("securedlanding_pending_split_investment");
     return true;
   }
 
