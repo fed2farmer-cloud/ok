@@ -317,6 +317,29 @@ export default function AdminDashboard() {
     );
   }
 
+  async function updateLoanApplicationCompatible(id: string, payload: Record<string, unknown>) {
+    if (!supabase) throw new Error("Supabase is not configured.");
+    const remaining = { ...payload };
+
+    // Older production schemas may not have newer optional location columns yet.
+    // Retry without only the column Supabase explicitly reports as missing.
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const { error } = await supabase.from("loan_applications").update(remaining).eq("id", id);
+      if (!error) return remaining;
+
+      const message = String(error.message || "");
+      const match = message.match(/Could not find the ['"]([^'"]+)['"] column/i);
+      const missingColumn = match?.[1];
+      if (missingColumn && Object.prototype.hasOwnProperty.call(remaining, missingColumn)) {
+        delete remaining[missingColumn];
+        continue;
+      }
+      throw error;
+    }
+
+    throw new Error("Unable to save property information with the current database schema.");
+  }
+
   async function savePropertyInformation(id: string) {
     if (!supabase) return;
     setMessage("");
@@ -340,16 +363,11 @@ export default function AdminDashboard() {
 
     setSavingId(id);
     try {
-      const { error } = await supabase
-        .from("loan_applications")
-        .update(propertyPayload)
-        .eq("id", id);
-
-      if (error) throw error;
+      const savedPayload = await updateLoanApplicationCompatible(id, propertyPayload);
 
       setApplications((current) =>
         current.map((item) =>
-          item.id === id ? { ...item, ...propertyPayload } : item,
+          item.id === id ? { ...item, ...savedPayload } : item,
         ),
       );
       setMessage(`Property information for loan #${loan.loan_number ?? id} was saved successfully.`);
@@ -521,9 +539,9 @@ export default function AdminDashboard() {
       borrower_user_id: loan.user_id,
       document_type,
       title,
-      status: "ready_for_signature",
+      status: "ready_for_review",
       signature_required: true,
-      signature_status: "ready_for_signature",
+      signature_status: "pending",
       terms_snapshot: {
         loan_number: loan.loan_number ?? Number(loan.id),
         borrower_name: loan.full_name || "",
@@ -623,15 +641,24 @@ export default function AdminDashboard() {
         payload.published_to_marketplace = true;
       }
 
-      const { error: applicationError } = await supabase
-        .from("loan_applications")
-        .update(payload)
-        .eq("id", id);
-      if (applicationError) throw applicationError;
-
       if (status === "Approved") {
-        await createClosingCenter({ ...loan, status });
+        const values = editing[id];
+        const approvalLoan = {
+          ...loan,
+          status,
+          apn: String(values?.apn ?? loan.apn ?? "").trim() || null,
+          property_address: String(values?.property_address ?? loan.property_address ?? "").trim() || null,
+          city: String(values?.city ?? loan.city ?? "").trim() || null,
+          county: String(values?.county ?? loan.county ?? "").trim() || null,
+          state: String(values?.state ?? loan.state ?? "").trim().toUpperCase() || null,
+          zip_code: String(values?.zip_code ?? loan.zip_code ?? "").trim() || null,
+        };
+        // Build the closing center first. If a downstream table rejects a value,
+        // the loan is not falsely left marked Approved.
+        await createClosingCenter(approvalLoan);
       }
+
+      await updateLoanApplicationCompatible(id, payload);
 
       if (status === "Funded") {
         const values = editing[id];
