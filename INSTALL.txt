@@ -1,22 +1,38 @@
-SecuredLanding Approval / Generated Document Status Fix
-=======================================================
+SECUREDLANDING MARKETPLACE LOAN LOOKUP FIX
+Date: 2026-08-01
 
-1. Replace:
-   src/pages/AdminDashboard.tsx
+Problem fixed:
+"Investment saved, but marketplace loan was not found."
 
-2. Commit and redeploy.
+ROOT CAUSE
+marketplace_loans.id is a UUID and loan_application_id is the canonical internal
+application ID, while some payment routes are passing the visible six-digit
+loan_number (for example 352552 or 480946).
 
-This package builds on the previous accepted-revised-offer approval fix.
+INSTALL
+1. Run sql/marketplace_loan_lookup_fix.sql in the Supabase SQL Editor.
+2. Copy src/lib/marketplaceLoanResolver.ts into your project at:
+   src/lib/marketplaceLoanResolver.ts
+3. In the payment code that currently searches marketplace_loans directly,
+   import:
+     resolveMarketplaceLoan
+     updateMarketplaceFunding
+   from ../lib/marketplaceLoanResolver (adjust relative path as needed).
+4. Resolve the marketplace row BEFORE inserting/saving a new investment.
+5. After successful payment/investment creation, call updateMarketplaceFunding
+   with the same loan reference and amount.
+6. For new navigation from InvestorMarketplace, prefer passing
+   loan.loan_application_id. The resolver remains compatible with six-digit
+   loan_number values.
+7. Deploy.
 
-Changes:
-- Approval-created generated loan documents use `pending` instead of
-  `ready_for_review`, because the production database rejected
-  `ready_for_review` under generated_loan_documents_status_check.
-- The stale revised-offer heading no longer says
-  "Administrator response required"; it displays "Revised offer accepted".
-- Previous stale revision-status approval fix is retained.
-- Previous property-save verification is retained.
+IMPORTANT
+The screenshots show that investments have already been saved while the
+marketplace update failed. Do NOT repeat those failed-looking payments merely
+to test. First reconcile existing investment records and marketplace funding
+totals so the same investment is not counted twice.
 
-If the database still rejects `pending`, run DIAGNOSTIC.sql in Supabase and
-send the result. That will show the exact status values permitted by the
-production CHECK constraint so the app can be matched exactly.
+This patch intentionally does not guess your current investment table schema,
+so it does not overwrite NMIPayment.tsx/BitcoinPayment.tsx with an incompatible
+full page. It fixes the shared identifier resolution safely and repairs missing
+marketplace rows in SQL.
