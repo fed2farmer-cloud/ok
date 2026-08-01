@@ -1,0 +1,24 @@
+SECUREDLANDING v3.6.2 REVISED-LOAN / WALLET SYNC FIX
+
+1. In Supabase SQL Editor run:
+   supabase/migrations/20260801_v3_6_2_revised_loan_wallet_sync.sql
+
+2. Deploy this project to Vercel.
+
+WHAT THIS FIXES
+- Accepted borrower counteroffers become the authoritative loan amount.
+- Marketplace loan_amount and funding_goal synchronize to the accepted amount.
+- Existing amount_funded/amount_remaining are rebuilt from actual investments.
+- Card payments look up loans by the public six-digit loan number correctly.
+- Split Wallet + Card consumes the wallet portion, including a leftover below $100 (example: $35).
+- A split/card investment is recorded once for the TOTAL investment amount.
+- 7-day investor protection fields are preserved.
+
+EXPECTED FOR THE SCREENSHOTS
+- Loan #352552 should synchronize from the original $550,000 request to the accepted $500,000 offer.
+- Loan #480946 should synchronize from the original $570,000 request to the accepted $100,000 offer.
+- Funding totals will be recalculated from investments.
+- On the next split transaction, a $35 wallet remainder can be fully consumed instead of being stranded by the $100 minimum.
+
+IMPORTANT
+This migration does NOT blindly erase $35 from every wallet. It fixes the transaction path so wallet cash is actually consumed and preserves the financial audit trail.
