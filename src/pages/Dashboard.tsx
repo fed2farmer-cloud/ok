@@ -168,37 +168,21 @@ export default function Dashboard() {
     loadDashboard();
   }, [loadDashboard]);
 
-  // Supabase Realtime: keep funding and counteroffer state synchronized.
+  // Supabase Realtime: live funding sync
   useEffect(() => {
     if (!supabase) return;
     let cleanup: (() => void) | undefined;
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user || !supabase) return;
       const ch = supabase
-        .channel(`borrower-dashboard-rt:${user.id}`)
+        .channel("borrower-marketplace-rt")
         .on("postgres_changes", { event: "*", schema: "public", table: "marketplace_loans" }, () => {
-          void loadDashboard(true);
-        })
-        .on("postgres_changes", { event: "*", schema: "public", table: "loan_counteroffers", filter: `borrower_user_id=eq.${user.id}` }, () => {
-          void loadDashboard(true);
+          loadDashboard(true);
         })
         .subscribe();
-      cleanup = () => { void supabase?.removeChannel(ch); };
+      cleanup = () => { supabase?.removeChannel(ch); };
     });
     return () => cleanup?.();
-  }, [loadDashboard]);
-
-  // Refresh after returning from Messages or resuming the browser.
-  useEffect(() => {
-    const refreshIfVisible = () => {
-      if (document.visibilityState === "visible") void loadDashboard(true);
-    };
-    window.addEventListener("focus", refreshIfVisible);
-    document.addEventListener("visibilitychange", refreshIfVisible);
-    return () => {
-      window.removeEventListener("focus", refreshIfVisible);
-      document.removeEventListener("visibilitychange", refreshIfVisible);
-    };
   }, [loadDashboard]);
 
   function money(value: unknown) {
@@ -227,12 +211,33 @@ export default function Dashboard() {
     });
   }
 
+  function isFinalLoanStatus(status?: string | null) {
+    const normalized = String(status || "").trim().toLowerCase();
+    return ["approved", "funded", "active", "completed", "closed", "denied"].includes(normalized);
+  }
+
   function getPendingCounteroffer(application: LoanApplication) {
+    // Once underwriting has moved the loan to a final state, an older/stale
+    // counteroffer row must never keep showing as borrower action required.
+    if (isFinalLoanStatus(application.status)) return undefined;
+
     const applicationId = String(getApplicationId(application));
     return counteroffers.find((offer) =>
       String(offer.loan_application_id) === applicationId &&
-      String(offer.status || "").toLowerCase() === "pending"
+      String(offer.status || "").trim().toLowerCase() === "pending"
     );
+  }
+
+  function getActionableCounteroffers() {
+    const applicationById = new Map(
+      applications.map((application) => [String(getApplicationId(application)), application])
+    );
+
+    return counteroffers.filter((offer) => {
+      if (String(offer.status || "").trim().toLowerCase() !== "pending") return false;
+      const application = applicationById.get(String(offer.loan_application_id));
+      return Boolean(application) && !isFinalLoanStatus(application?.status);
+    });
   }
 
   function openCounterofferMessages(application: LoanApplication) {
@@ -263,20 +268,6 @@ export default function Dashboard() {
     if (["rejected", "denied", "failed"].includes(s)) return "bg-rose-100 text-rose-700";
     return "bg-amber-100 text-amber-700";
   }
-
-  // Only the newest counteroffer for each loan can require action. An older
-  // pending row must not resurrect the banner after a newer offer was answered.
-  const pendingCounteroffers = useMemo(() => {
-    const latestByLoan = new Map<string, Counteroffer>();
-    for (const offer of counteroffers) {
-      const loanId = String(offer.loan_application_id ?? "");
-      if (!loanId || latestByLoan.has(loanId)) continue;
-      latestByLoan.set(loanId, offer);
-    }
-    return Array.from(latestByLoan.values()).filter(
-      (offer) => String(offer.status || "").toLowerCase() === "pending",
-    );
-  }, [counteroffers]);
 
   const totalRequested = useMemo(() => applications.reduce((s, a) => s + Number(a.loan_amount || 0), 0), [applications]);
   const totalFunded = useMemo(() => marketplaceLoans.reduce((s, l) => s + Number(l.amount_funded || 0), 0), [marketplaceLoans]);
@@ -315,7 +306,7 @@ export default function Dashboard() {
         </section>
 
 
-        {pendingCounteroffers.length > 0 && (
+        {getActionableCounteroffers().length > 0 && (
           <section className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
@@ -326,7 +317,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => {
-                  const first = pendingCounteroffers[0];
+                  const first = getActionableCounteroffers()[0];
                   window.location.href = first ? `/messages?loanId=${encodeURIComponent(String(first.loan_application_id))}` : "/messages";
                 }}
                 className="rounded-xl bg-amber-500 px-5 py-3 text-sm font-black text-slate-950 hover:bg-amber-400"
