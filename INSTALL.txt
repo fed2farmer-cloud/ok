@@ -1,38 +1,39 @@
-SECUREDLANDING MARKETPLACE LOAN LOOKUP FIX
-Date: 2026-08-01
+SECURED LANDING v2.8.1 INSTALL
 
-Problem fixed:
-"Investment saved, but marketplace loan was not found."
+1) SUPABASE
+Open SQL Editor and run:
+supabase/migrations/20260801_investor_refund_atomic.sql
 
-ROOT CAUSE
-marketplace_loans.id is a UUID and loan_application_id is the canonical internal
-application ID, while some payment routes are passing the visible six-digit
-loan_number (for example 352552 or 480946).
+Expected result:
+Success. No rows returned.
 
-INSTALL
-1. Run sql/marketplace_loan_lookup_fix.sql in the Supabase SQL Editor.
-2. Copy src/lib/marketplaceLoanResolver.ts into your project at:
-   src/lib/marketplaceLoanResolver.ts
-3. In the payment code that currently searches marketplace_loans directly,
-   import:
-     resolveMarketplaceLoan
-     updateMarketplaceFunding
-   from ../lib/marketplaceLoanResolver (adjust relative path as needed).
-4. Resolve the marketplace row BEFORE inserting/saving a new investment.
-5. After successful payment/investment creation, call updateMarketplaceFunding
-   with the same loan reference and amount.
-6. For new navigation from InvestorMarketplace, prefer passing
-   loan.loan_application_id. The resolver remains compatible with six-digit
-   loan_number values.
-7. Deploy.
+2) FRONT END
+Copy:
+src/pages/InvestorPortfolio.tsx
+into the same path in your project.
 
-IMPORTANT
-The screenshots show that investments have already been saved while the
-marketplace update failed. Do NOT repeat those failed-looking payments merely
-to test. First reconcile existing investment records and marketplace funding
-totals so the same investment is not counted twice.
+If your existing portfolio page has a different filename/route, either:
+- replace that page with this file and update App.tsx import/route, or
+- copy the refund eligibility + RPC button logic into your existing Portfolio/My Investments page.
 
-This patch intentionally does not guess your current investment table schema,
-so it does not overwrite NMIPayment.tsx/BitcoinPayment.tsx with an incompatible
-full page. It fixes the shared identifier resolution safely and repairs missing
-marketplace rows in SQL.
+Recommended route:
+<InvestorPortfolio /> at /portfolio or your existing My Investments route.
+
+3) DEPLOY
+Commit/push to GitHub and let Vercel rebuild.
+
+4) TEST
+Use one of the August 1 investments whose refund_deadline is August 8.
+Confirm:
+- refund button is visible before deadline
+- old July investments do NOT show an eligible refund button
+- clicking refund asks for confirmation
+- wallet available cash increases by the exact investment principal
+- investment status becomes refunded
+- refunded_at is populated
+- transfer_locked remains true
+- loan/marketplace funded amount decreases and remaining amount increases
+- a row appears in investment_refund_audit
+- a row appears in investor_notifications
+
+DO NOT manually change old July refund_deadline values to August dates.
