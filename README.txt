@@ -1,24 +1,20 @@
-SecuredLanding v2.8.1 — Investor 7-Day Refund Patch
+SECURED LANDING - FINAL INVESTMENT LINK REPAIR
 
-CONTENTS
-1. supabase/migrations/20260801_investor_refund_atomic.sql
-2. src/pages/InvestorPortfolio.tsx
-3. INSTALL.txt
+Run files in this order:
 
-WHAT THIS PATCH DOES
-- Keeps the refund policy investor-only.
-- Uses the confirmed investments.refund_policy_enabled / refund_period_days / refund_deadline fields.
-- Backfills missing deadlines from created_at, not from today's date.
-- Automatically sets deadlines for future investments.
-- Shows the refund button only while the investment is eligible.
-- Processes refund through one PostgreSQL RPC transaction.
-- Prevents refunds by non-owners, expired refunds, settled/refunded/processing investments, and double refunds.
-- Returns principal to available investor wallet cash.
-- Reverses funding totals on marketplace/loan records when matching loan numbers are available.
-- Locks refunded certificates/investments against transfer.
-- Writes a refund audit record and investor notification.
+1. 01_final_investment_link_repair.sql
+   Repairs only relationships that can be identified without guessing.
+   It leaves ambiguous/orphan legacy records untouched for manual review.
+
+2. 02_verify_relationships.sql
+   Read-only verification. The goal is every legitimate investment showing CORRECT LINK.
+
+3. 03_future_write_contract.sql
+   Adds/validates a foreign key to prevent invalid application IDs going forward.
+   The NOT NULL command is intentionally commented out until all legacy rows are resolved.
 
 IMPORTANT
-The SQL migration must be run before deploying InvestorPortfolio.tsx.
-The migration is defensive around wallet balance column naming, but it expects public.investor_wallets to exist.
-This patch does NOT give borrowers a cancellation/refund right.
+- This package does not delete investments.
+- It does not automatically force ambiguous records to a loan.
+- Keep loan_application_id as the canonical relationship in application code going forward.
+- Before running database repair SQL on production, keeping a Supabase backup is recommended.
