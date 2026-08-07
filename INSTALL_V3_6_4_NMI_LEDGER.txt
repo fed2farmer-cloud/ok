@@ -1,0 +1,21 @@
+SecuredLanding v3.6.4 - NMI Wallet Ledger Fix
+
+1. In Supabase SQL Editor run:
+   supabase/migrations/20260807_v3_6_4_nmi_wallet_ledger.sql
+2. Deploy this package to Vercel.
+3. Confirm these Vercel environment variables exist:
+   VITE_SUPABASE_URL
+   SUPABASE_SERVICE_ROLE_KEY
+   VITE_NMI_TOKENIZATION_KEY
+   NMI_API_KEY
+   Optional: NMI_API_ENDPOINT (defaults to https://secure.nmi.com/api/transact.php)
+4. Test with a small card deposit.
+
+Expected result:
+- NMI approval has a unique processor transaction ID.
+- nmi_payment_transactions gets one permanent row.
+- wallet_transactions gets one positive deposit row.
+- investor_wallets.available_balance increases by the deposit.
+- duplicate processor transaction IDs cannot credit the wallet twice.
+
+IMPORTANT: This migration does NOT fabricate or manually credit the previously missing $200 transaction. Reconcile that payment using its actual NMI transaction ID before crediting it.

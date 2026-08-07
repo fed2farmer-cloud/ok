@@ -1,0 +1,17 @@
+SecuredLanding v3.6.4 - NMI Tracked Deposits
+
+NEW
+- api/process-wallet-card-deposit.ts
+- supabase/migrations/20260807_v3_6_4_nmi_wallet_ledger.sql
+- INSTALL_V3_6_4_NMI_LEDGER.txt
+- V3_6_4_FILE_MANIFEST.txt
+
+MODIFIED
+- src/InvestorWallet.tsx
+
+FIX
+- Card deposits no longer call the bank-only /api/deposit-funds endpoint.
+- Every approved NMI wallet deposit is tied to its NMI transaction ID.
+- Approved deposits atomically create the processor record, wallet ledger entry, and wallet balance credit.
+- Unique NMI transaction IDs prevent duplicate credits.
+- An approved payment whose wallet credit fails is explicitly flagged for reconciliation instead of reporting a false success.
