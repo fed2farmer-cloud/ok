@@ -1,0 +1,16 @@
+SECUREDLANDING v3.6.3 ATOMIC WALLET FIX
+
+1. Supabase SQL Editor: run
+   supabase/migrations/20260807_v3_6_3_atomic_wallet_sync.sql
+
+2. Deploy this project to Vercel.
+
+WHAT CHANGED
+- Wallet-only investments now use invest_from_wallet_atomic_v1.
+- Investment creation, wallet debit, transaction history, audit event, and loan funding refresh happen in one database transaction.
+- Each browser attempt carries an idempotency key, preventing a retry/double submission from creating a second debit/investment.
+- Existing 7-day investor protection/refund fields are preserved.
+- This migration does not rewrite historical balances. The manually corrected $0 wallet remains $0.
+
+IMPORTANT
+Run the SQL migration BEFORE deploying the frontend, otherwise the new RPC will not exist yet.
