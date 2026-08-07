@@ -1,0 +1,19 @@
+SecuredLanding v3.6.8 — New and Modified Files
+
+MODIFIED
+1. api/process-wallet-card-deposit.ts
+   - Replaces the configurable/stale NMI endpoint with the live NMI Classic Payment API endpoint: https://secure.nmi.com/api/transact.php.
+   - Prevents an old NMI_API_ENDPOINT=api.nmi.com environment setting from causing Fastly unknown-domain failures.
+   - Preserves authentication, approved-transaction parsing, credit_nmi_wallet(), duplicate protection, wallet history, and balance response behavior.
+
+2. api/process-payment.ts
+   - Removes the obsolete https://api.nmi.com/api/transaction endpoint.
+   - Uses https://secure.nmi.com/api/transact.php.
+   - Corrects Classic API request names to security_key and type.
+
+NEW
+3. INSTALL_V3_6_8_NMI_ENDPOINT_FIX.txt
+   - Deployment and controlled-test instructions.
+
+4. V3_6_8_FILE_MANIFEST.txt
+   - This change manifest.

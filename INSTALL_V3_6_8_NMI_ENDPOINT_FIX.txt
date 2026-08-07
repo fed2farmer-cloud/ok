@@ -1,0 +1,16 @@
+SecuredLanding v3.6.8 — NMI Endpoint Fix
+
+WHY
+The live deposit request reached the Vercel API but failed with a Fastly "unknown domain api.nmi.com" response.
+NMI's Classic Payment API uses https://secure.nmi.com/api/transact.php for live transactions.
+
+CHANGES
+- api/process-wallet-card-deposit.ts now pins the live Classic Payment API endpoint to https://secure.nmi.com/api/transact.php so a stale NMI_API_ENDPOINT environment variable cannot redirect deposits to api.nmi.com.
+- api/process-payment.ts removes the obsolete api.nmi.com default and uses the Classic API field names security_key and type.
+
+DEPLOY
+1. Deploy this package to Vercel.
+2. Do not set NMI_API_ENDPOINT to api.nmi.com; this build does not use that variable for wallet card deposits.
+3. Keep NMI_API_KEY and Supabase server environment variables configured.
+4. Test with the smallest practical processor/test-account transaction first.
+5. After approval, verify nmi_payment_transactions, wallet_transactions, and investor_wallets.available_balance.
