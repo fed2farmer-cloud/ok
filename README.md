@@ -1,49 +1,17 @@
-# SecuredLanding
+# Secured Landing Wallet Atomic Fix — 2026-08-07
 
-Premium land-backed lending marketplace for borrowers and investors.
+Confirmed historical correction:
+- available_balance = 0
+- invested_balance = 77,615
 
-## Featured first customer
+This package does not change that corrected historical value.
 
-The app includes Lords Farms LLC as the first current investment listing:
+For future `Invest From Wallet` operations, the included PostgreSQL RPC performs the investment insert, available-balance deduction, invested-balance increase, wallet transaction, and marketplace funding update inside one database transaction. It also adds an idempotency key to prevent a retried request from charging the wallet twice.
 
-- Funding goal: $40,000
-- Already committed: $10,000
-- Lead investor: Melvin Askew
-- Remaining funding: $30,000
-- Investor return shown: 9%
-- Max loan-to-value: 50%
+Install:
+1. Run `supabase/migrations/20260807_atomic_wallet_investment.sql` in Supabase SQL Editor.
+2. Add `src/lib/walletInvestment.ts`.
+3. Update the existing InvestorMarketplace `Invest From Wallet` handler to call `investFromWalletAtomic(loanId, amount)` instead of separate database writes.
+4. Refresh wallet and marketplace data after a successful call.
 
-## Environment variables
-
-Add these in Vercel for the frontend and Railway for the backend.
-
-### Vercel frontend
-
-```text
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_or_live_key
-VITE_RAILWAY_API_URL=https://your-railway-api.up.railway.app
-```
-
-### Railway backend
-
-```text
-CLERK_SECRET_KEY=sk_test_or_live_key
-PLAID_CLIENT_ID=your_plaid_client_id
-PLAID_SECRET=your_plaid_secret
-PLAID_ENV=sandbox
-REPORTALL_API_KEY=your_reportall_api_key
-DATABASE_URL=postgresql_database_url
-```
-
-## Integration endpoints expected on Railway
-
-The frontend is wired to call these protected backend routes when Railway is connected:
-
-```text
-POST /api/plaid/create-link-token
-POST /api/plaid/exchange-public-token
-POST /api/reportall/property-report
-POST /api/investments/reserve
-```
-
-Until `VITE_RAILWAY_API_URL` is added, the app runs in demo mode and shows the integration workflow without sending live API requests.
+Important: because the live Secured Landing schema has changed over multiple versions, run the SQL migration first. If Supabase reports a renamed/missing column in `wallet_transactions`, use that error to map the live column before changing the frontend.

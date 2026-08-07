@@ -1,0 +1,13 @@
+{
+  "name": "Secured Landing Atomic Wallet Investment Fix",
+  "date": "2026-08-07",
+  "preserve": {
+    "available_balance": 0,
+    "invested_balance": 77615
+  },
+  "files": [
+    "supabase/migrations/20260807_atomic_wallet_investment.sql",
+    "src/lib/walletInvestment.ts",
+    "README.md"
+  ]
+}
