@@ -34,7 +34,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     // Get NMI credentials from environment variables
     const nmiMerchantId = process.env.NMI_MERCHANT_ID;
     const nmiApiKey = process.env.NMI_API_KEY;
-    const nmiApiEndpoint = process.env.NMI_API_ENDPOINT || 'https://api.nmi.com/api/transaction';
+    const nmiApiEndpoint = 'https://secure.nmi.com/api/transact.php';
 
     if (!nmiMerchantId || !nmiApiKey) {
       console.error('Missing NMI credentials in environment variables');
@@ -47,8 +47,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     try {
       // Prepare NMI payment request
       const params = new URLSearchParams({
-        api_key: nmiApiKey,
-        method: 'sale',
+        security_key: nmiApiKey,
+        type: 'sale',
         payment_token: paymentToken,
         amount: amount.toString(),
       });
