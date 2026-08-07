@@ -1,0 +1,25 @@
+SecuredLanding v3.6.7 - NMI API Routing Fix
+
+WHY THIS PATCH EXISTS
+The SPA fallback in vercel.json rewrote every request, including /api/*, to index.html.
+That can prevent /api/process-wallet-card-deposit from reaching the Vercel serverless function.
+The database NMI table/function can therefore remain untouched even after the browser reports a payment result.
+
+CHANGES
+1. vercel.json now preserves /api/:path* before the SPA fallback.
+2. api/process-wallet-card-deposit.ts remains the authenticated server-side NMI sale + credit_nmi_wallet flow.
+3. src/InvestorWallet.tsx already calls /api/process-wallet-card-deposit and refreshes wallet state after success.
+
+DATABASE PREREQUISITES
+The following were already created during troubleshooting:
+- public.nmi_payment_transactions
+- public.credit_nmi_wallet(uuid,text,numeric,numeric,numeric)
+
+DEPLOY / TEST
+1. Deploy this project to Vercel.
+2. Before charging a card, open /api/process-wallet-card-deposit in the browser.
+   Expected: JSON error such as Method not allowed (NOT the SecuredLanding HTML page).
+3. Confirm Available Cash starting balance.
+4. Use a small card deposit.
+5. Query public.nmi_payment_transactions and public.investor_wallets.
+6. Do not repeat a charge if NMI approves but wallet credit fails; use the returned NMI transaction ID for reconciliation.

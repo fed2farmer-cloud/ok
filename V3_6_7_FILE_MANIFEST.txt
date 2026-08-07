@@ -1,0 +1,12 @@
+SecuredLanding v3.6.7 NMI API Routing Fix
+
+MODIFIED
+- vercel.json
+
+VERIFIED EXISTING FLOW (unchanged in this patch)
+- src/InvestorWallet.tsx -> /api/process-wallet-card-deposit
+- api/process-wallet-card-deposit.ts -> NMI sale -> credit_nmi_wallet()
+
+NEW
+- INSTALL_V3_6_7_NMI_API_ROUTING_FIX.txt
+- V3_6_7_FILE_MANIFEST.txt
