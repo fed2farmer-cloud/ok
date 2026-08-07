@@ -245,17 +245,28 @@ function InvestorMarketplace() {
     setMessage("");
 
     try {
+      // Keep one key for this pending wallet investment so a retry cannot
+      // create a second investment or debit the wallet twice.
+      const pendingKeyName = `securedlanding_wallet_investment_${loanNumber}_${amount}`;
+      let idempotencyKey = window.sessionStorage.getItem(pendingKeyName);
+      if (!idempotencyKey) {
+        idempotencyKey = crypto.randomUUID();
+        window.sessionStorage.setItem(pendingKeyName, idempotencyKey);
+      }
+
       const { data, error: rpcError } = await supabase.rpc(
-        "invest_from_wallet_v28",
+        "invest_from_wallet_atomic_v1",
         {
           p_loan_number: loanNumber,
           p_amount: amount,
+          p_idempotency_key: idempotencyKey,
         }
       );
 
       if (rpcError) throw rpcError;
       if (!data) throw new Error("No investment record was returned.");
 
+      window.sessionStorage.removeItem(pendingKeyName);
       setAmounts((current) => ({ ...current, [loan.id]: "" }));
       setMessage(
         `${money(amount)} was invested in Loan #${loanNumber} from wallet cash.`
