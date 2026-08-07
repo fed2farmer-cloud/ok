@@ -141,30 +141,26 @@ export default function InvestorWallet() {
     const amount = Number(cardDepositAmount || 0);
     if (amount < 10) { setCardPayStatus("Minimum card deposit is $10."); return "Minimum $10"; }
 
-    const res = await fetch("/api/process-payment", {
+    const token = await getToken();
+    if (!token) { setCardPayStatus("Please sign in again."); return "Authentication required"; }
+
+    setCardPayStatus("Processing card deposit...");
+    const res = await fetch("/api/process-wallet-card-deposit", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ paymentToken, amount }),
     });
     const data = await res.json();
 
-    if (!data.success) {
-      setCardPayStatus(data.error || "Card payment failed.");
-      return data.error || "Payment failed";
+    if (!res.ok || !data.success) {
+      const msg = data.error || "Card deposit failed.";
+      setCardPayStatus(msg);
+      addToast("error", data.paymentApproved ? "Payment needs reconciliation" : "Card deposit failed", msg);
+      return msg;
     }
 
-    // Credit wallet
-    const token = await getToken();
-    if (token) {
-      await fetch("/api/deposit-funds", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `****** ` },
-        body: JSON.stringify({ amount, source: "card", description: `Card deposit $${amount}` }),
-      });
-    }
-
-    addToast("success", "Card deposit successful", `${money(amount)} added to your wallet.`);
-    setCardPayStatus("Payment successful!");
+    addToast("success", "Card deposit successful", `${money(amount)} added to your wallet. NMI #${data.transactionId}`);
+    setCardPayStatus(`Payment successful — NMI #${data.transactionId}`);
     setCardDepositAmount("");
     setShowCardDeposit(false);
     await loadWallet();
