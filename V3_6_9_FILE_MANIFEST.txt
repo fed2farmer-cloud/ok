@@ -1,0 +1,18 @@
+SecuredLanding v3.6.9 - New and Modified Files
+
+MODIFIED
+1. api/process-wallet-card-deposit.ts
+   - Routes sandbox credentials to sandbox.nmi.com by default.
+   - Supports NMI_ENVIRONMENT=production/live for the production Classic API.
+   - Preserves NMI approval validation, nmi_payment_transactions tracking through credit_nmi_wallet, wallet credit, and visible wallet history.
+
+2. api/process-payment.ts
+   - Uses the same sandbox/live endpoint selection.
+   - Replaces loose text matching with NMI response=1 + transaction ID validation.
+
+NEW
+3. INSTALL_V3_6_9_NMI_SANDBOX_ROUTING.txt
+   - Deployment/environment instructions for sandbox testing and later production cutover.
+
+4. V3_6_9_FILE_MANIFEST.txt
+   - This file-by-file release manifest.

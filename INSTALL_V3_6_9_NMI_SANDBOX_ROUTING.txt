@@ -1,0 +1,18 @@
+SecuredLanding v3.6.9 - NMI Sandbox/Live Routing
+
+WHY THIS PATCH
+The previous build correctly stopped using api.nmi.com, but the current NMI credentials are sandbox credentials. NMI therefore rejected requests sent to the live secure.nmi.com endpoint with: "Sandbox accounts must use sandbox.nmi.com".
+
+CHANGES
+- api/process-wallet-card-deposit.ts selects the NMI Classic API endpoint from NMI_ENVIRONMENT.
+- api/process-payment.ts uses the same environment selection and stricter NMI response parsing.
+- Default is sandbox for the current testing phase.
+- Set NMI_ENVIRONMENT=production (or live) in Vercel when real production NMI credentials are installed.
+- Sandbox endpoint: https://sandbox.nmi.com/api/transact.php
+- Production endpoint: https://secure.nmi.com/api/transact.php
+- Wallet credit still occurs only after NMI returns response=1 plus a transaction ID.
+- Existing credit_nmi_wallet database reconciliation and duplicate protection remain unchanged.
+
+VERCEL
+For current testing, either leave NMI_ENVIRONMENT unset or set it to sandbox.
+For real payments later, set NMI_ENVIRONMENT=production and replace the NMI credentials/tokenization key with production values.
