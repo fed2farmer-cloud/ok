@@ -34,7 +34,10 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     // Get NMI credentials from environment variables
     const nmiMerchantId = process.env.NMI_MERCHANT_ID;
     const nmiApiKey = process.env.NMI_API_KEY;
-    const nmiApiEndpoint = 'https://secure.nmi.com/api/transact.php';
+    const nmiEnvironment = String(process.env.NMI_ENVIRONMENT || 'sandbox').toLowerCase();
+    const nmiApiEndpoint = nmiEnvironment === 'production' || nmiEnvironment === 'live'
+      ? 'https://secure.nmi.com/api/transact.php'
+      : 'https://sandbox.nmi.com/api/transact.php';
 
     if (!nmiMerchantId || !nmiApiKey) {
       console.error('Missing NMI credentials in environment variables');
@@ -66,22 +69,25 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       return nmiResponse
         .then((response) => response.text())
         .then((text) => {
-          // Parse NMI XML response (or JSON depending on API version)
-          // NMI typically returns XML, but you may need to adjust based on your API version
-          
-          // Simple success check - adjust based on actual NMI response format
-          if (text.includes('success') || text.includes('1')) {
+          const parsed = new URLSearchParams(text.trim());
+          const approved = parsed.get('response') === '1';
+          const transactionId = parsed.get('transactionid') || parsed.get('transaction_id') || '';
+          const responseText = parsed.get('responsetext') || parsed.get('response_text') || text.slice(0, 500);
+
+          if (approved && transactionId) {
             console.log('Payment processed successfully');
             return res.status(200).json({
               success: true,
               message: 'Payment processed successfully',
               amount,
+              transactionId,
+              environment: nmiEnvironment,
             });
           } else {
             console.error('NMI API returned error:', text);
             return res.status(400).json({
               success: false,
-              error: 'Payment processing failed. Please try again.',
+              error: responseText || 'Payment processing failed. Please try again.',
             });
           }
         })

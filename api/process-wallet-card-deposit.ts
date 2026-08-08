@@ -34,7 +34,10 @@ export default async function handler(req: any, res: any) {
     }
 
     const apiKey = process.env.NMI_API_KEY;
-    const endpoint = "https://secure.nmi.com/api/transact.php";
+    const nmiEnvironment = String(process.env.NMI_ENVIRONMENT || "sandbox").toLowerCase();
+    const endpoint = nmiEnvironment === "production" || nmiEnvironment === "live"
+      ? "https://secure.nmi.com/api/transact.php"
+      : "https://sandbox.nmi.com/api/transact.php";
     if (!apiKey) return res.status(500).json({ success: false, error: "NMI is not configured." });
 
     const params = new URLSearchParams({
