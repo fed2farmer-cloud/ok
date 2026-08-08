@@ -1,0 +1,22 @@
+SecuredLanding NMI Response Timeout Fix
+Date: 2026-08-08
+
+MODIFIED FILES
+1. api/process-payment.ts
+   - Adds a 15-second server-side timeout to the outbound NMI request.
+   - Returns a specific 504 response if NMI does not answer in time.
+   - Does not change wallet balances or the wallet synchronization migration.
+
+2. src/components/PaymentForm.tsx
+   - Shows "Processing card with NMI…" while authorization is pending.
+   - Adds a 20-second browser-side timeout so the checkout cannot spin indefinitely.
+   - Gives a clear warning to check transaction history before retrying after a timeout.
+   - Investment finalization still happens only after the payment API reports success.
+
+TEST
+npm run build
+RESULT: PASS
+Vite production build completed successfully.
+
+NOTE
+The existing Vite chunk-size warning remains a warning only and did not fail the build.
