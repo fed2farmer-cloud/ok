@@ -1,7 +1,6 @@
 import { NmiPayments } from "@nmipayments/nmi-pay-react";
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import { getNmiTokenizationKey } from "../lib/nmi";
 
 export default function PaymentForm() {
   const params = new URLSearchParams(window.location.search);
@@ -78,19 +77,40 @@ export default function PaymentForm() {
       {paymentStatus && <div className="mt-3">{paymentStatus}</div>}
 
       <NmiPayments
-        tokenizationKey={getNmiTokenizationKey()}
+        tokenizationKey={import.meta.env.VITE_NMI_TOKENIZATION_KEY}
         paymentMethods={["card"]}
         onPay={async (token) => {
-          const response = await fetch("/api/process-payment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              paymentToken: token,
-              amount: Number(cleanAmount),
-            }),
-          });
+          setPaymentStatus("Processing card with NMI…");
+          const controller = new AbortController();
+          const timeout = window.setTimeout(() => controller.abort(), 20000);
 
-          const data = await response.json();
+          let response: Response;
+          try {
+            response = await fetch("/api/process-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                paymentToken: token,
+                amount: Number(cleanAmount),
+              }),
+              signal: controller.signal,
+            });
+          } catch (error) {
+            window.clearTimeout(timeout);
+            const timedOut = error instanceof Error && error.name === "AbortError";
+            const message = timedOut
+              ? "NMI took too long to respond. Check transaction history before retrying."
+              : "Unable to reach the payment processor. Please try again.";
+            setPaymentStatus(message);
+            return message;
+          } finally {
+            window.clearTimeout(timeout);
+          }
+
+          const data = await response.json().catch(() => ({
+            success: false,
+            error: "Invalid response from payment processor",
+          }));
 
           if (data.success) {
             setPaymentStatus("Payment successful!");
