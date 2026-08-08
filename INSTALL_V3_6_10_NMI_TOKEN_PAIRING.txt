@@ -1,0 +1,22 @@
+SecuredLanding v3.6.10 — NMI Sandbox Token Pairing
+
+WHY THIS BUILD
+The v3.6.9 test reached NMI sandbox but returned "Invalid payment token". NMI requires the public browser tokenization key and private server API key to belong to the same merchant/test environment.
+
+VERCEL VARIABLES FOR CURRENT SANDBOX TEST
+NMI_ENVIRONMENT=sandbox
+VITE_NMI_ENVIRONMENT=sandbox
+NMI_API_KEY=<private API/security key from the NMI TEST merchant>
+VITE_NMI_SANDBOX_TOKENIZATION_KEY=<PUBLIC tokenization key from the SAME NMI TEST merchant>
+
+Compatibility: VITE_NMI_TOKENIZATION_KEY remains a fallback, but using the explicit sandbox variable above prevents accidental production/sandbox mixing.
+
+DO NOT put NMI_API_KEY in any VITE_ variable. VITE variables are browser-visible.
+
+WHEN GOING LIVE
+NMI_ENVIRONMENT=production
+VITE_NMI_ENVIRONMENT=production
+NMI_API_KEY=<live private key>
+VITE_NMI_LIVE_TOKENIZATION_KEY=<live public tokenization key>
+
+The server continues to credit the wallet only after an NMI-approved response with a processor transaction ID. Failed/invalid tokens do not credit the wallet.

@@ -1,0 +1,14 @@
+SecuredLanding v3.6.10 file manifest
+
+NEW
+- src/lib/nmi.ts — Selects the correct public NMI tokenization key for sandbox vs live browser tokenization.
+- INSTALL_V3_6_10_NMI_TOKEN_PAIRING.txt — Deployment variables and sandbox/live pairing instructions.
+- V3_6_10_FILE_MANIFEST.txt — This change list.
+
+MODIFIED
+- src/InvestorWallet.tsx — Card wallet deposits now use the environment-aware NMI tokenization key helper.
+- src/components/PaymentForm.tsx — External investment card payments now use the same environment-aware helper.
+
+UNCHANGED SAFEGUARDS
+- api/process-wallet-card-deposit.ts keeps v3.6.9 sandbox/live server routing and only credits after NMI approval.
+- credit_nmi_wallet and nmi_payment_transactions duplicate protection remain unchanged.
