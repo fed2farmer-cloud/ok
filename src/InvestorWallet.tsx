@@ -5,6 +5,7 @@ import { supabase } from "./lib/supabase";
 import PlaidConnectButton from "./components/PlaidConnectButton";
 import AppLayout from "./components/AppLayout";
 import { useToast } from "./context/ToastContext";
+import { getNmiTokenizationKey } from "./lib/nmi";
 
 export default function InvestorWallet() {
   const navigate = useNavigate();
@@ -159,8 +160,8 @@ export default function InvestorWallet() {
       return msg;
     }
 
-    addToast("success", "Card deposit successful", `${money(amount)} added to your wallet. NMI #${data.transactionId}`);
-    setCardPayStatus(`Payment successful — NMI #${data.transactionId}`);
+    addToast("success", "Card deposit successful", `${money(amount)} added to your wallet. New available balance: ${money(data.availableBalance)}. NMI #${data.transactionId}`);
+    setCardPayStatus(`Payment successful — available balance ${money(data.availableBalance)} — NMI #${data.transactionId}`);
     setCardDepositAmount("");
     setShowCardDeposit(false);
     await loadWallet();
@@ -280,7 +281,7 @@ export default function InvestorWallet() {
                   <p className={`text-xs font-semibold ${cardPayStatus.includes("success") ? "text-emerald-600" : "text-rose-600"}`}>{cardPayStatus}</p>
                 )}
                 <NmiPayments
-                  tokenizationKey={import.meta.env.VITE_NMI_TOKENIZATION_KEY}
+                  tokenizationKey={getNmiTokenizationKey()}
                   paymentMethods={["card"]}
                   onPay={handleCardDeposit}
                 />
