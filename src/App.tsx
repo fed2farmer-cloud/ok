@@ -21,6 +21,9 @@ import BorrowerDocumentSignature from "./pages/BorrowerDocumentSignature";
 import TaxCenter from "./pages/TaxCenter";
 import AdminTaxDashboard from "./pages/AdminTaxDashboard";
 import AdminFinancialLedger from "./pages/AdminFinancialLedger";
+import AdminServicingDashboard from "./pages/AdminServicingDashboard";
+import BorrowerRepayments from "./pages/BorrowerRepayments";
+import SecondaryMarket from "./pages/SecondaryMarket";
 
 import LoanDocuments from "./LoanDocuments";
 import InvestorWallet from "./InvestorWallet";
@@ -60,6 +63,9 @@ export default function App() {
         <Route path="/tax-center" element={<TaxCenter />} />
         <Route path="/admin/tax" element={<AdminTaxDashboard />} />
         <Route path="/admin/ledger" element={<AdminFinancialLedger />} />
+        <Route path="/admin/servicing" element={<AdminServicingDashboard />} />
+        <Route path="/repayments" element={<BorrowerRepayments />} />
+        <Route path="/secondary-market" element={<SecondaryMarket />} />
 
         {/* Showcase / marketing pages */}
         <Route path="/lords-farms" element={<LordFarmsDeal />} />
