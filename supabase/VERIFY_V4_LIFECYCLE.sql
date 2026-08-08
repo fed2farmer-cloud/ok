@@ -1,0 +1,2 @@
+select 'loans_without_random_number' test,count(*) failures from public.loan_applications where loan_number is null or loan_number<100000 or loan_number>999999 union all select 'duplicate_loan_numbers',count(*) from (select loan_number from public.loan_applications where loan_number is not null group by loan_number having count(*)>1)x union all select 'open_financial_exceptions',count(*) from public.financial_exceptions where status='open';
+select * from public.admin_servicing_summary order by loan_number;
