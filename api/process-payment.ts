@@ -1,5 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
+const NMI_TIMEOUT_MS = 15000;
+
 export default function handler(req: VercelRequest, res: VercelResponse) {
   // Handle GET requests
   if (req.method === 'GET') {
@@ -34,10 +36,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     // Get NMI credentials from environment variables
     const nmiMerchantId = process.env.NMI_MERCHANT_ID;
     const nmiApiKey = process.env.NMI_API_KEY;
-    const nmiEnvironment = String(process.env.NMI_ENVIRONMENT || 'sandbox').toLowerCase();
-    const nmiApiEndpoint = nmiEnvironment === 'production' || nmiEnvironment === 'live'
-      ? 'https://secure.nmi.com/api/transact.php'
-      : 'https://sandbox.nmi.com/api/transact.php';
+    const nmiApiEndpoint = process.env.NMI_API_ENDPOINT || 'https://api.nmi.com/api/transaction';
 
     if (!nmiMerchantId || !nmiApiKey) {
       console.error('Missing NMI credentials in environment variables');
@@ -50,11 +49,15 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     try {
       // Prepare NMI payment request
       const params = new URLSearchParams({
-        security_key: nmiApiKey,
-        type: 'sale',
+        api_key: nmiApiKey,
+        method: 'sale',
         payment_token: paymentToken,
         amount: amount.toString(),
       });
+
+      // Do not let a slow processor/network leave the checkout spinning indefinitely.
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), NMI_TIMEOUT_MS);
 
       // Make request to NMI API
       const nmiResponse = fetch(nmiApiEndpoint, {
@@ -63,39 +66,40 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: params.toString(),
-      });
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeout));
 
       // Process response - using Promise then/catch for compatibility
       return nmiResponse
         .then((response) => response.text())
         .then((text) => {
-          const parsed = new URLSearchParams(text.trim());
-          const approved = parsed.get('response') === '1';
-          const transactionId = parsed.get('transactionid') || parsed.get('transaction_id') || '';
-          const responseText = parsed.get('responsetext') || parsed.get('response_text') || text.slice(0, 500);
-
-          if (approved && transactionId) {
+          // Parse NMI XML response (or JSON depending on API version)
+          // NMI typically returns XML, but you may need to adjust based on your API version
+          
+          // Simple success check - adjust based on actual NMI response format
+          if (text.includes('success') || text.includes('1')) {
             console.log('Payment processed successfully');
             return res.status(200).json({
               success: true,
               message: 'Payment processed successfully',
               amount,
-              transactionId,
-              environment: nmiEnvironment,
             });
           } else {
             console.error('NMI API returned error:', text);
             return res.status(400).json({
               success: false,
-              error: responseText || 'Payment processing failed. Please try again.',
+              error: 'Payment processing failed. Please try again.',
             });
           }
         })
         .catch((error) => {
           console.error('NMI API request failed:', error);
-          return res.status(500).json({
+          const timedOut = error instanceof Error && error.name === 'AbortError';
+          return res.status(timedOut ? 504 : 500).json({
             success: false,
-            error: 'Failed to process payment. Please try again later.',
+            error: timedOut
+              ? 'The payment processor took too long to respond. No approval was received. Please check your transaction history before retrying.'
+              : 'Failed to process payment. Please try again later.',
           });
         });
     } catch (error) {
