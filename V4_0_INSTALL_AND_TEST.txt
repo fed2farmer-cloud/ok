@@ -1,0 +1,17 @@
+SECUREDLANDING v4.0 FULL LIFECYCLE TEST FOUNDATION
+
+1. BACK UP SUPABASE before reset.
+2. Run supabase/migrations/20260808_v4_full_lifecycle_foundation.sql.
+3. OPTIONAL clean test reset: review supabase/RESET_TEST_LOAN_DATA.sql. Destructive legacy TRUNCATE lines are commented out intentionally.
+4. Deploy application.
+5. Create a brand-new borrower loan. Confirm its public loan_number is a random six-digit number and remains unchanged through revision.
+6. Test primary investment/wallet/NMI using TEST processor credentials only.
+7. Create servicing schedule data and test /repayments and /admin/servicing.
+8. Test /secondary-market only as a feature-gated architecture preview until settlement/compliance is enabled.
+9. Run supabase/VERIFY_V4_LIFECYCLE.sql after each lifecycle test.
+
+IMPORTANT
+- Default/recovery automation and external notice delivery are intentionally Phase 2 after the clean lifecycle test, as requested.
+- loan_notices and servicing event tables are included now so Phase 2 can add notices without redesigning the ledger.
+- Square server Payments API is supported architecturally, but borrower-facing Square Web Payments tokenization must be configured with your Square application/location credentials before live use.
+- Never test with real NMI API keys; use a test merchant account.

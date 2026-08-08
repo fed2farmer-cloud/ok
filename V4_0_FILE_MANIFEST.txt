@@ -1,0 +1,12 @@
+NEW
+supabase/migrations/20260808_v4_full_lifecycle_foundation.sql - canonical random loan numbering + repayment, allocation, investor position, distribution, secondary-market, exception and notice schema.
+supabase/RESET_TEST_LOAN_DATA.sql - controlled test-data reset; destructive legacy reset remains commented until explicitly reviewed.
+supabase/VERIFY_V4_LIFECYCLE.sql - reconciliation checks.
+src/pages/AdminServicingDashboard.tsx - expected/collected/outstanding/missed and exception dashboard.
+src/pages/BorrowerRepayments.tsx - borrower repayment schedule/payment entry page.
+src/pages/SecondaryMarket.tsx - feature-gated secondary-market listing page.
+V4_0_INSTALL_AND_TEST.txt - install/test sequence.
+V4_0_FILE_MANIFEST.txt - this manifest.
+
+MODIFIED
+src/App.tsx - adds routes for servicing, repayments and secondary market.
