@@ -1,0 +1,23 @@
+SecuredLanding v4.1 Install + Test
+
+1) Upload the ZIP contents to the GitHub repo, preserving original filenames and paths.
+2) In Supabase SQL Editor, run:
+   supabase/migrations/20260811_v4_servicing_payment_settlement_fix.sql
+3) Then run:
+   supabase/VERIFY_V4_SERVICING_PAYMENT_FIX.sql
+4) In Vercel, confirm these environment keys are present:
+   VITE_SUPABASE_URL
+   VITE_SUPABASE_ANON_KEY
+5) Deploy from GitHub.
+6) Visit these routes after deployment:
+   /admin/servicing
+   /repayments
+   /secondary-market
+
+Expected verification results for the tested loan:
+- Loan 977005 remains fully funded at $25,000.
+- loan_payment_schedule has 60 rows.
+- One schedule row is paid.
+- The first payment shows principal and interest collected.
+- Duplicate settled borrower_payments for the same schedule_id are blocked by the unique index.
+- Older duplicate settled rows should be reversed, not counted twice.

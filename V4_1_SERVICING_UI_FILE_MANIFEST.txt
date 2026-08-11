@@ -1,0 +1,24 @@
+SecuredLanding v4.1 Servicing UI + Settlement Fix
+
+New files:
+- supabase/migrations/20260811_v4_servicing_payment_settlement_fix.sql
+  Adds the tested v4 servicing fixes: borrower_payments status compatibility, duplicate settled-payment protection, safer settlement RPC, mark-due RPC, admin JSON summary RPC, and auto schedule-generation triggers.
+
+- supabase/VERIFY_V4_SERVICING_PAYMENT_FIX.sql
+  Verification queries for functions, triggers, duplicate-settled guard, admin summary JSON, per-loan schedule totals, and first-installment principal/interest checks.
+
+Modified files:
+- src/components/AppLayout.tsx
+  Adds direct navigation to borrower Repayments, admin Servicing, and investor/admin Secondary Market pages.
+
+- src/pages/AdminServicingDashboard.tsx
+  Rebuilds the admin servicing dashboard around the v4 repayment tables/RPCs: totals, selected loan schedule, recent borrower payments, exceptions, admin JSON summary, and Mark Due/Missed action.
+
+- src/pages/BorrowerRepayments.tsx
+  Rebuilds the borrower repayment center: active loan cards, next payment, first 12 schedule rows, collected principal/interest, payment history, and NMI repayment links with schedule/amount query params.
+
+- src/pages/SecondaryMarket.tsx
+  Improves the secondary-market page with listing totals, compliance-gated trading state, active listing cards, dates, and refresh/error handling.
+
+Test run:
+- npm run build
