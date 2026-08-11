@@ -1,0 +1,18 @@
+SecuredLanding v4.1.1 - New and Modified Files
+
+MODIFIED
+1. src/components/AppLayout.tsx
+   - Renamed admin menu labels to "Admin Dashboard" and "Servicing Dashboard".
+   - Added an admin_users lookup so authorized admins receive the admin navigation even when auth metadata still says investor/borrower.
+   - Keeps borrower and investor navigation unchanged for non-admin users.
+
+2. src/pages/AdminServicingDashboard.tsx
+   - Added a visible "← Admin Dashboard" link at the top of the servicing dashboard.
+   - Link returns directly to /admin.
+
+NEW
+3. BUILD_LOG_v4_1_1.txt
+   - Records the syntax and route/navigation integrity tests performed for this release.
+
+4. FILE_CHANGES_v4_1_1.txt
+   - This file-change summary.
