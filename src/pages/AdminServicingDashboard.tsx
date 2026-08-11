@@ -1,10 +1,287 @@
-import {useEffect,useMemo,useState} from "react";
-import AppLayout from "../components/AppLayout"; import {supabase} from "../lib/supabase";
-type Row={loan_number:number;expected_total:number;collected_total:number;outstanding_total:number;overdue_installments:number;next_due_date:string|null};
-export default function AdminServicingDashboard(){const [rows,setRows]=useState<Row[]>([]);const [exceptions,setExceptions]=useState<any[]>([]);const [loading,setLoading]=useState(true);
-async function load(){setLoading(true);const [a,b]=await Promise.all([supabase.from('admin_servicing_summary').select('*').order('loan_number'),supabase.from('financial_exceptions').select('*').eq('status','open').order('created_at',{ascending:false})]);setRows((a.data||[]) as Row[]);setExceptions(b.data||[]);setLoading(false)} useEffect(()=>{void load()},[]);
-const totals=useMemo(()=>rows.reduce((x,r)=>({e:x.e+Number(r.expected_total||0),c:x.c+Number(r.collected_total||0),o:x.o+Number(r.outstanding_total||0),m:x.m+Number(r.overdue_installments||0)}),{e:0,c:0,o:0,m:0}),[rows]); const money=(n:number)=>n.toLocaleString(undefined,{style:'currency',currency:'USD'});
-return <AppLayout><div className="mx-auto max-w-7xl p-6"><div className="flex items-center justify-between"><div><h1 className="text-3xl font-black">Loan Servicing & Reconciliation</h1><p className="text-slate-600">Expected, collected, outstanding, missed payments and processor exceptions.</p></div><button onClick={()=>void load()} className="rounded-xl bg-slate-900 px-4 py-2 font-bold text-white">Refresh</button></div>
-<div className="mt-6 grid gap-4 md:grid-cols-5">{[['Expected',money(totals.e)],['Collected',money(totals.c)],['Outstanding',money(totals.o)],['Missed/Late',String(totals.m)],['Exceptions',String(exceptions.length)]].map(([a,b])=><div key={a} className="rounded-2xl border bg-white p-5"><p className="text-sm font-bold text-slate-500">{a}</p><p className="mt-2 text-2xl font-black">{b}</p></div>)}</div>
-<div className="mt-6 overflow-x-auto rounded-2xl border bg-white"><table className="w-full text-left"><thead className="bg-slate-100"><tr>{['Loan #','Expected','Collected','Outstanding','Late/Missed','Next Due'].map(x=><th className="p-3" key={x}>{x}</th>)}</tr></thead><tbody>{rows.map(r=><tr className="border-t" key={r.loan_number}><td className="p-3 font-black">#{r.loan_number}</td><td className="p-3">{money(Number(r.expected_total))}</td><td className="p-3">{money(Number(r.collected_total))}</td><td className="p-3">{money(Number(r.outstanding_total))}</td><td className="p-3">{r.overdue_installments}</td><td className="p-3">{r.next_due_date||'—'}</td></tr>)}</tbody></table>{!loading&&rows.length===0&&<p className="p-6 text-slate-500">No servicing schedules yet.</p>}</div>
-<div className="mt-6 rounded-2xl border bg-white p-5"><h2 className="text-xl font-black">Reconciliation Exceptions</h2>{exceptions.length===0?<p className="mt-3 text-emerald-700 font-bold">Reconciled — no open exceptions.</p>:<div className="mt-3 space-y-2">{exceptions.map(e=><div key={e.id} className="rounded-xl border border-amber-200 bg-amber-50 p-3"><b>{e.exception_type}</b> · Loan #{e.loan_number||'—'}<div className="text-sm">{e.source_reference||e.source||''}</div></div>)}</div>}</div></div></AppLayout>}
+import { useCallback, useEffect, useMemo, useState } from "react";
+import AppLayout from "../components/AppLayout";
+import { supabase } from "../lib/supabase";
+
+type ServicingRow = {
+  loan_number: number;
+  expected_total: number | string | null;
+  collected_total: number | string | null;
+  outstanding_total: number | string | null;
+  overdue_installments: number | string | null;
+  next_due_date: string | null;
+};
+
+type ScheduleRow = {
+  id: string;
+  loan_number: number;
+  installment_number: number;
+  due_date: string;
+  expected_principal: number | string;
+  expected_interest: number | string;
+  expected_total: number | string;
+  collected_principal: number | string;
+  collected_interest: number | string;
+  status: string;
+};
+
+type BorrowerPaymentRow = {
+  id: string;
+  payment_number: number | null;
+  loan_number: number;
+  schedule_id: string | null;
+  amount: number | string;
+  status: string;
+  processor: string | null;
+  processor_transaction_id: string | null;
+  idempotency_key: string | null;
+  created_at: string | null;
+  settled_at: string | null;
+};
+
+type ExceptionRow = {
+  id: string;
+  loan_number: number | null;
+  severity: string;
+  exception_type: string;
+  source_reference: string | null;
+  status: string;
+  created_at: string | null;
+};
+
+function money(value: number | string | null | undefined) {
+  const n = Number(value || 0);
+  return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
+}
+
+function dateOnly(value: string | null | undefined) {
+  if (!value) return "—";
+  return value.slice(0, 10);
+}
+
+function compactJson(value: unknown) {
+  if (!value || typeof value !== "object") return "No summary loaded yet.";
+  return JSON.stringify(value, null, 2);
+}
+
+export default function AdminServicingDashboard() {
+  const [rows, setRows] = useState<ServicingRow[]>([]);
+  const [schedule, setSchedule] = useState<ScheduleRow[]>([]);
+  const [payments, setPayments] = useState<BorrowerPaymentRow[]>([]);
+  const [exceptions, setExceptions] = useState<ExceptionRow[]>([]);
+  const [summary, setSummary] = useState<Record<string, unknown> | null>(null);
+  const [selectedLoan, setSelectedLoan] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [actionMessage, setActionMessage] = useState("");
+
+  const load = useCallback(async (loanNumber?: number | null) => {
+    if (!supabase) {
+      setActionMessage("Supabase environment keys are missing.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setActionMessage("");
+    const targetLoan = loanNumber ?? selectedLoan;
+
+    const [summaryResult, servicingResult, exceptionResult, paymentResult] = await Promise.all([
+      supabase.rpc("admin_servicing_summary_v4"),
+      supabase.from("admin_servicing_summary").select("*").order("loan_number", { ascending: false }),
+      supabase.from("financial_exceptions").select("id, loan_number, severity, exception_type, source_reference, status, created_at").eq("status", "open").order("created_at", { ascending: false }).limit(20),
+      supabase.from("borrower_payments").select("id, payment_number, loan_number, schedule_id, amount, status, processor, processor_transaction_id, idempotency_key, created_at, settled_at").order("created_at", { ascending: false }).limit(25),
+    ]);
+
+    if (summaryResult.error) {
+      setActionMessage(`Admin summary RPC not available yet: ${summaryResult.error.message}`);
+    } else {
+      setSummary((summaryResult.data || null) as Record<string, unknown> | null);
+    }
+
+    const servicingRows = (servicingResult.data || []) as ServicingRow[];
+    setRows(servicingRows);
+    setExceptions((exceptionResult.data || []) as ExceptionRow[]);
+    setPayments((paymentResult.data || []) as BorrowerPaymentRow[]);
+
+    const nextLoan = targetLoan ?? servicingRows.find((row) => row.loan_number)?.loan_number ?? null;
+    setSelectedLoan(nextLoan);
+
+    if (nextLoan) {
+      const scheduleResult = await supabase
+        .from("loan_payment_schedule")
+        .select("id, loan_number, installment_number, due_date, expected_principal, expected_interest, expected_total, collected_principal, collected_interest, status")
+        .eq("loan_number", nextLoan)
+        .order("installment_number", { ascending: true })
+        .limit(120);
+      setSchedule((scheduleResult.data || []) as ScheduleRow[]);
+    } else {
+      setSchedule([]);
+    }
+
+    setLoading(false);
+  }, [selectedLoan]);
+
+  useEffect(() => {
+    void load(null);
+  }, []);
+
+  const totals = useMemo(() => rows.reduce((acc, row) => {
+    acc.expected += Number(row.expected_total || 0);
+    acc.collected += Number(row.collected_total || 0);
+    acc.outstanding += Number(row.outstanding_total || 0);
+    acc.late += Number(row.overdue_installments || 0);
+    return acc;
+  }, { expected: 0, collected: 0, outstanding: 0, late: 0 }), [rows]);
+
+  async function markDuePayments() {
+    if (!supabase) return;
+    setLoading(true);
+    const { data, error } = await supabase.rpc("mark_due_payments_v4");
+    if (error) setActionMessage(`Mark due failed: ${error.message}`);
+    else setActionMessage(`Marked ${data ?? 0} payment rows due/missed.`);
+    await load(selectedLoan);
+  }
+
+  const selectedSchedule = schedule.slice(0, 12);
+
+  return (
+    <AppLayout>
+      <div className="mx-auto max-w-7xl p-6">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.25em] text-emerald-700">v4 servicing system</p>
+            <h1 className="text-3xl font-black text-slate-950">Loan Servicing & Reconciliation</h1>
+            <p className="mt-2 max-w-3xl text-slate-600">
+              Admin view for expected payments, collected principal, collected interest, missed rows, borrower payments, allocation checks, and open financial exceptions.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <button onClick={markDuePayments} className="rounded-xl bg-amber-500 px-4 py-2 font-black text-slate-950 shadow-sm hover:bg-amber-400">Mark due/missed</button>
+            <button onClick={() => void load(selectedLoan)} className="rounded-xl bg-slate-950 px-4 py-2 font-black text-white shadow-sm hover:bg-slate-800">Refresh</button>
+          </div>
+        </div>
+
+        {actionMessage && <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">{actionMessage}</div>}
+
+        <div className="mt-6 grid gap-4 md:grid-cols-5">
+          <div className="rounded-2xl border bg-white p-5 shadow-sm"><p className="text-sm font-bold text-slate-500">Expected Total</p><p className="mt-2 text-2xl font-black">{money(totals.expected)}</p></div>
+          <div className="rounded-2xl border bg-white p-5 shadow-sm"><p className="text-sm font-bold text-slate-500">Collected</p><p className="mt-2 text-2xl font-black text-emerald-700">{money(totals.collected)}</p></div>
+          <div className="rounded-2xl border bg-white p-5 shadow-sm"><p className="text-sm font-bold text-slate-500">Outstanding</p><p className="mt-2 text-2xl font-black">{money(totals.outstanding)}</p></div>
+          <div className="rounded-2xl border bg-white p-5 shadow-sm"><p className="text-sm font-bold text-slate-500">Late/Missed Rows</p><p className="mt-2 text-2xl font-black text-rose-700">{totals.late}</p></div>
+          <div className="rounded-2xl border bg-white p-5 shadow-sm"><p className="text-sm font-bold text-slate-500">Open Exceptions</p><p className="mt-2 text-2xl font-black">{exceptions.length}</p></div>
+        </div>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+          <section className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+            <div className="border-b bg-slate-100 px-5 py-4">
+              <h2 className="text-xl font-black">Loans in servicing</h2>
+              <p className="text-sm text-slate-600">Select a loan to inspect the payment schedule.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left text-sm">
+                <thead className="bg-white text-slate-500">
+                  <tr>
+                    {['Loan #', 'Expected', 'Collected', 'Outstanding', 'Late/Missed', 'Next Due'].map((heading) => <th className="p-3 font-black" key={heading}>{heading}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.loan_number} onClick={() => void load(row.loan_number)} className={`cursor-pointer border-t hover:bg-emerald-50 ${selectedLoan === row.loan_number ? 'bg-emerald-50' : ''}`}>
+                      <td className="p-3 font-black">#{row.loan_number}</td>
+                      <td className="p-3">{money(row.expected_total)}</td>
+                      <td className="p-3 font-bold text-emerald-700">{money(row.collected_total)}</td>
+                      <td className="p-3">{money(row.outstanding_total)}</td>
+                      <td className="p-3">{row.overdue_installments ?? 0}</td>
+                      <td className="p-3">{dateOnly(row.next_due_date)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {!loading && rows.length === 0 && <p className="p-6 text-slate-500">No servicing schedules yet. Approve/fund a loan and run generate_payment_schedule_v4.</p>}
+          </section>
+
+          <section className="rounded-2xl border bg-white p-5 shadow-sm">
+            <h2 className="text-xl font-black">Open reconciliation exceptions</h2>
+            {exceptions.length === 0 ? (
+              <p className="mt-3 rounded-xl bg-emerald-50 p-4 font-bold text-emerald-800">Reconciled — no open exceptions.</p>
+            ) : (
+              <div className="mt-3 space-y-3">
+                {exceptions.map((exception) => (
+                  <div key={exception.id} className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                    <div className="font-black">{exception.exception_type}</div>
+                    <div className="text-sm text-slate-700">Loan #{exception.loan_number ?? '—'} · {exception.severity}</div>
+                    <div className="mt-1 break-all text-xs text-slate-500">{exception.source_reference || dateOnly(exception.created_at)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+
+        <section className="mt-6 overflow-hidden rounded-2xl border bg-white shadow-sm">
+          <div className="border-b bg-slate-100 px-5 py-4">
+            <h2 className="text-xl font-black">Selected loan schedule {selectedLoan ? `#${selectedLoan}` : ''}</h2>
+            <p className="text-sm text-slate-600">Shows the first 12 installments. Paid rows should show principal and interest collected.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[860px] text-left text-sm">
+              <thead className="text-slate-500">
+                <tr>
+                  {['Inst.', 'Due Date', 'Expected', 'Principal Collected', 'Interest Collected', 'Status'].map((heading) => <th className="p-3 font-black" key={heading}>{heading}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {selectedSchedule.map((row) => (
+                  <tr key={row.id} className="border-t">
+                    <td className="p-3 font-black">{row.installment_number}</td>
+                    <td className="p-3">{dateOnly(row.due_date)}</td>
+                    <td className="p-3">{money(row.expected_total)}</td>
+                    <td className="p-3">{money(row.collected_principal)}</td>
+                    <td className="p-3">{money(row.collected_interest)}</td>
+                    <td className="p-3"><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase tracking-wide">{row.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mt-6 overflow-hidden rounded-2xl border bg-white shadow-sm">
+          <div className="border-b bg-slate-100 px-5 py-4">
+            <h2 className="text-xl font-black">Recent borrower payment records</h2>
+            <p className="text-sm text-slate-600">Use this to verify NMI/manual payment idempotency, settled_at values, reversed duplicate rows, and schedule links.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px] text-left text-sm">
+              <thead className="text-slate-500">
+                <tr>
+                  {['Payment #', 'Loan #', 'Amount', 'Status', 'Schedule', 'Processor', 'Created', 'Settled'].map((heading) => <th className="p-3 font-black" key={heading}>{heading}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map((payment) => (
+                  <tr key={payment.id} className="border-t">
+                    <td className="p-3 font-black">{payment.payment_number ?? '—'}</td>
+                    <td className="p-3">#{payment.loan_number}</td>
+                    <td className="p-3">{money(payment.amount)}</td>
+                    <td className="p-3">{payment.status}</td>
+                    <td className="max-w-[240px] truncate p-3 text-xs">{payment.schedule_id || '—'}</td>
+                    <td className="p-3">{payment.processor || '—'}</td>
+                    <td className="p-3">{dateOnly(payment.created_at)}</td>
+                    <td className="p-3">{dateOnly(payment.settled_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-2xl border bg-slate-950 p-5 text-white shadow-sm">
+          <h2 className="text-xl font-black">Admin JSON summary RPC</h2>
+          <p className="mt-1 text-sm text-slate-300">Backed by public.admin_servicing_summary_v4().</p>
+          <pre className="mt-4 max-h-[420px] overflow-auto rounded-xl bg-black/40 p-4 text-xs text-emerald-100">{compactJson(summary)}</pre>
+        </section>
+      </div>
+    </AppLayout>
+  );
+}
