@@ -7,6 +7,7 @@ interface NavItem { href: string; label: string; }
 const BORROWER_LINKS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/loan-application", label: "Apply" },
+  { href: "/repayments", label: "Repayments" },
   { href: "/loan-forms", label: "Loan Forms" },
   { href: "/loan-documents", label: "Documents" },
   { href: "/messages", label: "Messages" },
@@ -16,14 +17,17 @@ const INVESTOR_LINKS: NavItem[] = [
   { href: "/investor", label: "Portfolio" },
   { href: "/investor-wallet", label: "Wallet" },
   { href: "/marketplace", label: "Marketplace" },
+  { href: "/secondary-market", label: "Secondary Market" },
   { href: "/messages", label: "Messages" },
   { href: "/tax-center", label: "Tax Documents" },
 ];
 const ADMIN_LINKS: NavItem[] = [
   { href: "/admin", label: "Operations" },
-  { href: "/messages", label: "Messages" },
-  { href: "/admin/tax", label: "Tax Reporting" },
+  { href: "/admin/servicing", label: "Servicing" },
   { href: "/admin/ledger", label: "Ledger & Funding" },
+  { href: "/admin/tax", label: "Tax Reporting" },
+  { href: "/secondary-market", label: "Secondary Market" },
+  { href: "/messages", label: "Messages" },
 ];
 function linksByRole(role: string | null) {
   if (role === "investor") return INVESTOR_LINKS;
