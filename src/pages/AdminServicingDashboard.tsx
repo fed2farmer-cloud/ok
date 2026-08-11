@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import AppLayout from "../components/AppLayout";
 import { supabase } from "../lib/supabase";
 
@@ -155,6 +156,7 @@ export default function AdminServicingDashboard() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
+            <Link to="/admin" className="rounded-xl border border-slate-300 bg-white px-4 py-2 font-black text-slate-900 shadow-sm hover:bg-slate-100">← Admin Dashboard</Link>
             <button onClick={markDuePayments} className="rounded-xl bg-amber-500 px-4 py-2 font-black text-slate-950 shadow-sm hover:bg-amber-400">Mark due/missed</button>
             <button onClick={() => void load(selectedLoan)} className="rounded-xl bg-slate-950 px-4 py-2 font-black text-white shadow-sm hover:bg-slate-800">Refresh</button>
           </div>
