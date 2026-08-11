@@ -22,8 +22,8 @@ const INVESTOR_LINKS: NavItem[] = [
   { href: "/tax-center", label: "Tax Documents" },
 ];
 const ADMIN_LINKS: NavItem[] = [
-  { href: "/admin", label: "Operations" },
-  { href: "/admin/servicing", label: "Servicing" },
+  { href: "/admin", label: "Admin Dashboard" },
+  { href: "/admin/servicing", label: "Servicing Dashboard" },
   { href: "/admin/ledger", label: "Ledger & Funding" },
   { href: "/admin/tax", label: "Tax Reporting" },
   { href: "/secondary-market", label: "Secondary Market" },
@@ -50,8 +50,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         const { data } = await supabase.auth.getUser();
         if (!active || !data.user) return;
         setEmail(data.user.email ?? "");
-        const value = String(data.user.user_metadata?.role || data.user.app_metadata?.role || "borrower").toLowerCase();
-        setRole(value || "borrower");
+        const metadataRole = String(data.user.user_metadata?.role || data.user.app_metadata?.role || "borrower").toLowerCase();
+
+        const { data: adminRow, error: adminError } = await supabase
+          .from("admin_users")
+          .select("user_id")
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+
+        if (!active) return;
+        if (!adminError && adminRow) {
+          setRole("admin");
+        } else {
+          setRole(metadataRole || "borrower");
+        }
       } catch (error) {
         console.error("Unable to load layout user:", error);
       }
