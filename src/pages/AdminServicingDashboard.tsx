@@ -142,7 +142,7 @@ export default function AdminServicingDashboard() {
     await load(selectedLoan);
   }
 
-  const selectedSchedule = schedule.slice(0, 12);
+  const selectedPayments = payments.filter((payment) => !selectedLoan || payment.loan_number === selectedLoan);
 
   return (
     <AppLayout>
@@ -223,20 +223,22 @@ export default function AdminServicingDashboard() {
         <section className="mt-6 overflow-hidden rounded-2xl border bg-white shadow-sm">
           <div className="border-b bg-slate-100 px-5 py-4">
             <h2 className="text-xl font-black">Selected loan schedule {selectedLoan ? `#${selectedLoan}` : ''}</h2>
-            <p className="text-sm text-slate-600">Shows the first 12 installments. Paid rows should show principal and interest collected.</p>
+            <p className="text-sm text-slate-600">Shows all installments for the selected loan, including expected principal/interest, collections, and status.</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[860px] text-left text-sm">
               <thead className="text-slate-500">
                 <tr>
-                  {['Inst.', 'Due Date', 'Expected', 'Principal Collected', 'Interest Collected', 'Status'].map((heading) => <th className="p-3 font-black" key={heading}>{heading}</th>)}
+                  {['Inst.', 'Due Date', 'Principal', 'Interest', 'Expected', 'Principal Collected', 'Interest Collected', 'Status'].map((heading) => <th className="p-3 font-black" key={heading}>{heading}</th>)}
                 </tr>
               </thead>
               <tbody>
-                {selectedSchedule.map((row) => (
+                {schedule.map((row) => (
                   <tr key={row.id} className="border-t">
                     <td className="p-3 font-black">{row.installment_number}</td>
                     <td className="p-3">{dateOnly(row.due_date)}</td>
+                    <td className="p-3">{money(row.expected_principal)}</td>
+                    <td className="p-3">{money(row.expected_interest)}</td>
                     <td className="p-3">{money(row.expected_total)}</td>
                     <td className="p-3">{money(row.collected_principal)}</td>
                     <td className="p-3">{money(row.collected_interest)}</td>
@@ -246,6 +248,7 @@ export default function AdminServicingDashboard() {
               </tbody>
             </table>
           </div>
+          {!loading && selectedLoan && schedule.length === 0 && <p className="p-6 text-slate-500">No payment schedule rows were returned for loan #{selectedLoan}.</p>}
         </section>
 
         <section className="mt-6 overflow-hidden rounded-2xl border bg-white shadow-sm">
@@ -261,7 +264,7 @@ export default function AdminServicingDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {payments.map((payment) => (
+                {selectedPayments.map((payment) => (
                   <tr key={payment.id} className="border-t">
                     <td className="p-3 font-black">{payment.payment_number ?? '—'}</td>
                     <td className="p-3">#{payment.loan_number}</td>
@@ -276,13 +279,14 @@ export default function AdminServicingDashboard() {
               </tbody>
             </table>
           </div>
+          {!loading && selectedPayments.length === 0 && <p className="p-6 text-slate-500">No borrower payment records were returned for {selectedLoan ? `loan #${selectedLoan}` : "the selected loan"}.</p>}
         </section>
 
-        <section className="mt-6 rounded-2xl border bg-slate-950 p-5 text-white shadow-sm">
-          <h2 className="text-xl font-black">Admin JSON summary RPC</h2>
-          <p className="mt-1 text-sm text-slate-300">Backed by public.admin_servicing_summary_v4().</p>
+        <details className="mt-6 rounded-2xl border bg-slate-950 p-5 text-white shadow-sm">
+          <summary className="cursor-pointer text-xl font-black">Developer diagnostics · Admin JSON summary RPC</summary>
+          <p className="mt-3 text-sm text-slate-300">Backed by public.admin_servicing_summary_v4(). This raw response is collapsed by default.</p>
           <pre className="mt-4 max-h-[420px] overflow-auto rounded-xl bg-black/40 p-4 text-xs text-emerald-100">{compactJson(summary)}</pre>
-        </section>
+        </details>
       </div>
     </AppLayout>
   );

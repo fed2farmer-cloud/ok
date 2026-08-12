@@ -867,6 +867,20 @@ export default function AdminDashboard() {
           <AdminPropertyPhotoReview />
         </AdminAccordionSection>
 
+        <AdminAccordionSection title="Loan servicing & reconciliation" eyebrow="Servicing workspace">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-black text-slate-950">Servicing dashboard</h2>
+            <p className="mt-2 text-sm text-slate-600">Review payment schedules, borrower payments, collected principal and interest, missed installments, and reconciliation exceptions.</p>
+            <button
+              type="button"
+              onClick={() => navigate("/admin/servicing")}
+              className="mt-4 rounded-xl bg-slate-950 px-5 py-3 font-black text-white shadow-sm hover:bg-slate-800"
+            >
+              Open Servicing Dashboard →
+            </button>
+          </section>
+        </AdminAccordionSection>
+
         {/* Analytics Charts */}
         <AdminAccordionSection title="Reports and analytics" eyebrow="Portfolio overview">
         <section className="grid gap-6 lg:grid-cols-2">
