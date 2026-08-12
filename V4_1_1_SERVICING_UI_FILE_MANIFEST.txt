@@ -1,0 +1,23 @@
+SecuredLanding v4.1.1 Servicing UI
+
+MODIFIED FILES
+1. src/pages/AdminServicingDashboard.tsx
+   - Shows all payment schedule installments instead of only the first 12.
+   - Adds expected principal and expected interest columns.
+   - Filters recent borrower payment records to the selected loan.
+   - Adds clear empty-state messages when schedule/payment rows are unavailable.
+   - Moves raw admin JSON RPC output into a collapsed Developer diagnostics section.
+   - Preserves the Admin Dashboard return link and existing servicing calculations/actions.
+
+2. src/pages/AdminDashboard.tsx
+   - Adds a Loan servicing & reconciliation admin section.
+   - Adds an Open Servicing Dashboard button linking to /admin/servicing.
+
+NEW FILES
+3. V4_1_1_SERVICING_UI_FILE_MANIFEST.txt
+   - Documents this release and its test result.
+
+TEST
+npm run build
+PASS - Vite production build completed successfully (147 modules transformed).
+Note: Vite reports a non-fatal bundle-size warning for a JS chunk over 500 kB.
