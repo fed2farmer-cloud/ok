@@ -1,0 +1,17 @@
+SecuredLanding v4.1.2 — Servicing Detail Fix
+
+MODIFIED
+- src/pages/AdminServicingDashboard.tsx
+  Uses the admin-only servicing detail RPC for the selected loan schedule and borrower payment rows, avoiding direct-table RLS visibility problems.
+
+NEW
+- supabase/migrations/20260812_v4_1_2_admin_servicing_detail_rpc.sql
+  Adds admin_servicing_loan_detail_v4(bigint), returning schedule and borrower-payment details for an authenticated admin only.
+
+IMPORTANT DEPLOYMENT STEP
+Run the new SQL migration in Supabase SQL Editor before testing the detailed schedule/payment sections.
+
+Expected loan #977005 after migration:
+- 60 schedule rows
+- existing borrower payment record(s) visible
+- summary totals remain unchanged

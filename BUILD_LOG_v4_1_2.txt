@@ -1,0 +1,18 @@
+SecuredLanding v4.1.2 validation
+
+Static/package checks: PASS
+- Existing source paths preserved.
+- App route/import for AdminServicingDashboard preserved.
+- New migration is non-destructive and admin-gated through admin_users/auth.uid().
+- Frontend RPC name and SQL function name match: admin_servicing_loan_detail_v4.
+
+Clean npm build in this container: NOT COMPLETED
+- Fresh dependency installation could not be completed in the execution environment, so npm run build could not be truthfully marked PASS here.
+- Vercel should install dependencies and run the production build during deployment.
+
+Database test required after deployment:
+1. Run supabase/migrations/20260812_v4_1_2_admin_servicing_detail_rpc.sql in Supabase SQL Editor.
+2. Deploy frontend.
+3. Open Admin > Loan Servicing & Reconciliation.
+4. Select loan #977005.
+5. Confirm 60 schedule rows and borrower payment records populate.
