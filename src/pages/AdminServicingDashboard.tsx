@@ -101,21 +101,26 @@ export default function AdminServicingDashboard() {
     const servicingRows = (servicingResult.data || []) as ServicingRow[];
     setRows(servicingRows);
     setExceptions((exceptionResult.data || []) as ExceptionRow[]);
-    setPayments((paymentResult.data || []) as BorrowerPaymentRow[]);
+    // Direct paymentResult remains useful as a connectivity probe; selected-loan details are loaded through the admin-only RPC below.
+    if (paymentResult.error) console.warn("Direct borrower payment read unavailable:", paymentResult.error.message);
 
     const nextLoan = targetLoan ?? servicingRows.find((row) => row.loan_number)?.loan_number ?? null;
     setSelectedLoan(nextLoan);
 
     if (nextLoan) {
-      const scheduleResult = await supabase
-        .from("loan_payment_schedule")
-        .select("id, loan_number, installment_number, due_date, expected_principal, expected_interest, expected_total, collected_principal, collected_interest, status")
-        .eq("loan_number", nextLoan)
-        .order("installment_number", { ascending: true })
-        .limit(120);
-      setSchedule((scheduleResult.data || []) as ScheduleRow[]);
+      const detailResult = await supabase.rpc("admin_servicing_loan_detail_v4", { p_loan_number: nextLoan });
+      if (detailResult.error) {
+        setSchedule([]);
+        setPayments([]);
+        setActionMessage(`Servicing detail RPC not available yet: ${detailResult.error.message}. Run the v4.1.2 Supabase migration included in this package.`);
+      } else {
+        const detail = (detailResult.data || {}) as { schedule?: ScheduleRow[]; payments?: BorrowerPaymentRow[] };
+        setSchedule(Array.isArray(detail.schedule) ? detail.schedule : []);
+        setPayments(Array.isArray(detail.payments) ? detail.payments : []);
+      }
     } else {
       setSchedule([]);
+      setPayments([]);
     }
 
     setLoading(false);
