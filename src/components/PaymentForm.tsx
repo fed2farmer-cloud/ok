@@ -13,7 +13,7 @@ export default function PaymentForm() {
 
   const cleanAmount = Number(amount || 0).toFixed(2);
 
-  async function saveInvestment() {
+  async function saveInvestment(processorTransactionId: string) {
     if (!supabase) {
       alert("Supabase is not configured.");
       return false;
@@ -45,6 +45,7 @@ export default function PaymentForm() {
       p_loan_number: publicLoanNumber,
       p_total_amount: totalAmount,
       p_wallet_amount: Math.max(walletAmount, 0),
+      p_processor_transaction_id: processorTransactionId,
     });
 
     if (error) {
@@ -113,9 +114,16 @@ export default function PaymentForm() {
           }));
 
           if (data.success) {
-            setPaymentStatus("Payment successful!");
+            const processorTransactionId = String(data.transactionId || "").trim();
+            if (!processorTransactionId) {
+              const message = "Processor approved the payment but did not return a transaction ID. Do not retry; contact support for reconciliation.";
+              setPaymentStatus(message);
+              return message;
+            }
 
-            const saved = await saveInvestment();
+            setPaymentStatus(`Payment approved. Finalizing investment… (Txn ${processorTransactionId})`);
+
+            const saved = await saveInvestment(processorTransactionId);
 
             if (!saved) {
               return "Payment worked, but investment was not saved.";
