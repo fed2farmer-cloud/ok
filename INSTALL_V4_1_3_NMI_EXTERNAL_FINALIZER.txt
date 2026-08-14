@@ -1,0 +1,15 @@
+SecuredLanding v4.1.3 - NMI External Investment Finalizer
+
+1. In Supabase SQL Editor, run:
+   supabase/migrations/20260814_v4_1_3_nmi_external_investment_finalizer.sql
+2. Confirm the verification row shows:
+   finalize_external_investment_v1(bigint,numeric,numeric,text)
+3. Deploy this project to Vercel.
+4. Confirm Vercel has NMI_API_KEY, NMI_API_ENDPOINT (if customized), and VITE_NMI_TOKENIZATION_KEY.
+5. Do NOT retry any old/unconfirmed card attempt. Test with a new small authorized transaction only after the migration and deployment are live.
+
+Safety changes:
+- NMI approval is accepted only when response=1 AND transactionid is present.
+- Frontend passes the processor transaction ID to Supabase finalization.
+- Processor transaction IDs are unique/idempotent, preventing duplicate certificates from retries.
+- Wallet-only investing remains on invest_from_wallet_atomic_v1 and is not changed by this patch.

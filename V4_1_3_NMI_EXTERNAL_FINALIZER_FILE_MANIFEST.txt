@@ -1,0 +1,15 @@
+SecuredLanding v4.1.3 - New / Modified Files
+
+MODIFIED
+- api/process-payment.ts
+  Parses NMI's URL-encoded response strictly, requires response=1 and a transaction ID, and returns transactionId to the frontend. Removes the unsafe loose substring success check.
+- src/components/PaymentForm.tsx
+  Requires the processor transaction ID after card approval and passes it into the external-investment finalizer. Prevents silent finalization without an auditable processor reference.
+
+NEW
+- supabase/migrations/20260814_v4_1_3_nmi_external_investment_finalizer.sql
+  Installs the 4-argument retry-safe external finalizer and unique processor-transaction protection.
+- INSTALL_V4_1_3_NMI_EXTERNAL_FINALIZER.txt
+  Installation/deployment instructions.
+- V4_1_3_NMI_EXTERNAL_FINALIZER_FILE_MANIFEST.txt
+  This file manifest.
