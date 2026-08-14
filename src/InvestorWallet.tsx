@@ -81,7 +81,14 @@ export default function InvestorWallet() {
     }
     setWallet(walletData);
 
-    const { data: investmentData } = await supabase.from("investments").select("*").eq("investor_id", user.id).order("created_at", { ascending: false });
+    // Portfolio ownership follows current_owner_id after a transfer; investor_id remains
+    // the original purchaser. Only active positions belong in the invested balance.
+    const { data: investmentData } = await supabase
+      .from("investments")
+      .select("*")
+      .or(`investor_id.eq.${user.id},current_owner_id.eq.${user.id}`)
+      .eq("status", "active")
+      .order("created_at", { ascending: false });
     setInvestments(investmentData || []);
 
     const { data: txData } = await supabase.from("wallet_transactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
