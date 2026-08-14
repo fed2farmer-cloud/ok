@@ -73,24 +73,33 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       return nmiResponse
         .then((response) => response.text())
         .then((text) => {
-          // Parse NMI XML response (or JSON depending on API version)
-          // NMI typically returns XML, but you may need to adjust based on your API version
-          
-          // Simple success check - adjust based on actual NMI response format
-          if (text.includes('success') || text.includes('1')) {
-            console.log('Payment processed successfully');
+          // NMI's direct-post response is normally URL-encoded, e.g.
+          // response=1&responsetext=SUCCESS&transactionid=123456789.
+          // Never infer approval from a loose substring such as text.includes("1").
+          const parsed = new URLSearchParams(text.trim());
+          const responseCode = parsed.get('response');
+          const responseText = parsed.get('responsetext') || 'Payment processing failed.';
+          const transactionId = parsed.get('transactionid') || parsed.get('transaction_id');
+
+          if (responseCode === '1' && transactionId) {
+            console.log('Payment processed successfully', { transactionId });
             return res.status(200).json({
               success: true,
               message: 'Payment processed successfully',
               amount,
-            });
-          } else {
-            console.error('NMI API returned error:', text);
-            return res.status(400).json({
-              success: false,
-              error: 'Payment processing failed. Please try again.',
+              transactionId,
             });
           }
+
+          console.error('NMI API returned non-approved response:', {
+            responseCode,
+            responseText,
+            hasTransactionId: Boolean(transactionId),
+          });
+          return res.status(400).json({
+            success: false,
+            error: responseText,
+          });
         })
         .catch((error) => {
           console.error('NMI API request failed:', error);
