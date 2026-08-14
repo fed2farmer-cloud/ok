@@ -1,0 +1,25 @@
+SecuredLanding Admin Investor Wallet Patch
+Date: 2026-08-14
+
+Purpose
+- Allow an authenticated admin who also owns investments to open the Investor Wallet and My Investments views without removing admin privileges.
+- Ensure Investor Wallet invested totals use active positions owned by either investor_id or current_owner_id, excluding refunded/non-active investments.
+
+Modified source files
+1. src/pages/AdminDashboard.tsx
+   - Added My Investor Wallet button -> /investor-wallet
+   - Added My Investments button -> /investor
+2. src/InvestorWallet.tsx
+   - Active investment query now supports investor_id and current_owner_id ownership.
+   - Filters wallet portfolio positions to status = active.
+
+New file
+- ADMIN_INVESTOR_WALLET_PATCH.txt (this manifest)
+
+Build test
+- Command: npm run build
+- Result: PASS
+- Vite production build completed successfully (147 modules transformed).
+- A non-fatal Vite chunk-size advisory remains; it does not fail the build.
+
+No SQL migration is required for this UI patch.
