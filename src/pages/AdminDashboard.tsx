@@ -790,6 +790,18 @@ export default function AdminDashboard() {
             >
               {refreshing ? "Refreshing…" : "Refresh Data"}
             </button>
+            <button
+              onClick={() => navigate("/investor-wallet")}
+              className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-500"
+            >
+              My Investor Wallet
+            </button>
+            <button
+              onClick={() => navigate("/investor")}
+              className="rounded-xl bg-white/10 px-5 py-2.5 text-sm font-bold hover:bg-white/20"
+            >
+              My Investments
+            </button>
           </div>
         </section>
 
