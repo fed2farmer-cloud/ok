@@ -1,6 +1,7 @@
 import { NmiPayments } from "@nmipayments/nmi-pay-react";
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { getNmiTokenizationKey } from "../lib/nmi";
 
 export default function PaymentForm() {
   const params = new URLSearchParams(window.location.search);
@@ -78,7 +79,7 @@ export default function PaymentForm() {
       {paymentStatus && <div className="mt-3">{paymentStatus}</div>}
 
       <NmiPayments
-        tokenizationKey={import.meta.env.VITE_NMI_TOKENIZATION_KEY}
+        tokenizationKey={getNmiTokenizationKey()}
         paymentMethods={["card"]}
         onPay={async (token) => {
           setPaymentStatus("Processing card with NMI…");
