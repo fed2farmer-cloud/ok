@@ -1,0 +1,16 @@
+SecuredLanding NMI Payment Patch v4.1.4
+
+Modified:
+- api/process-payment.ts
+  - Uses NMI Classic Payment API endpoint selected by NMI_ENVIRONMENT.
+  - Uses security_key/type= sale parameters consistent with wallet-card processing.
+  - Returns the NMI processor transaction ID required by finalize_external_investment_v1.
+  - Keeps timeout and explicit declined/error handling.
+
+Test results:
+- npm run build: PASS
+- npx tsc --noEmit: FAIL due to pre-existing project TypeScript errors in unrelated files (nullability, import casing/missing modules, unused declarations, and existing NMI event typing). The modified api/process-payment.ts did not appear in the TypeScript error list.
+
+Deployment requirement:
+- Vercel NMI_API_KEY must be configured.
+- Set NMI_ENVIRONMENT=sandbox for sandbox testing or production/live for live processing.
