@@ -1,0 +1,12 @@
+SecuredLanding v4.1.5 - NMI Tokenization Environment Fix
+
+Modified:
+- src/components/PaymentForm.tsx
+  - Uses the same getNmiTokenizationKey() environment-aware selector already used by InvestorWallet.
+  - Stops the investment card form from always using the generic VITE_NMI_TOKENIZATION_KEY when sandbox/live-specific keys are configured.
+
+Reason:
+- Live test reached NMI but returned Invalid payment token.
+- This aligns browser token generation with the configured NMI environment/key selection.
+
+No database/RPC changes are included.
