@@ -1,21 +1,28 @@
 /**
- * NMI public tokenization configuration.
- * Keep the browser tokenization key paired with the same merchant environment
- * as the private server-side NMI_API_KEY.
+ * NMI browser tokenization configuration.
+ *
+ * Preferred variable for the current SecuredLanding deployment:
+ *   VITE_NMI_PUBLIC_KEY
+ *
+ * Legacy names are retained as fallbacks so older deployments do not break.
+ * The public tokenization key is intentionally browser-safe; private merchant
+ * API keys must remain server-side only.
  */
 export function getNmiTokenizationKey(): string {
+  const directKey = import.meta.env.VITE_NMI_PUBLIC_KEY;
+  if (directKey) return String(directKey).trim();
+
   const env = String(import.meta.env.VITE_NMI_ENVIRONMENT || "sandbox").toLowerCase();
   const isLive = env === "production" || env === "live";
-  const key = isLive
+  const legacyKey = isLive
     ? (import.meta.env.VITE_NMI_LIVE_TOKENIZATION_KEY || import.meta.env.VITE_NMI_TOKENIZATION_KEY)
     : (import.meta.env.VITE_NMI_SANDBOX_TOKENIZATION_KEY || import.meta.env.VITE_NMI_TOKENIZATION_KEY);
 
-  if (!key) {
+  if (!legacyKey) {
     throw new Error(
-      isLive
-        ? "NMI live tokenization key is not configured."
-        : "NMI sandbox tokenization key is not configured."
+      "NMI public tokenization key is not configured. Set VITE_NMI_PUBLIC_KEY."
     );
   }
-  return String(key);
+
+  return String(legacyKey).trim();
 }
