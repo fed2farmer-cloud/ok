@@ -1,0 +1,30 @@
+SecuredLanding v4.1.6 — NMI Payment Component + REST API alignment
+
+BASE
+- Built directly from SecuredLanding-NMI-Tokenization-Fix-v4.1.5.zip.
+
+MODIFIED FILES
+1) src/lib/nmi.ts
+   - Uses the Vercel variable already configured on SecuredLanding:
+     VITE_NMI_PUBLIC_KEY
+   - Retains previous tokenization variable names only as fallbacks.
+
+2) api/process-payment.ts
+   - Uses NMI's current v5 JSON sale flow instead of the Classic transact.php flow.
+   - Uses NMI_SECURITY_KEY first (the Vercel variable already configured).
+   - Sends the private key in the Authorization header.
+   - Sends the token as payment_details.payment_token.
+   - Sandbox endpoint is the default while testing guide.nmi.com sandbox merchant keys.
+   - Set NMI_ENVIRONMENT=production only after replacing BOTH merchant keys with production keys.
+
+IMPORTANT TEST CONFIGURATION
+- VITE_NMI_PUBLIC_KEY = NMI public Merchant Key with tokenization/payment-component permission.
+- NMI_SECURITY_KEY = matching private Merchant Key with Payment/Query API permission.
+- For the current guide.nmi.com test keys, leave NMI_ENVIRONMENT unset or set it to sandbox.
+- NMI_GATEWAY_URL is no longer used by this v5 endpoint.
+
+TEST PLAN AFTER DEPLOYMENT
+1. Redeploy because VITE_* variables are build-time frontend variables.
+2. Open /api/process-payment with GET; it should report the NMI v5 API is running and environment=sandbox.
+3. Run one $100 Debit/Credit test using the NMI sandbox test card.
+4. If approved, verify nmi_payment_transactions and the matching investment/certificate.
