@@ -1,7 +1,7 @@
 import { NmiPayments } from "@nmipayments/nmi-pay-react";
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import { getNmiTokenizationKey } from "../lib/nmi";
+import { getNmiBrowserDiagnostics, getNmiTokenizationKey } from "../lib/nmi";
 
 export default function PaymentForm() {
   const params = new URLSearchParams(window.location.search);
@@ -13,6 +13,7 @@ export default function PaymentForm() {
   const [paymentStatus, setPaymentStatus] = useState("");
 
   const cleanAmount = Number(amount || 0).toFixed(2);
+  const nmiDiagnostics = getNmiBrowserDiagnostics();
 
   async function saveInvestment(processorTransactionId: string) {
     if (!supabase) {
@@ -78,10 +79,15 @@ export default function PaymentForm() {
 
       {paymentStatus && <div className="mt-3">{paymentStatus}</div>}
 
+      <div className="mt-2 mb-3 text-xs text-slate-500" data-testid="nmi-config-status">
+        NMI: {nmiDiagnostics.environment} · key {nmiDiagnostics.keySource}
+      </div>
+
       <NmiPayments
         tokenizationKey={getNmiTokenizationKey()}
         paymentMethods={["card"]}
-        onPay={async (token) => {
+        onPay={async (event) => {
+          const paymentToken = event.token;
           setPaymentStatus("Processing card with NMI…");
           const controller = new AbortController();
           const timeout = window.setTimeout(() => controller.abort(), 20000);
@@ -92,7 +98,7 @@ export default function PaymentForm() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                paymentToken: token,
+                paymentToken,
                 amount: Number(cleanAmount),
               }),
               signal: controller.signal,
