@@ -12,9 +12,9 @@ export function getNmiBrowserEnvironment(): NmiBrowserEnvironment {
   if (env === "live" || env === "production") return "live";
   if (env === "sandbox" || env === "test") return "sandbox";
 
-  // If no browser environment is explicitly configured, preserve backwards
-  // compatibility with the generic public key. Production deployments should
-  // set VITE_NMI_ENVIRONMENT explicitly.
+  // securedlanding.com is production. Do not label the production site sandbox
+  // merely because VITE_NMI_ENVIRONMENT was omitted at build time.
+  if (typeof window !== "undefined" && /(^|\.)securedlanding\.com$/i.test(window.location.hostname)) return "live";
   return "sandbox";
 }
 
