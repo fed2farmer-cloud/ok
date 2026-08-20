@@ -1,0 +1,43 @@
+SecuredLanding v4.1.8 - NMI environment pairing + safe diagnostics
+
+ROOT CAUSE FOUND IN v4.1.7:
+- api/process-payment.ts defaulted NMI_ENVIRONMENT to "sandbox".
+- The Vercel configuration shown for SecuredLanding has NMI_GATEWAY_URL but no
+  NMI_ENVIRONMENT variable.
+- Therefore v4.1.7 always submitted Payment Component tokens to
+  https://sandbox.nmi.com/api/v5/payments/sale even when the configured merchant
+  keys/gateway were live.
+- NMI tokens are environment/account bound; sending a live token to sandbox can
+  produce "Invalid payment token".
+
+MODIFIED:
+- api/process-payment.ts
+
+CHANGES:
+1. Honor NMI_ENVIRONMENT when explicitly set.
+2. Otherwise infer sandbox/live from the existing NMI_GATEWAY_URL variable.
+   A URL containing "sandbox" uses sandbox; the configured secure/live gateway
+   uses https://secure.nmi.com/api/v5/payments/sale.
+3. If neither variable exists, production-safe default is the live v5 endpoint
+   rather than silently defaulting to sandbox.
+4. Keep NMI_SECURITY_KEY server-side and VITE_NMI_PUBLIC_KEY browser-side.
+5. Send amount as an x.xx string to match NMI v5 examples.
+6. Add safe diagnostics: token presence/length, selected environment, selection
+   source and endpoint host. The token and card data are NEVER logged.
+7. GET /api/process-payment now reports the selected environment and endpoint
+   host without exposing credentials.
+
+NO DATABASE/SUPABASE CHANGES.
+NO WALLET/MARKETPLACE/CERTIFICATE CHANGES.
+NO CARD OR TOKEN VALUES ARE LOGGED.
+
+DEPLOYMENT TEST:
+A. Deploy this ZIP/redeploy Vercel.
+B. Before attempting a payment, open:
+      https://securedlanding.com/api/process-payment
+   Expected for the currently configured secure NMI_GATEWAY_URL:
+      environment: live
+      environmentSource: NMI_GATEWAY_URL
+      endpointHost: secure.nmi.com
+C. Only after B matches, run one payment test appropriate for that NMI account.
+   Do not use sandbox test card numbers against a live/standard merchant account.

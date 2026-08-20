@@ -1,0 +1,19 @@
+SecuredLanding v4.1.9 — NMI live tokenization key pairing fix
+
+Modified:
+- src/lib/nmi.ts
+  * VITE_NMI_ENVIRONMENT now selects the matching environment-specific browser key FIRST.
+  * live/production -> VITE_NMI_LIVE_TOKENIZATION_KEY
+  * sandbox/test -> VITE_NMI_SANDBOX_TOKENIZATION_KEY
+  * VITE_NMI_PUBLIC_KEY / VITE_NMI_TOKENIZATION_KEY remain compatibility fallbacks only.
+  * Adds safe diagnostics without exposing any key material.
+- src/components/PaymentForm.tsx
+  * Displays safe NMI environment/key-source status for deployment testing.
+
+Required Vercel production variables:
+NMI_ENVIRONMENT=production
+VITE_NMI_ENVIRONMENT=production
+NMI_SECURITY_KEY=<LIVE PRIVATE merchant API key>
+VITE_NMI_LIVE_TOKENIZATION_KEY=<LIVE PUBLIC tokenization key from same merchant>
+
+Important: redeploy after changing any VITE_* variable because Vite embeds browser variables at build time.
