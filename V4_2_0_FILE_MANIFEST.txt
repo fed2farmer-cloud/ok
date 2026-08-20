@@ -1,0 +1,10 @@
+SecuredLanding v4.2.0
+
+MODIFIED
+- src/components/PaymentForm.tsx
+- src/lib/nmi.ts
+
+NEW
+- supabase/migrations/20260820_v4_2_0_nmi_investment_finalize_repair.sql
+- V4_2_0_INSTALL.txt
+- V4_2_0_FILE_MANIFEST.txt

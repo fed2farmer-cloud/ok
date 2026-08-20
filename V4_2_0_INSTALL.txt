@@ -1,0 +1,8 @@
+SecuredLanding v4.2.0
+
+1. Run supabase/migrations/20260820_v4_2_0_nmi_investment_finalize_repair.sql in the Supabase SQL Editor.
+2. Deploy this ZIP to Vercel.
+3. Confirm /api/process-payment reports environment live before another real-card test.
+4. Use a small test only after the database migration succeeds.
+
+This release repairs the post-approval investment finalizer and corrects production browser environment diagnostics.
