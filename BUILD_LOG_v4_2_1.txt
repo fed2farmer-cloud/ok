@@ -1,0 +1,20 @@
+SecuredLanding v4.2.1 build/validation log
+
+Production npm build in this container: NOT COMPLETED
+Reason: the extracted package contains an incomplete node_modules directory and no node_modules/.bin/vite executable. An offline dependency reinstall could not be completed in this runtime.
+
+Static validation: PASS
+- api/process-payment.ts exists and contains NMI v5 /api/v5/payments/sale flow.
+- src/components/PaymentForm.tsx passes event.token and p_processor_transaction_id.
+- src/lib/nmi.ts contains live/sandbox environment-aware key selection.
+- v4.2.1 baseline migration contains the verified 4-argument finalize_external_investment_v1.
+- refresh_loan_funding_totals accepts public loan_number and resolves investments through loan application ID.
+- no test NMI transaction IDs or manual recovery inserts are included in the migration.
+
+Live production verification before packaging: PASS
+- NMI transaction approved and recorded.
+- NMI transaction linked to investment record.
+- investment certificate visible on investor dashboard.
+- loan amount_funded and amount_remaining updated correctly.
+
+ZIP integrity is tested separately during packaging.

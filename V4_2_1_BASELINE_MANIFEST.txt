@@ -1,0 +1,28 @@
+SecuredLanding v4.2.1 - Live Payment Pipeline Baseline
+
+BASE
+- Built from SecuredLanding v4.2.0/v4.1.9 code after live end-to-end verification.
+
+NEW
+- supabase/migrations/20260820_v4_2_1_live_payment_pipeline_baseline.sql
+- V4_2_1_BASELINE_MANIFEST.txt
+- BUILD_LOG_v4_2_1.txt
+
+PRESERVED WORKING CODE
+- api/process-payment.ts: NMI v5 sale request, environment-aware live/sandbox routing, safe diagnostics.
+- src/components/PaymentForm.tsx: event.token handling, processor transaction ID handoff, post-approval finalization.
+- src/lib/nmi.ts: live/sandbox tokenization-key selection.
+
+DATABASE REPAIRS CONSOLIDATED
+- nmi_payment_transactions.investment_id
+- unique NMI transaction ID index
+- unique investor_wallets.user_id index
+- corrected refresh_loan_funding_totals(bigint public loan number)
+- corrected 4-argument finalize_external_investment_v1
+- avoids double-incrementing invested_balance when the investment-trigger sync is active
+
+LIVE VERIFICATION COMPLETED BEFORE BASELINE
+- NMI approved transaction recorded.
+- Investment linked to NMI transaction.
+- Investment certificate visible on investor dashboard.
+- Loan funding total/remaining balance updated.
