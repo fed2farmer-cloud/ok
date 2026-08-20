@@ -51,7 +51,8 @@ export default function PaymentForm() {
     });
 
     if (error) {
-      alert("Payment worked, but investment finalization failed: " + error.message);
+      console.error("Investment finalization failed", error);
+      setPaymentStatus(`Payment approved (Txn ${processorTransactionId}), but database finalization failed: ${error.message}. Do not retry the card payment.`);
       return false;
     }
 
