@@ -20,6 +20,8 @@ type MarketplaceLoan = {
   funding_goal?: number | null;
   amount_funded?: number | null;
   amount_remaining?: number | null;
+  sold_amount?: number | null;
+  protected_amount?: number | null;
   investor_interest_rate?: number | null;
   repayment_term_months?: number | null;
   status?: string | null;
@@ -97,7 +99,7 @@ function InvestorMarketplace() {
         return;
       }
 
-      const [walletResult, loanResult] = await Promise.all([
+      const [walletResult, loanResult, fundingResult] = await Promise.all([
         supabase
           .from("investor_wallets")
           .select("available_balance,invested_balance")
@@ -108,12 +110,34 @@ function InvestorMarketplace() {
           .select("*")
           .eq("status", "Open")
           .order("created_at", { ascending: false }),
+        supabase
+          .from("marketplace_funding_breakdown_v1")
+          .select("loan_application_id,loan_number,funding_goal,sold_amount,protected_amount"),
       ]);
 
       if (walletResult.error) throw walletResult.error;
       if (loanResult.error) throw loanResult.error;
 
-      const nextLoans = (loanResult.data || []) as MarketplaceLoan[];
+      const fundingMap = new Map<string, Record<string, unknown>>();
+      if (!fundingResult.error) {
+        for (const row of fundingResult.data || []) {
+          const key = String(row.loan_application_id ?? row.loan_number ?? "");
+          if (key) fundingMap.set(key, row as Record<string, unknown>);
+        }
+      }
+
+      const nextLoans = ((loanResult.data || []) as MarketplaceLoan[]).map((loan) => {
+        const funding = fundingMap.get(String(loan.loan_application_id)) ||
+          fundingMap.get(String(loan.loan_number ?? ""));
+        if (!funding) return loan;
+        return {
+          ...loan,
+          funding_goal: Number(funding.funding_goal ?? loan.funding_goal ?? loan.loan_amount ?? 0),
+          sold_amount: Number(funding.sold_amount ?? 0),
+          protected_amount: Number(funding.protected_amount ?? 0),
+        };
+      });
+
       setWallet((walletResult.data as InvestorWallet | null) || null);
       setLoans(nextLoans);
 
@@ -201,10 +225,9 @@ function InvestorMarketplace() {
       if (sortMode === "funded") {
         const aGoal = Math.max(Number(a.funding_goal ?? a.loan_amount ?? 1), 1);
         const bGoal = Math.max(Number(b.funding_goal ?? b.loan_amount ?? 1), 1);
-        return (
-          Number(b.amount_funded || 0) / bGoal -
-          Number(a.amount_funded || 0) / aGoal
-        );
+        const aCommitted = Number(a.sold_amount ?? a.amount_funded ?? 0) + Number(a.protected_amount ?? 0);
+        const bCommitted = Number(b.sold_amount ?? b.amount_funded ?? 0) + Number(b.protected_amount ?? 0);
+        return bCommitted / bGoal - aCommitted / aGoal;
       }
       return (
         new Date(b.created_at || 0).getTime() -
@@ -490,12 +513,13 @@ function InvestorMarketplace() {
         <div className="space-y-7">
           {visibleLoans.map((loan) => {
             const goal = Number(loan.funding_goal ?? loan.loan_amount ?? 0);
-            const funded = Number(loan.amount_funded || 0);
-            const remaining = Math.max(
-              Number(loan.amount_remaining ?? goal - funded),
-              0
-            );
-            const progress = goal > 0 ? Math.min((funded / goal) * 100, 100) : 0;
+            const sold = Math.max(Number(loan.sold_amount ?? loan.amount_funded ?? 0), 0);
+            const pending = Math.max(Number(loan.protected_amount ?? 0), 0);
+            const committed = Math.min(sold + pending, goal);
+            const remaining = Math.max(goal - committed, 0);
+            const soldPct = goal > 0 ? Math.min((sold / goal) * 100, 100) : 0;
+            const pendingPct = goal > 0 ? Math.min((pending / goal) * 100, Math.max(100 - soldPct, 0)) : 0;
+            const committedPct = goal > 0 ? Math.min((committed / goal) * 100, 100) : 0;
             const amount = Number(amounts[loan.id] || 0);
             const available = Number(wallet?.available_balance || 0);
             const method =
@@ -559,18 +583,55 @@ function InvestorMarketplace() {
                 </div>
 
                 <div className="mt-6">
-                  <div className="mb-2 flex justify-between text-sm">
-                    <span>{money(funded)} funded</span>
-                    <span>{progress.toFixed(0)}%</span>
+                  <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+                    <span className="font-semibold text-slate-200">Funding Progress</span>
+                    <span className="text-slate-400">{committedPct.toFixed(1)}% committed</span>
                   </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-slate-700">
-                    <div
-                      className="h-full rounded-full bg-emerald-500"
-                      style={{ width: `${progress}%` }}
-                    />
+
+                  <div
+                    className="flex h-4 overflow-hidden rounded-full bg-slate-600"
+                    role="img"
+                    aria-label={`${money(sold)} sold, ${money(pending)} pending, ${money(remaining)} available`}
+                  >
+                    {soldPct > 0 && (
+                      <div
+                        className="h-full bg-emerald-500"
+                        style={{ width: `${soldPct}%` }}
+                        title={`${money(sold)} sold`}
+                      />
+                    )}
+                    {pendingPct > 0 && (
+                      <div
+                        className="h-full bg-yellow-400"
+                        style={{ width: `${pendingPct}%` }}
+                        title={`${money(pending)} pending / protection`}
+                      />
+                    )}
                   </div>
+
+                  <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+                    <div className="rounded-xl border border-emerald-800 bg-emerald-950/50 px-3 py-2">
+                      <div className="flex items-center gap-2 font-bold text-emerald-300">
+                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Sold
+                      </div>
+                      <div className="mt-1 text-slate-100">{money(sold)}</div>
+                    </div>
+                    <div className="rounded-xl border border-yellow-700 bg-yellow-950/30 px-3 py-2">
+                      <div className="flex items-center gap-2 font-bold text-yellow-300">
+                        <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" /> Pending
+                      </div>
+                      <div className="mt-1 text-slate-100">{money(pending)}</div>
+                    </div>
+                    <div className="rounded-xl border border-slate-600 bg-slate-800 px-3 py-2">
+                      <div className="flex items-center gap-2 font-bold text-slate-300">
+                        <span className="h-2.5 w-2.5 rounded-full bg-slate-500" /> Available
+                      </div>
+                      <div className="mt-1 text-slate-100">{money(remaining)}</div>
+                    </div>
+                  </div>
+
                   <div className="mt-2 text-right text-sm text-slate-400">
-                    {money(goal)} goal
+                    {money(goal)} funding goal
                   </div>
                 </div>
 
