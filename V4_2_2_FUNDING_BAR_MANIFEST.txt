@@ -1,0 +1,27 @@
+SecuredLanding v4.2.2 - Three-State Marketplace Funding Bar
+
+MODIFIED
+- src/pages/InvestorMarketplace.tsx
+  * Reads marketplace_funding_breakdown_v1 and merges it into the existing marketplace loan records.
+  * Funding bar now has three visual states:
+      GREEN = Sold / fully invested
+      YELLOW = Pending / investor protection period
+      GRAY = Available / unsold
+  * Shows dollar amounts for Sold, Pending, and Available beneath the bar.
+  * Remaining investable amount is calculated from Sold + Pending so protected funds cannot be oversold.
+  * "Most funded" sorting uses total committed (Sold + Pending).
+  * Falls back to existing marketplace fields if the funding-breakdown view is unavailable.
+
+NEW
+- supabase/migrations/20260821_v4_2_2_marketplace_funding_breakdown.sql
+  * Creates/replaces public.marketplace_funding_breakdown_v1.
+  * Sold statuses: active, funded, completed, settled.
+  * Pending status: protection_period.
+  * Excludes refunded/cancelled/canceled/failed investments.
+
+EXPECTED EXAMPLE - Loan #352552
+- Goal: $500,000
+- Green Sold: $25,200
+- Yellow Pending: $100
+- Gray Available: $474,700
+- Sold + Pending + Available = Goal
