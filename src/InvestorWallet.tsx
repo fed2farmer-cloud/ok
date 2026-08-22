@@ -89,7 +89,20 @@ export default function InvestorWallet() {
       .or(`investor_id.eq.${user.id},current_owner_id.eq.${user.id}`)
       .eq("status", "active")
       .order("created_at", { ascending: false });
-    setInvestments(investmentData || []);
+    const rawInvestments = investmentData || [];
+    const loanIds = [...new Set(rawInvestments.map((inv: any) => inv.loan_id).filter(Boolean))];
+    let loanNumberById = new Map<any, any>();
+    if (loanIds.length > 0) {
+      const { data: loanRows } = await supabase
+        .from("loan_applications")
+        .select("id, loan_number")
+        .in("id", loanIds);
+      loanNumberById = new Map((loanRows || []).map((loan: any) => [loan.id, loan.loan_number]));
+    }
+    setInvestments(rawInvestments.map((inv: any) => ({
+      ...inv,
+      public_loan_number: loanNumberById.get(inv.loan_id) ?? inv.loan_number ?? inv.loan_id,
+    })));
 
     const { data: txData } = await supabase.from("wallet_transactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     setTransactions(txData || []);
@@ -371,7 +384,7 @@ export default function InvestorWallet() {
                   <div key={inv.id} className="px-6 py-5">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <p className="font-semibold text-slate-800">Loan #{inv.loan_id}</p>
+                        <p className="font-semibold text-slate-800">Loan #{inv.public_loan_number ?? inv.loan_id}</p>
                         <p className="text-xs text-slate-500">{rate}% · {months} months</p>
                         {inv.certificate_number && (
                           <p className="mt-2 break-all font-mono text-[11px] font-bold text-amber-700">
