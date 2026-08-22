@@ -548,7 +548,7 @@ function InvestorMarketplace() {
                     <p className="mt-1 text-slate-400">Loan #{loanNumber}</p>
                   </div>
                   <span className="rounded-full bg-emerald-950 px-4 py-2 font-bold text-emerald-300">
-                    {loan.status || "Open"}
+                    {remaining <= 0 ? "Fully Committed" : (loan.status || "Open")}
                   </span>
                 </div>
 
@@ -635,6 +635,13 @@ function InvestorMarketplace() {
                   </div>
                 </div>
 
+                {remaining <= 0 ? (
+                  <div className="mt-6 rounded-2xl border border-emerald-700 bg-emerald-950/60 p-4">
+                    <p className="font-black text-emerald-300">Fully Committed / Funding Complete</p>
+                    <p className="mt-1 text-sm text-slate-300">This loan has no investment capacity remaining. New investments are disabled.</p>
+                  </div>
+                ) : (
+                <>
                 <div className="mt-6">
                   <label className="mb-2 block font-bold" htmlFor={`amount-${loan.id}`}>
                     Investment amount
@@ -808,6 +815,8 @@ function InvestorMarketplace() {
                     </button>
                   )}
                 </section>
+                </>
+                )}
               </article>
             );
           })}
