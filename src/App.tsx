@@ -22,6 +22,7 @@ import TaxCenter from "./pages/TaxCenter";
 import AdminTaxDashboard from "./pages/AdminTaxDashboard";
 import AdminFinancialLedger from "./pages/AdminFinancialLedger";
 import AdminServicingDashboard from "./pages/AdminServicingDashboard";
+import AdminFundingDisbursement from "./pages/AdminFundingDisbursement";
 import BorrowerRepayments from "./pages/BorrowerRepayments";
 import SecondaryMarket from "./pages/SecondaryMarket";
 
@@ -64,6 +65,7 @@ export default function App() {
         <Route path="/admin/tax" element={<AdminTaxDashboard />} />
         <Route path="/admin/ledger" element={<AdminFinancialLedger />} />
         <Route path="/admin/servicing" element={<AdminServicingDashboard />} />
+        <Route path="/admin/funding-disbursement" element={<AdminFundingDisbursement />} />
         <Route path="/repayments" element={<BorrowerRepayments />} />
         <Route path="/secondary-market" element={<SecondaryMarket />} />
 
