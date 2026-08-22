@@ -1,0 +1,20 @@
+SecuredLanding v4.2.3 - Fully Committed + Public Loan Number Fix
+
+BASELINE
+- SecuredLanding-v4.2.2-Three-State-Funding-Bar.zip
+
+MODIFIED
+- src/pages/InvestorMarketplace.tsx
+  * When Sold + Pending consumes the full funding goal (Available = $0), marketplace displays Fully Committed / Funding Complete.
+  * Hides/disables the investment amount and payment-method controls when no capacity remains, preventing overfund attempts from the UI.
+  * Keeps the v4.2.2 green Sold / yellow Pending / gray Available funding bar.
+
+- src/InvestorWallet.tsx
+  * My Investments now resolves investments.loan_id to loan_applications.loan_number.
+  * Displays the public six-digit loan number instead of the internal database row ID (for example Loan #361380 instead of Loan #4).
+  * Falls back safely to an existing loan number/internal ID if a legacy row cannot be resolved.
+
+BUILD TEST
+- Attempted npm run build.
+- NOT COMPLETED in this environment because Vite dependencies were not installed in the extracted baseline; npm install exceeded the execution window.
+- Source changes and original paths are preserved.
