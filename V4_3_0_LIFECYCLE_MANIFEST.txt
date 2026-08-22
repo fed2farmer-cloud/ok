@@ -1,0 +1,20 @@
+SecuredLanding v4.3.0 - Funding Disbursement / Repayment / Distribution Lifecycle
+
+NEW
+- supabase/migrations/20260822_v4_3_0_funding_disbursement_repayment_distribution.sql
+- src/pages/AdminFundingDisbursement.tsx
+- docs/FULL_LIFECYCLE_TEST_PLAN_v4_3_0.md
+- supabase/LIFECYCLE_AUDIT_v4_3_0.sql
+- V4_3_0_LIFECYCLE_MANIFEST.txt
+
+MODIFIED
+- src/components/PaymentForm.tsx
+- src/NMIPayment.tsx
+- src/App.tsx
+- src/components/AppLayout.tsx
+
+FLOW ADDED
+Fully committed + protection cleared -> Admin funding approval -> recorded borrower payout -> repayment schedule -> NMI borrower repayment -> principal/interest allocation -> investor distribution -> investor wallet credit.
+
+IMPORTANT
+The app records external borrower funding release only after an admin supplies a processor/bank reference. This package does not pretend that a SQL update itself transfers cash to a bank account.
