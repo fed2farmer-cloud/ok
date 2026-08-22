@@ -8,12 +8,37 @@ export default function PaymentForm() {
 
   const loanId = params.get("loanId") || params.get("loan") || "";
   const startingAmount = params.get("amount") || "";
+  const purpose = (params.get("purpose") || "investment").toLowerCase();
+  const scheduleId = params.get("schedule") || "";
+  const isRepayment = purpose === "repayment";
 
   const [amount, setAmount] = useState(startingAmount);
   const [paymentStatus, setPaymentStatus] = useState("");
 
   const cleanAmount = Number(amount || 0).toFixed(2);
   const nmiDiagnostics = getNmiBrowserDiagnostics();
+
+  async function finalizeRepayment(processorTransactionId: string) {
+    if (!supabase) { alert("Supabase is not configured."); return false; }
+    const publicLoanNumber = Number(loanId);
+    const repaymentAmount = Number(cleanAmount);
+    if (!Number.isSafeInteger(publicLoanNumber) || publicLoanNumber <= 0) { alert("No valid loan selected."); return false; }
+    if (!Number.isFinite(repaymentAmount) || repaymentAmount <= 0) { alert("Enter a positive repayment amount."); return false; }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { alert("Please log in first."); return false; }
+    const { error } = await supabase.rpc("finalize_borrower_repayment_v1", {
+      p_loan_number: publicLoanNumber,
+      p_schedule_id: scheduleId || null,
+      p_amount: repaymentAmount,
+      p_processor_transaction_id: processorTransactionId,
+    });
+    if (error) {
+      console.error("Repayment finalization failed", error);
+      setPaymentStatus(`Payment approved (Txn ${processorTransactionId}), but repayment finalization failed: ${error.message}. Do not retry the card payment.`);
+      return false;
+    }
+    return true;
+  }
 
   async function saveInvestment(processorTransactionId: string) {
     if (!supabase) {
@@ -62,7 +87,7 @@ export default function PaymentForm() {
 
   return (
     <div>
-      <p className="mb-2 font-bold">Funding Loan ID: {loanId}</p>
+      <p className="mb-2 font-bold">{isRepayment ? "Repaying" : "Funding"} Loan ID: {loanId}</p>
 
       <div className="form-row">
         <label htmlFor="amount">Amount:</label>
@@ -70,8 +95,8 @@ export default function PaymentForm() {
           id="amount"
           type="number"
           step="0.01"
-          min="100"
-          placeholder="Enter investment amount"
+          min={isRepayment ? "0.01" : "100"}
+          placeholder={isRepayment ? "Enter repayment amount" : "Enter investment amount"}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           className="w-full border rounded p-3"
@@ -129,16 +154,18 @@ export default function PaymentForm() {
               return message;
             }
 
-            setPaymentStatus(`Payment approved. Finalizing investment… (Txn ${processorTransactionId})`);
+            setPaymentStatus(`Payment approved. Finalizing ${isRepayment ? "repayment" : "investment"}… (Txn ${processorTransactionId})`);
 
-            const saved = await saveInvestment(processorTransactionId);
+            const saved = isRepayment
+              ? await finalizeRepayment(processorTransactionId)
+              : await saveInvestment(processorTransactionId);
 
             if (!saved) {
-              return "Payment worked, but investment was not saved.";
+              return isRepayment ? "Payment worked, but repayment was not finalized." : "Payment worked, but investment was not saved.";
             }
 
             setTimeout(() => {
-              window.location.href = "/investor-wallet";
+              window.location.href = isRepayment ? "/repayments" : "/investor-wallet";
             }, 1500);
 
             return true;
@@ -148,14 +175,16 @@ export default function PaymentForm() {
         }}
       />
 
-      <button
-        onClick={() =>
-          (window.location.href = `/bitcoin-payment?loanId=${loanId}&amount=${cleanAmount}`)
-        }
-        className="mt-4 w-full bg-orange-500 text-white py-3 rounded-lg font-bold"
-      >
-        Pay with Bitcoin
-      </button>
+      {!isRepayment && (
+        <button
+          onClick={() =>
+            (window.location.href = `/bitcoin-payment?loanId=${loanId}&amount=${cleanAmount}`)
+          }
+          className="mt-4 w-full bg-orange-500 text-white py-3 rounded-lg font-bold"
+        >
+          Pay with Bitcoin
+        </button>
+      )}
     </div>
   );
 }

@@ -24,6 +24,7 @@ const INVESTOR_LINKS: NavItem[] = [
 const ADMIN_LINKS: NavItem[] = [
   { href: "/admin", label: "Admin Dashboard" },
   { href: "/admin/servicing", label: "Servicing Dashboard" },
+  { href: "/admin/funding-disbursement", label: "Funding Release" },
   { href: "/admin/ledger", label: "Ledger & Funding" },
   { href: "/admin/tax", label: "Tax Reporting" },
   { href: "/secondary-market", label: "Secondary Market" },
