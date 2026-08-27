@@ -6,6 +6,7 @@ import PlaidConnectButton from "./components/PlaidConnectButton";
 import AppLayout from "./components/AppLayout";
 import { useToast } from "./context/ToastContext";
 import { getNmiTokenizationKey } from "./lib/nmi";
+import SecondaryMarketSellForm from "./components/SecondaryMarketSellForm";
 
 export default function InvestorWallet() {
   const navigate = useNavigate();
@@ -99,10 +100,31 @@ export default function InvestorWallet() {
         .in("id", loanIds);
       loanNumberById = new Map((loanRows || []).map((loan: any) => [loan.id, loan.loan_number]));
     }
-    setInvestments(rawInvestments.map((inv: any) => ({
-      ...inv,
-      public_loan_number: loanNumberById.get(inv.loan_id) ?? inv.loan_number ?? inv.loan_id,
-    })));
+    const investmentIds = rawInvestments.map((inv: any) => inv.id).filter(Boolean);
+    let positionByInvestmentId = new Map<any, any>();
+    if (investmentIds.length > 0) {
+      const { data: positionRows } = await supabase
+        .from("investor_positions")
+        .select("investment_id, original_principal, current_principal, status")
+        .in("investment_id", investmentIds)
+        .eq("status", "active");
+      positionByInvestmentId = new Map(
+        (positionRows || []).map((position: any) => [position.investment_id, position])
+      );
+    }
+
+    setInvestments(rawInvestments
+      .filter((inv: any) => (inv.current_owner_id ?? inv.investor_id) === user.id)
+      .map((inv: any) => {
+        const position = positionByInvestmentId.get(inv.id);
+        return {
+          ...inv,
+          public_loan_number: loanNumberById.get(inv.loan_id) ?? inv.loan_number ?? inv.loan_id,
+          original_principal: Number(position?.original_principal ?? inv.amount ?? 0),
+          current_principal: Number(position?.current_principal ?? inv.amount ?? 0),
+          has_active_position: Boolean(position),
+        };
+      }));
 
     const { data: txData } = await supabase.from("wallet_transactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     setTransactions(txData || []);
@@ -415,6 +437,17 @@ export default function InvestorWallet() {
                         >
                           Copy Number
                         </button>
+                      </div>
+                    )}
+                    {inv.certificate_number && inv.has_active_position && (
+                      <div className="mt-4 rounded-xl border border-emerald-900/30 bg-slate-50 p-4">
+                        <SecondaryMarketSellForm
+                          investmentId={Number(inv.id)}
+                          certificateNumber={inv.certificate_number}
+                          originalPrincipal={Number(inv.original_principal || amount)}
+                          currentPrincipal={Number(inv.current_principal || amount)}
+                          onListed={() => navigate("/secondary-market")}
+                        />
                       </div>
                     )}
                   </div>
