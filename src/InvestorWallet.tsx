@@ -16,6 +16,7 @@ export default function InvestorWallet() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sellOpenId, setSellOpenId] = useState<number | null>(null);
 
   const [depositBankId, setDepositBankId] = useState("");
   const [depositAmount, setDepositAmount] = useState("");
@@ -432,6 +433,13 @@ export default function InvestorWallet() {
                         </button>
                         <button
                           type="button"
+                          onClick={() => setSellOpenId(sellOpenId === Number(inv.id) ? null : Number(inv.id))}
+                          className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-500"
+                        >
+                          {sellOpenId === Number(inv.id) ? "Close Resale" : "Sell / Resell Certificate"}
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => navigator.clipboard.writeText(inv.certificate_number)}
                           className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
                         >
@@ -439,7 +447,7 @@ export default function InvestorWallet() {
                         </button>
                       </div>
                     )}
-                    {inv.certificate_number && inv.has_active_position && (
+                    {inv.certificate_number && sellOpenId === Number(inv.id) && (
                       <div className="mt-4 rounded-xl border border-emerald-900/30 bg-slate-50 p-4">
                         <SecondaryMarketSellForm
                           investmentId={Number(inv.id)}

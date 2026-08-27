@@ -25,6 +25,7 @@ import AdminServicingDashboard from "./pages/AdminServicingDashboard";
 import AdminFundingDisbursement from "./pages/AdminFundingDisbursement";
 import BorrowerRepayments from "./pages/BorrowerRepayments";
 import SecondaryMarket from "./pages/SecondaryMarket";
+import InvestmentCertificateDetails from "./pages/InvestmentCertificateDetails";
 
 import LoanDocuments from "./LoanDocuments";
 import InvestorWallet from "./InvestorWallet";
@@ -68,6 +69,7 @@ export default function App() {
         <Route path="/admin/funding-disbursement" element={<AdminFundingDisbursement />} />
         <Route path="/repayments" element={<BorrowerRepayments />} />
         <Route path="/secondary-market" element={<SecondaryMarket />} />
+        <Route path="/investment-certificate/:certificateNumber" element={<InvestmentCertificateDetails />} />
 
         {/* Showcase / marketing pages */}
         <Route path="/lords-farms" element={<LordFarmsDeal />} />
