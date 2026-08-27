@@ -1,0 +1,31 @@
+SecuredLanding v4.4.1 - Secondary Market Sell UI Integration
+Date: 2026-08-27
+
+MODIFIED
+- src/InvestorWallet.tsx
+  - Imports SecondaryMarketSellForm.
+  - Loads active investor_positions for displayed investments.
+  - Supplies original_principal/current_principal to the sell form.
+  - Filters transferred investments so only the current certificate owner sees the position.
+  - Adds the secondary-market sell form to eligible active certificate cards.
+  - Redirects seller to /secondary-market after successful listing.
+
+EXISTING / USED UNCHANGED
+- src/components/SecondaryMarketSellForm.tsx
+- src/lib/secondaryMarket.ts
+- src/pages/SecondaryMarket.tsx
+- supabase/migrations/20260825_v4_4_0_secondary_market_price_adjustment.sql
+
+BUILD TEST
+- Command: npm run build
+- Result: PASS
+- Vite production build completed successfully.
+- Non-fatal Vite chunk-size warning remains.
+
+TEST TARGET
+1. Log in as current owner of investment #10 / SLI-2026-361380-000010.
+2. Open Investor Wallet / My Investments.
+3. Use Quick set: $900 or enter 900 as asking price.
+4. Submit listing while authenticated in the app.
+5. Confirm redirect to Secondary Market and listing appears.
+6. Log in as a different investor for the purchase test.
