@@ -1,0 +1,65 @@
+SecuredLanding v4.4.4 - Compact Secondary Market and Wallet/NMI Checkout
+
+MODIFIED
+- src/pages/SecondaryMarket.tsx
+  Added the shared AppLayout so the standard SecuredLanding header and footer render.
+  Rebuilt listings as compact cards designed for multiple certificates on phone screens.
+  Uses two-column mobile metric grids and denser spacing for pricing and performance.
+  Preserved certificate and original-loan detail links.
+  Routes each Buy Certificate button to its dedicated checkout page.
+  Calculates expected remaining value and payment share independently for each certificate.
+
+- src/pages/SecondaryLoanDetails.tsx
+  Added the shared AppLayout header and footer.
+  Replaced the oversized legacy page/panel layout with compact responsive cards.
+  Uses two-column phone metrics for original-loan and payment-performance details.
+
+- src/App.tsx
+  Registered /secondary-market/purchase/:listingId.
+
+NEW
+- src/pages/SecondaryCertificateCheckout.tsx
+  Added checkout styling aligned with the original loan-purchase payment selector.
+  Supports Wallet, Wallet + Card and Card payment choices.
+  Automatically selects Wallet when fully funded, Wallet + Card when partially funded,
+  and Card when the wallet has no available cash.
+  Uses NMI to credit only the required wallet shortfall before the existing atomic
+  secondary-market purchase transfers ownership and credits the seller.
+  Checks listing availability before any NMI charge and blocks seller self-purchases.
+  Prevents duplicate card charges after an approved payment when certificate transfer fails.
+  Discloses the existing $10 NMI minimum and leaves any excess in wallet cash.
+
+- SECONDARY_MARKET_PURCHASE_TEST_PLAN_v4_4_4.md
+  Added wallet-only, split wallet/NMI, full NMI, mobile layout and failure-safety tests.
+
+REUSED DATA AND PAYMENT SERVICES
+- secondary_market_open_v2
+- investor_wallets
+- loan_payment_schedule
+- loan_applications
+- purchase_secondary_listing_v2
+- credit_nmi_wallet through api/process-wallet-card-deposit.ts
+- Existing NMI browser tokenization configuration
+
+DATABASE CHANGES
+- No new migration is required for this UI release.
+- Certificate settlement continues through purchase_secondary_listing_v2 so buyer debit,
+  seller credit, ownership transfer, trade records and ledger records remain atomic.
+
+VERIFICATION
+- npm ci completed successfully with 292 packages installed.
+- npm run build: PASS using Vite 5.4.21.
+- 153 modules transformed; production assets generated in dist.
+- Existing non-blocking warning remains: the main JavaScript chunk exceeds 500 kB.
+- Static responsive checks confirmed AppLayout usage, two-column mobile metric grids,
+  three payment choices, the purchase route and wallet/NMI service connections.
+- Automated rendered screenshots were not claimed: no local browser binary was available,
+  the temporary browser download timed out, and the cloud browser cannot open localhost.
+
+FILES CHANGED IN THIS ZIP
+- src/App.tsx
+- src/pages/SecondaryMarket.tsx
+- src/pages/SecondaryLoanDetails.tsx
+- src/pages/SecondaryCertificateCheckout.tsx (new)
+- SECONDARY_MARKET_PURCHASE_TEST_PLAN_v4_4_4.md (new)
+- V4_4_4_COMPACT_SECONDARY_MARKET_CHECKOUT_MANIFEST.txt (new)
