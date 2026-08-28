@@ -85,60 +85,29 @@ export default function SecondaryMarket() {
     }
 
     const loanNumbers = [...new Set(listings.map((row) => Number(row.loan_number)))];
-    const [{ data: schedules, error: scheduleError }, { data: loans, error: loanError }] =
-      await Promise.all([
-        supabase
-          .from("loan_payment_schedule")
-          .select(
-            "loan_number,due_date,expected_interest,expected_total,status,paid_at"
-          )
-          .in("loan_number", loanNumbers)
-          .order("due_date"),
-        supabase
-          .from("loan_applications")
-          .select("loan_number,loan_amount")
-          .in("loan_number", loanNumbers),
-      ]);
-
-    if (scheduleError) throw scheduleError;
-    if (loanError) throw loanError;
+    const results = await Promise.all(
+      loanNumbers.map(async (loanNumber) => {
+        const { data, error } = await supabase.rpc("get_secondary_loan_performance_v1", {
+          p_loan_number: loanNumber,
+        });
+        if (error) throw error;
+        return { loanNumber, data: data || {} };
+      })
+    );
 
     const next: Record<number, LoanPerformance> = {};
-    for (const loanNumber of loanNumbers) {
-      const loanSchedule = (schedules || []).filter(
-        (row: any) => Number(row.loan_number) === loanNumber
-      );
-      const paidRows = loanSchedule.filter((row: any) => row.status === "paid");
-      const onTime = paidRows.filter(
-        (row: any) =>
-          row.paid_at &&
-          new Date(row.paid_at).getTime() <=
-            new Date(`${row.due_date}T23:59:59`).getTime()
-      ).length;
-      const unpaidRows = loanSchedule.filter(
-        (row: any) => !["paid", "waived"].includes(row.status)
-      );
-      const nextPayment = unpaidRows[0];
-
+    for (const { loanNumber, data } of results) {
       next[loanNumber] = {
-        paid: paidRows.length,
-        onTime,
-        late: paidRows.length - onTime,
-        scheduled: loanSchedule.length,
-        nextDate: nextPayment?.due_date || null,
-        nextTotal: nextPayment ? Number(nextPayment.expected_total || 0) : null,
-        remainingInterest: unpaidRows.reduce(
-          (sum: number, row: any) => sum + Number(row.expected_interest || 0),
-          0
-        ),
-        loanAmount: Number(
-          (loans || []).find(
-            (row: any) => Number(row.loan_number) === loanNumber
-          )?.loan_amount || 0
-        ),
+        paid: Number(data.paid || 0),
+        onTime: Number(data.on_time || 0),
+        late: Number(data.late_missed || 0),
+        scheduled: Number(data.scheduled || 0),
+        nextDate: data.next_date || null,
+        nextTotal: data.next_total == null ? null : Number(data.next_total),
+        remainingInterest: Number(data.remaining_interest || 0),
+        loanAmount: Number(data.loan_amount || 0),
       };
     }
-
     setPerformance(next);
   }
 
@@ -256,7 +225,13 @@ export default function SecondaryMarket() {
                       />
                       <Metric
                         label="Discount"
-                        value={percent(listing.discount_to_original_percent)}
+                        value={percent(
+                          Number.isFinite(Number(listing.discount_to_original_percent))
+                            ? listing.discount_to_original_percent
+                            : Number(listing.original_principal) > 0
+                              ? (1 - Number(listing.asking_price) / Number(listing.original_principal)) * 100
+                              : null
+                        )}
                         note="vs. original"
                       />
                       <Metric

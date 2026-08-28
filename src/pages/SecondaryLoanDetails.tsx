@@ -52,7 +52,7 @@ function Detail({
 export default function SecondaryLoanDetails() {
   const { loanNumber } = useParams();
   const [loan, setLoan] = useState<any>(null);
-  const [schedule, setSchedule] = useState<any[]>([]);
+  const [performance, setPerformance] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -67,28 +67,24 @@ export default function SecondaryLoanDetails() {
         return;
       }
 
-      const [{ data: loanRow, error: loanError }, { data: scheduleRows, error: scheduleError }] =
+      const [{ data: loanRow, error: loanError }, { data: performanceRow, error: performanceError }] =
         await Promise.all([
           supabase
             .from("loan_applications")
             .select("*")
             .eq("loan_number", Number(loanNumber))
             .maybeSingle(),
-          supabase
-            .from("loan_payment_schedule")
-            .select(
-              "installment_number,due_date,expected_total,status,paid_at"
-            )
-            .eq("loan_number", Number(loanNumber))
-            .order("installment_number"),
+          supabase.rpc("get_secondary_loan_performance_v1", {
+            p_loan_number: Number(loanNumber),
+          }),
         ]);
 
       if (!active) return;
       if (loanError) setError(loanError.message);
-      else if (scheduleError) setError(scheduleError.message);
+      else if (performanceError) setError(performanceError.message);
       else if (!loanRow) setError("The underlying loan could not be found.");
       setLoan(loanRow);
-      setSchedule(scheduleRows || []);
+      setPerformance(performanceRow || null);
       setLoading(false);
     })();
 
@@ -97,16 +93,12 @@ export default function SecondaryLoanDetails() {
     };
   }, [loanNumber]);
 
-  const paid = schedule.filter((row) => row.status === "paid");
-  const onTime = paid.filter(
-    (row) =>
-      row.paid_at &&
-      new Date(row.paid_at).getTime() <=
-        new Date(`${row.due_date}T23:59:59`).getTime()
-  ).length;
-  const nextPayment = schedule.find(
-    (row) => !["paid", "waived"].includes(row.status)
-  );
+  const paidCount = Number(performance?.paid || 0);
+  const onTime = Number(performance?.on_time || 0);
+  const lateMissed = Number(performance?.late_missed || 0);
+  const scheduledCount = Number(performance?.scheduled || 0);
+  const nextDate = performance?.next_date || null;
+  const nextTotal = performance?.next_total ?? null;
   const property = [loan?.property_address, loan?.county, loan?.state]
     .filter(Boolean)
     .join(", ");
@@ -169,14 +161,14 @@ export default function SecondaryLoanDetails() {
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
               <h2 className="text-base font-black text-slate-950">Payment performance</h2>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <Detail label="Payments made" value={paid.length} />
-                <Detail label="Paid on time" value={`${onTime} of ${paid.length}`} />
-                <Detail label="Late / missed" value={paid.length - onTime} />
-                <Detail label="Scheduled" value={schedule.length} />
-                <Detail label="Next date" value={date(nextPayment?.due_date)} />
+                <Detail label="Payments made" value={paidCount} />
+                <Detail label="Paid on time" value={`${onTime} of ${paidCount}`} />
+                <Detail label="Late / missed" value={lateMissed} />
+                <Detail label="Scheduled" value={scheduledCount} />
+                <Detail label="Next date" value={date(nextDate)} />
                 <Detail
                   label="Next payment"
-                  value={nextPayment ? money(nextPayment.expected_total) : "—"}
+                  value={nextTotal != null ? money(nextTotal) : "—"}
                 />
               </div>
             </section>
