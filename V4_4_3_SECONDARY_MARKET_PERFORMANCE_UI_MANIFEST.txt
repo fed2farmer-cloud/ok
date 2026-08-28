@@ -1,0 +1,24 @@
+SecuredLanding v4.4.3 - Secondary Market Performance UI
+
+MODIFIED
+- src/pages/SecondaryMarket.tsx
+  * Rebuilt raw secondary listing into a responsive marketplace card.
+  * Certificate number is now a clickable link to its certificate/registry page.
+  * Added a prominent underlying-loan link.
+  * Added original investment, current principal, asking price, and safe discount calculation (fixes NaN%).
+  * Added payment performance from loan_payment_schedule: payments made, on-time count, late/missed count.
+  * Added next scheduled payment date and estimated certificate share.
+  * Added expected remaining value: current principal + estimated share of scheduled remaining interest.
+  * Added explanatory disclosure that expected value is not guaranteed.
+  * Replaced plain Buy text with a full-width purchase button.
+
+UNCHANGED
+- Secondary market database/RPC functions.
+- Certificate ownership-transfer logic.
+- Seller listing UI.
+- Existing routes and filenames.
+
+BUILD TEST
+Run: npm run build
+- src/pages/SecondaryLoanDetails.tsx (NEW): live underlying-loan and payment-performance detail page.
+- src/App.tsx (MODIFIED): adds /secondary-loan/:loanNumber route.
