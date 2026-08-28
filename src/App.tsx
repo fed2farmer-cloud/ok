@@ -25,8 +25,9 @@ import AdminServicingDashboard from "./pages/AdminServicingDashboard";
 import AdminFundingDisbursement from "./pages/AdminFundingDisbursement";
 import BorrowerRepayments from "./pages/BorrowerRepayments";
 import SecondaryMarket from "./pages/SecondaryMarket";
-import SecondaryLoanDetails from "./pages/SecondaryLoanDetails";
 import InvestmentCertificateDetails from "./pages/InvestmentCertificateDetails";
+import SecondaryLoanDetails from "./pages/SecondaryLoanDetails";
+import SecondaryCertificateCheckout from "./pages/SecondaryCertificateCheckout";
 
 import LoanDocuments from "./LoanDocuments";
 import InvestorWallet from "./InvestorWallet";
@@ -70,7 +71,8 @@ export default function App() {
         <Route path="/admin/funding-disbursement" element={<AdminFundingDisbursement />} />
         <Route path="/repayments" element={<BorrowerRepayments />} />
         <Route path="/secondary-market" element={<SecondaryMarket />} />
-        <Route path="/secondary-loan/:loanNumber" element={<SecondaryLoanDetails />} />
+        <Route path="/secondary-market/loan/:loanNumber" element={<SecondaryLoanDetails />} />
+        <Route path="/secondary-market/purchase/:listingId" element={<SecondaryCertificateCheckout />} />
         <Route path="/investment-certificate/:certificateNumber" element={<InvestmentCertificateDetails />} />
 
         {/* Showcase / marketing pages */}
