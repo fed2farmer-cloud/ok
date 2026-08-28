@@ -1,116 +1,337 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { loadSecondaryListings, purchaseSecondaryListing, type SecondaryListing } from '../lib/secondaryMarket';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import AppLayout from "../components/AppLayout";
+import { supabase } from "../lib/supabase";
+import {
+  loadSecondaryListings,
+  type SecondaryListing,
+} from "../lib/secondaryMarket";
 
-type Performance = {
-  paid: number; onTime: number; late: number; missed: number;
-  nextDate?: string; nextAmount?: number; expectedRemaining?: number;
+type LoanPerformance = {
+  paid: number;
+  onTime: number;
+  late: number;
+  scheduled: number;
+  nextDate: string | null;
+  nextTotal: number | null;
+  remainingInterest: number;
+  loanAmount: number;
 };
 
-const money = (n: unknown) => Number(n || 0).toLocaleString(undefined, { style: 'currency', currency: 'USD' });
-const pct = (n: unknown) => Number.isFinite(Number(n)) ? `${Number(n).toFixed(2)}%` : '—';
+function money(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number)
+    ? number.toLocaleString("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+      })
+    : "—";
+}
+
+function percent(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? `${number.toFixed(2)}%` : "—";
+}
+
+function date(value: string | null | undefined) {
+  return value
+    ? new Date(`${value}T00:00:00`).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "None scheduled";
+}
+
+function Metric({
+  label,
+  value,
+  accent = false,
+  note,
+}: {
+  label: string;
+  value: React.ReactNode;
+  accent?: boolean;
+  note?: string;
+}) {
+  return (
+    <div className="min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+      <p className="text-[10px] font-bold uppercase leading-tight tracking-[0.12em] text-slate-500">
+        {label}
+      </p>
+      <p
+        className={`mt-1 break-words text-sm font-black leading-tight sm:text-base ${
+          accent ? "text-emerald-700" : "text-slate-950"
+        }`}
+      >
+        {value}
+      </p>
+      {note && <p className="mt-1 text-[10px] leading-tight text-slate-500">{note}</p>}
+    </div>
+  );
+}
 
 export default function SecondaryMarket() {
   const [rows, setRows] = useState<SecondaryListing[]>([]);
-  const [performance, setPerformance] = useState<Record<number, Performance>>({});
-  const [busy, setBusy] = useState<string | null>(null);
-  const [msg, setMsg] = useState('');
+  const [performance, setPerformance] = useState<Record<number, LoanPerformance>>({});
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+
+  async function loadPerformance(listings: SecondaryListing[]) {
+    if (!supabase || !listings.length) {
+      setPerformance({});
+      return;
+    }
+
+    const loanNumbers = [...new Set(listings.map((row) => Number(row.loan_number)))];
+    const [{ data: schedules, error: scheduleError }, { data: loans, error: loanError }] =
+      await Promise.all([
+        supabase
+          .from("loan_payment_schedule")
+          .select(
+            "loan_number,due_date,expected_interest,expected_total,status,paid_at"
+          )
+          .in("loan_number", loanNumbers)
+          .order("due_date"),
+        supabase
+          .from("loan_applications")
+          .select("loan_number,loan_amount")
+          .in("loan_number", loanNumbers),
+      ]);
+
+    if (scheduleError) throw scheduleError;
+    if (loanError) throw loanError;
+
+    const next: Record<number, LoanPerformance> = {};
+    for (const loanNumber of loanNumbers) {
+      const loanSchedule = (schedules || []).filter(
+        (row: any) => Number(row.loan_number) === loanNumber
+      );
+      const paidRows = loanSchedule.filter((row: any) => row.status === "paid");
+      const onTime = paidRows.filter(
+        (row: any) =>
+          row.paid_at &&
+          new Date(row.paid_at).getTime() <=
+            new Date(`${row.due_date}T23:59:59`).getTime()
+      ).length;
+      const unpaidRows = loanSchedule.filter(
+        (row: any) => !["paid", "waived"].includes(row.status)
+      );
+      const nextPayment = unpaidRows[0];
+
+      next[loanNumber] = {
+        paid: paidRows.length,
+        onTime,
+        late: paidRows.length - onTime,
+        scheduled: loanSchedule.length,
+        nextDate: nextPayment?.due_date || null,
+        nextTotal: nextPayment ? Number(nextPayment.expected_total || 0) : null,
+        remainingInterest: unpaidRows.reduce(
+          (sum: number, row: any) => sum + Number(row.expected_interest || 0),
+          0
+        ),
+        loanAmount: Number(
+          (loans || []).find(
+            (row: any) => Number(row.loan_number) === loanNumber
+          )?.loan_amount || 0
+        ),
+      };
+    }
+
+    setPerformance(next);
+  }
 
   async function refresh() {
+    setLoading(true);
+    setMessage("");
     try {
       const listings = await loadSecondaryListings();
       setRows(listings);
-      if (!supabase || !listings.length) return;
-      const loanNumbers = [...new Set(listings.map(r => Number(r.loan_number)))];
-      const [{ data: schedules }, { data: loans }] = await Promise.all([
-        supabase.from('loan_payment_schedule').select('loan_number,due_date,expected_principal,expected_interest,expected_total,status,paid_at').in('loan_number', loanNumbers).order('due_date'),
-        supabase.from('loan_applications').select('loan_number,loan_amount').in('loan_number', loanNumbers),
-      ]);
-      const loanAmount = new Map((loans || []).map((l: any) => [Number(l.loan_number), Number(l.loan_amount || 0)]));
-      const next: Record<number, Performance> = {};
-      for (const listing of listings) {
-        const ln = Number(listing.loan_number);
-        const items = (schedules || []).filter((s: any) => Number(s.loan_number) === ln);
-        const paid = items.filter((s: any) => s.status === 'paid');
-        const onTime = paid.filter((s: any) => s.paid_at && new Date(s.paid_at).getTime() <= new Date(`${s.due_date}T23:59:59`).getTime()).length;
-        const latePaid = paid.length - onTime;
-        const missed = items.filter((s: any) => s.status === 'missed' || s.status === 'late').length;
-        const upcoming = items.find((s: any) => ['upcoming','due','partial','late'].includes(s.status));
-        const totalLoan = loanAmount.get(ln) || Number(listing.original_principal) || 1;
-        const share = Math.min(1, Number(listing.original_principal) / totalLoan);
-        const remainingInterest = items.filter((s: any) => s.status !== 'paid' && s.status !== 'waived')
-          .reduce((sum: number, s: any) => sum + Number(s.expected_interest || 0) * share, 0);
-        next[ln] = {
-          paid: paid.length, onTime, late: latePaid, missed,
-          nextDate: upcoming?.due_date,
-          nextAmount: upcoming ? Number(upcoming.expected_total || 0) * share : undefined,
-          expectedRemaining: Number(listing.current_principal) + remainingInterest,
-        };
-      }
-      setPerformance(next);
-    } catch (err: any) { setMsg(err?.message || 'Unable to load secondary market.'); }
+      await loadPerformance(listings);
+    } catch (error: any) {
+      setMessage(error?.message || "Unable to load the secondary market.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  useEffect(() => { void refresh(); }, []);
+  useEffect(() => {
+    void refresh();
+  }, []);
 
-  async function buy(id: string) {
-    setBusy(id); setMsg('');
-    try {
-      const result: any = await purchaseSecondaryListing(id);
-      setMsg(`Purchase completed. Certificate ${result?.certificate_number || ''} transferred.`);
-      await refresh();
-    } catch (err: any) { setMsg(err?.message || 'Purchase failed.'); }
-    finally { setBusy(null); }
-  }
-
-  return <section className="page secondaryMarketPage" style={{maxWidth: 1180, margin: '0 auto', padding: '32px 20px 72px'}}>
-    <span className="eyebrow">SECONDARY MARKET</span>
-    <h1 style={{fontSize:'clamp(2rem,6vw,3.5rem)', marginBottom:8}}>Loan Security Certificate Marketplace</h1>
-    <p className="lead" style={{maxWidth:760}}>Review the underlying loan, payment performance, remaining principal and seller price before purchasing an existing certificate.</p>
-    {msg && <div className="notice">{msg}</div>}
-    <div className="secondaryMarketGrid" style={{display:'grid', gap:20, marginTop:28}}>
-      {rows.map(r => {
-        const p = performance[Number(r.loan_number)];
-        const discount = Number(r.original_principal) > 0 ? (1 - Number(r.asking_price) / Number(r.original_principal)) * 100 : NaN;
-        return <article className="panel" key={r.id} style={{border:'1px solid rgba(255,255,255,.12)', borderRadius:24, padding:22}}>
-          <div style={{display:'flex', justifyContent:'space-between', gap:16, flexWrap:'wrap', alignItems:'start'}}>
+  return (
+    <AppLayout>
+      <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-8">
+        <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 px-5 py-5 text-white shadow-xl sm:px-7 sm:py-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <div className="eyebrow">RESALE CERTIFICATE</div>
-              <Link to={`/investment-certificate/${encodeURIComponent(r.certificate_number)}`} style={{fontSize:'1.25rem', fontWeight:800, textDecoration:'underline'}}>{r.certificate_number}</Link>
-              <div style={{marginTop:8}}><Link to={`/secondary-loan/${r.loan_number}`} style={{fontWeight:700, textDecoration:'underline'}}>View underlying Loan #{r.loan_number} →</Link></div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300">
+                Secondary Market
+              </p>
+              <h1 className="mt-1.5 text-2xl font-black tracking-tight sm:text-3xl">
+                Loan Security Certificates
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
+                Compare seller price, remaining principal and verified loan performance before buying.
+              </p>
             </div>
-            <div style={{fontSize:'1.55rem', fontWeight:900}}>{money(r.asking_price)}</div>
-          </div>
-
-          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(145px,1fr))', gap:10, marginTop:20}}>
-            <Stat label="Original investment" value={money(r.original_principal)} />
-            <Stat label="Current principal" value={money(r.current_principal)} />
-            <Stat label="Seller asking price" value={money(r.asking_price)} />
-            <Stat label="Discount to original" value={pct(discount)} />
-            <Stat label="Expected remaining value*" value={p ? money(p.expectedRemaining) : 'Loading…'} />
-          </div>
-
-          <div style={{marginTop:20, paddingTop:18, borderTop:'1px solid rgba(255,255,255,.1)'}}>
-            <h3 style={{margin:'0 0 12px'}}>Loan performance</h3>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', gap:10}}>
-              <Stat label="Payments made" value={p ? String(p.paid) : '—'} />
-              <Stat label="Paid on time" value={p ? String(p.onTime) : '—'} />
-              <Stat label="Late / missed" value={p ? String(p.late + p.missed) : '—'} />
-              <Stat label="Next payment" value={p?.nextDate ? new Date(`${p.nextDate}T12:00:00`).toLocaleDateString() : 'None scheduled'} />
-              <Stat label="Est. certificate share" value={p?.nextAmount != null ? money(p.nextAmount) : '—'} />
+            <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-right">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400">Open listings</p>
+              <p className="text-xl font-black text-emerald-300">{rows.length}</p>
             </div>
           </div>
+        </section>
 
-          <p style={{opacity:.62, fontSize:12, marginTop:14}}>*Expected remaining value is current principal plus the certificate's estimated share of scheduled remaining interest. It is not guaranteed and can change with loan performance.</p>
-          <button style={{width:'100%', marginTop:12, padding:'14px 18px', borderRadius:14, fontWeight:800}} onClick={() => buy(r.id)} disabled={busy === r.id}>{busy === r.id ? 'Purchasing…' : `Buy certificate for ${money(r.asking_price)}`}</button>
-        </article>;
-      })}
-      {!rows.length && <div className="panel">No open secondary-market listings.</div>}
-    </div>
-  </section>;
-}
+        {message && (
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
+            {message}
+          </div>
+        )}
 
-function Stat({label,value}:{label:string;value:string}) {
-  return <div style={{padding:'12px 14px', borderRadius:14, background:'rgba(255,255,255,.045)'}}><div style={{fontSize:11, opacity:.62, textTransform:'uppercase', letterSpacing:'.08em'}}>{label}</div><div style={{fontWeight:800, marginTop:5}}>{value}</div></div>;
+        {loading ? (
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
+            Loading certificate listings…
+          </div>
+        ) : (
+          <div className="mt-4 grid gap-4">
+            {rows.map((listing) => {
+              const loanPerformance = performance[Number(listing.loan_number)];
+              const certificateShare =
+                loanPerformance?.loanAmount > 0
+                  ? Number(listing.original_principal || 0) / loanPerformance.loanAmount
+                  : 0;
+              const expectedRemainingValue = loanPerformance
+                ? Number(listing.current_principal || 0) +
+                  loanPerformance.remainingInterest * certificateShare
+                : null;
+              const nextCertificatePayment =
+                loanPerformance?.nextTotal != null && certificateShare > 0
+                  ? loanPerformance.nextTotal * certificateShare
+                  : null;
+
+              return (
+                <article
+                  key={listing.id}
+                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                >
+                  <header className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-4 py-3.5 sm:px-5">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-700">
+                        Resale Certificate
+                      </p>
+                      <Link
+                        to={`/investment-certificate/${encodeURIComponent(
+                          listing.certificate_number
+                        )}`}
+                        className="mt-1 block break-all text-base font-black text-slate-950 underline decoration-emerald-400 underline-offset-4 sm:text-lg"
+                      >
+                        {listing.certificate_number}
+                      </Link>
+                      <Link
+                        to={`/secondary-market/loan/${listing.loan_number}`}
+                        className="mt-1.5 inline-flex text-xs font-bold text-emerald-700 hover:text-emerald-600"
+                      >
+                        View Original Loan #{listing.loan_number} →
+                      </Link>
+                    </div>
+                    <div className="rounded-xl bg-emerald-50 px-3 py-2 text-right ring-1 ring-emerald-200">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-800">
+                        Asking price
+                      </p>
+                      <p className="text-xl font-black text-emerald-700">
+                        {money(listing.asking_price)}
+                      </p>
+                    </div>
+                  </header>
+
+                  <div className="bg-slate-50/70 p-3 sm:p-4">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                      <Metric label="Original" value={money(listing.original_principal)} />
+                      <Metric label="Principal left" value={money(listing.current_principal)} />
+                      <Metric
+                        label="Seller price"
+                        value={money(listing.asking_price)}
+                        accent
+                      />
+                      <Metric
+                        label="Discount"
+                        value={percent(listing.discount_to_original_percent)}
+                        note="vs. original"
+                      />
+                      <Metric
+                        label="Est. remaining*"
+                        value={money(expectedRemainingValue)}
+                      />
+                    </div>
+
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-100/80 p-2.5">
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <h2 className="text-xs font-black uppercase tracking-[0.12em] text-slate-700">
+                          Loan performance
+                        </h2>
+                        <Link
+                          to={`/secondary-market/loan/${listing.loan_number}`}
+                          className="text-[11px] font-bold text-emerald-700"
+                        >
+                          Full details →
+                        </Link>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                        <Metric label="Paid" value={loanPerformance?.paid ?? "—"} />
+                        <Metric
+                          label="On time"
+                          value={
+                            loanPerformance
+                              ? `${loanPerformance.onTime} of ${loanPerformance.paid}`
+                              : "—"
+                          }
+                        />
+                        <Metric label="Late / missed" value={loanPerformance?.late ?? "—"} />
+                        <Metric
+                          label="Next date"
+                          value={date(loanPerformance?.nextDate)}
+                        />
+                        <Metric
+                          label="Est. cert. share"
+                          value={money(nextCertificatePayment)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid gap-2 sm:grid-cols-[auto_1fr]">
+                      <Link
+                        to={`/investment-certificate/${encodeURIComponent(
+                          listing.certificate_number
+                        )}`}
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-black text-slate-800 hover:bg-slate-100"
+                      >
+                        View Certificate
+                      </Link>
+                      <Link
+                        to={`/secondary-market/purchase/${listing.id}`}
+                        className="rounded-xl bg-gradient-to-r from-emerald-600 to-blue-700 px-4 py-3 text-center text-sm font-black text-white shadow-md hover:from-emerald-500 hover:to-blue-600"
+                      >
+                        Buy Certificate — {money(listing.asking_price)}
+                      </Link>
+                    </div>
+
+                    <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+                      *Estimate equals current principal plus this certificate’s estimated share of scheduled unpaid interest. It is not guaranteed.
+                    </p>
+                  </div>
+                </article>
+              );
+            })}
+
+            {!rows.length && !message && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
+                No certificates are currently listed for resale.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </AppLayout>
+  );
 }
