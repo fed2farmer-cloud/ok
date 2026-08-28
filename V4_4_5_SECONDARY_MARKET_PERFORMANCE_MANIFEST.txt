@@ -1,0 +1,29 @@
+SecuredLanding v4.4.5 - Secondary Market Performance Data Fix
+
+MODIFIED
+- src/pages/SecondaryMarket.tsx
+  Uses security-definer RPC for servicing performance so authenticated secondary-market users can see schedule metrics even when loan_payment_schedule RLS blocks direct SELECTs.
+  Adds fallback 10% discount calculation from original principal and asking price.
+- src/pages/SecondaryLoanDetails.tsx
+  Uses the same RPC for payments made, on-time, late/missed, scheduled count, next date and next payment.
+
+NEW
+- supabase/migrations/20260828_v4_4_5_secondary_market_performance_rpc.sql
+  Adds get_secondary_loan_performance_v1(bigint), read-only servicing aggregation for authenticated users.
+
+EXPECTED LOAN #361380 AFTER MIGRATION
+- Scheduled: existing schedule count (120 if full schedule remains)
+- Payments made: 1
+- Paid on time: 1 of 1 (based on current data)
+- Next date: Oct 21, 2026
+- Next payment: $597.24
+- Discount for $1,000 original / $900 ask: 10.00%
+- Estimated certificate share and remaining value derive from live schedule data.
+
+INSTALL
+1. Deploy this project ZIP.
+2. Run supabase/migrations/20260828_v4_4_5_secondary_market_performance_rpc.sql in Supabase SQL Editor.
+3. Refresh Secondary Market and underlying loan page.
+
+BUILD
+See BUILD_LOG_v4_4_5.txt.

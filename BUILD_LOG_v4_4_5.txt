@@ -1,0 +1,7 @@
+SecuredLanding v4.4.5 build verification
+
+NOT VERIFIED IN THIS CONTAINER.
+Attempted npm ci followed by npm run build, but dependency installation exceeded the 120-second execution limit.
+No build-pass claim is made for this ZIP.
+
+The patch is limited to two existing TSX pages plus one SQL migration and manifest.
