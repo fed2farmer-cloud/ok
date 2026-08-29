@@ -1,0 +1,8 @@
+SecuredLanding v4.4.6 build verification
+
+Source: SecuredLanding_v4_4_5_secondary_market_performance_fix.zip
+Static patch inspection: PASS
+ZIP integrity: performed after packaging
+Production npm build: NOT CLAIMED. The supplied v4.4.5 archive contains empty
+node_modules package directories, so Vite is not locally runnable without a
+fresh dependency install.

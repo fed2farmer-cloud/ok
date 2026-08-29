@@ -1,0 +1,16 @@
+SecuredLanding v4.4.6 - NMI Sandbox Routing Fix
+
+MODIFIED
+- src/lib/nmi.ts
+  Removed production-hostname => live inference. Sandbox is now the fail-safe
+  default; live mode requires explicit VITE_NMI_ENVIRONMENT=live.
+
+NEW
+- V4_4_6_NMI_SANDBOX_ROUTING_INSTALL.txt
+- V4_4_6_FILE_MANIFEST.txt
+- V4_4_6_BUILD_LOG.txt
+
+UNCHANGED
+- Secondary-market servicing/performance RPC and v4.4.5 UI.
+- api/process-payment.ts already routes NMI_ENVIRONMENT=sandbox to
+  https://sandbox.nmi.com/api/v5/payments/sale.

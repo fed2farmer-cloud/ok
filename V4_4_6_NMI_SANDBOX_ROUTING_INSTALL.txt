@@ -1,0 +1,33 @@
+SecuredLanding v4.4.6 - NMI Sandbox Routing Fix
+
+WHY
+The previous browser helper inferred LIVE mode solely because the site hostname
+was securedlanding.com. That is unsafe during sandbox testing and can pair the
+wrong frontend merchant environment with the server-side sandbox endpoint.
+
+VERCEL ENVIRONMENT VARIABLES FOR CURRENT SANDBOX TESTING
+1. VITE_NMI_ENVIRONMENT=sandbox
+2. VITE_NMI_SANDBOX_TOKENIZATION_KEY=<public tokenization key from the SAME NMI sandbox merchant>
+3. NMI_ENVIRONMENT=sandbox
+4. NMI_SECURITY_KEY=<private API security key from the SAME NMI sandbox merchant>
+
+Recommended during testing: remove/disable stale generic VITE_NMI_PUBLIC_KEY and
+VITE_NMI_TOKENIZATION_KEY values if they belong to another merchant/environment.
+Never put NMI_SECURITY_KEY in a VITE_ variable.
+
+After changing Vercel environment variables, REDEPLOY. VITE_ values are compiled
+into the frontend at build time.
+
+TEST
+- Checkout must initialize without the prior sandbox/live mismatch warning.
+- Use only NMI sandbox test credentials while NMI_ENVIRONMENT=sandbox.
+- After approval, verify the $900 secondary sale, seller wallet credit,
+  ownership history, current_owner_id, and buyer certificate portfolio.
+- Do not retry a card charge if NMI returns approval but the database transfer fails.
+
+GO LIVE LATER
+Change BOTH sides together:
+VITE_NMI_ENVIRONMENT=live
+VITE_NMI_LIVE_TOKENIZATION_KEY=<live public tokenization key>
+NMI_ENVIRONMENT=live
+NMI_SECURITY_KEY=<matching live private API key>
