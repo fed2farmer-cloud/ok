@@ -1,0 +1,17 @@
+SecuredLanding v4.4.7 - NMI Browser Sandbox Endpoint Fix
+
+NEW
+- scripts/patch-nmi-endpoint.mjs
+  Patches @nmipayments/nmi-pay browser token endpoint according to VITE_NMI_ENVIRONMENT.
+- V4_4_7_NMI_BROWSER_ENDPOINT_INSTALL.txt
+- V4_4_7_FILE_MANIFEST.txt
+- V4_4_7_BUILD_TEST.txt
+
+MODIFIED
+- package.json
+  Adds postinstall and prebuild hooks so Vercel/npm builds cannot silently restore the package's hardcoded live token endpoint.
+
+UNCHANGED
+- src/lib/nmi.ts continues selecting the correct sandbox/live public key.
+- api/process-payment.ts continues selecting the matching sandbox/live server sale endpoint.
+- Secondary-market purchase/ownership logic is unchanged.

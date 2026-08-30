@@ -1,0 +1,11 @@
+SecuredLanding v4.4.7 Build Test
+
+Command: VITE_NMI_ENVIRONMENT=sandbox npm run build
+Result: PASS
+
+Verification performed:
+- prebuild patch executed against installed @nmipayments/nmi-pay package
+- sandbox browser token endpoint selected for this test build
+- Vite production build attempted
+
+See deployment install file for required Vercel environment variables.

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "node scripts/patch-nmi-endpoint.mjs",
+    "prebuild": "node scripts/patch-nmi-endpoint.mjs"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.12.0",

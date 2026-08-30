@@ -1,0 +1,30 @@
+SecuredLanding v4.4.7 - NMI Browser Sandbox Endpoint Fix
+
+ROOT CAUSE FOUND
+@nmipayments/nmi-pay v1.0.0 hardcodes browser token creation to:
+https://secure.nmi.com/token/api/create
+
+That means selecting a sandbox tokenization key alone is not enough. NMI receives the sandbox key at the live token host and returns:
+"Sandbox accounts must use sandbox.nmi.com"
+
+FIX
+The project now patches the installed NMI browser package during npm install and again immediately before each Vite build.
+
+For sandbox testing set BOTH:
+VITE_NMI_ENVIRONMENT=sandbox
+NMI_ENVIRONMENT=sandbox
+
+Also use matching credentials from the same sandbox merchant:
+VITE_NMI_SANDBOX_TOKENIZATION_KEY=<sandbox public tokenization key>
+NMI_SECURITY_KEY=<sandbox private/security key>
+
+The browser token endpoint becomes:
+https://sandbox.nmi.com/token/api/create
+
+The server sale endpoint already routes sandbox to:
+https://sandbox.nmi.com/api/v5/payments/sale
+
+LIVE LATER
+Set VITE_NMI_ENVIRONMENT=live and NMI_ENVIRONMENT=live with matching live keys, then redeploy. The build patch will restore the browser token endpoint to secure.nmi.com.
+
+Do not use real card data while configured for sandbox.
