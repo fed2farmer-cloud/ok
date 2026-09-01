@@ -8,6 +8,9 @@ import KYCWorkflow from "../components/KYCWorkflow";
 interface Investment {
   id: string;
   loan_id: string;
+  investor_id: string;
+  current_owner_id?: string | null;
+  original_investor_id?: string | null;
   amount: number;
   investor_interest_rate: number;
   term_months: number;
@@ -15,6 +18,7 @@ interface Investment {
   created_at: string;
   business_name?: string | null;
   certificate_number?: string | null;
+  transfer_count?: number | null;
 }
 
 interface Wallet {
@@ -25,7 +29,8 @@ interface Wallet {
 
 interface WalletTransaction {
   id: string;
-  type: string;
+  type?: string | null;
+  transaction_type?: string | null;
   amount: number;
   description: string | null;
   created_at: string;
@@ -39,7 +44,7 @@ const money = (n: number | null | undefined) =>
     maximumFractionDigits: 2,
   });
 
-const pct = (n: number) => `${Number(n).toFixed(2)}%`;
+const pct = (n: number) => `${Number(n || 0).toFixed(2)}%`;
 
 const STATUS_CHIP: Record<string, string> = {
   active: "bg-emerald-100 text-emerald-800",
@@ -63,20 +68,35 @@ function StatCard({
   return (
     <div
       className={`rounded-2xl border p-5 ${
-        accent ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-white"
+        accent
+          ? "border-emerald-200 bg-emerald-50"
+          : "border-slate-200 bg-white"
       }`}
     >
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
-      <p className={`mt-2 text-2xl font-black ${accent ? "text-emerald-700" : "text-slate-950"}`}>
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        {label}
+      </p>
+
+      <p
+        className={`mt-2 text-2xl font-black ${
+          accent ? "text-emerald-700" : "text-slate-950"
+        }`}
+      >
         {value}
       </p>
-      {sub && <p className="mt-1 text-xs text-slate-400">{sub}</p>}
+
+      {sub && (
+        <p className="mt-1 text-xs text-slate-400">
+          {sub}
+        </p>
+      )}
     </div>
   );
 }
 
 export default function InvestorDashboard() {
   const navigate = useNavigate();
+
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
@@ -89,29 +109,40 @@ export default function InvestorDashboard() {
       setLoading(false);
       return;
     }
+
+    setLoading(true);
     setErrorMsg("");
 
     try {
       const {
         data: { user },
-        error: ue,
+        error: userError,
       } = await supabase.auth.getUser();
-      if (ue || !user) {
+
+      if (userError || !user) {
         navigate("/login", { replace: true });
         return;
       }
 
-      const [{ data: w }, { data: inv }, { data: tx }] = await Promise.all([
+      const [
+        walletResult,
+        investmentsResult,
+        transactionsResult,
+      ] = await Promise.all([
         supabase
           .from("investor_wallets")
           .select("*")
           .eq("user_id", user.id)
           .maybeSingle(),
+
         supabase
           .from("investments")
           .select("*")
-          .eq("investor_id", user.id)
+          .or(
+            `current_owner_id.eq.${user.id},and(current_owner_id.is.null,investor_id.eq.${user.id})`
+          )
           .order("created_at", { ascending: false }),
+
         supabase
           .from("wallet_transactions")
           .select("*")
@@ -120,33 +151,58 @@ export default function InvestorDashboard() {
           .limit(10),
       ]);
 
+      if (walletResult.error) {
+        throw walletResult.error;
+      }
+
+      if (investmentsResult.error) {
+        throw investmentsResult.error;
+      }
+
+      if (transactionsResult.error) {
+        throw transactionsResult.error;
+      }
+
       setWallet(
-        (w as Wallet | null) ?? {
+        (walletResult.data as Wallet | null) ?? {
           available_balance: 0,
           invested_balance: 0,
           pending_balance: 0,
         }
       );
-      setInvestments((inv as Investment[] | null) ?? []);
-      setTransactions((tx as WalletTransaction[] | null) ?? []);
+
+      setInvestments(
+        (investmentsResult.data as Investment[] | null) ?? []
+      );
+
+      setTransactions(
+        (transactionsResult.data as WalletTransaction[] | null) ?? []
+      );
     } catch (err: any) {
-      setErrorMsg(err?.message ?? "Unable to load portfolio.");
+      setErrorMsg(
+        err?.message ?? "Unable to load portfolio."
+      );
     } finally {
       setLoading(false);
     }
   }, [navigate]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
-  // Realtime wallet updates
+  /*
+   * Realtime wallet updates.
+   */
   useEffect(() => {
     if (!supabase) return;
+
     let cleanup: (() => void) | undefined;
+
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user || !supabase) return;
-      const ch = supabase
+
+      const channel = supabase
         .channel("investor-wallet-rt")
         .on(
           "postgres_changes",
@@ -156,35 +212,75 @@ export default function InvestorDashboard() {
             table: "investor_wallets",
             filter: `user_id=eq.${user.id}`,
           },
-          (p) => setWallet(p.new as Wallet)
+          (payload) => {
+            setWallet(payload.new as Wallet);
+          }
         )
         .subscribe();
-      cleanup = () => { supabase?.removeChannel(ch); };
+
+      cleanup = () => {
+        supabase?.removeChannel(channel);
+      };
     });
+
     return () => cleanup?.();
   }, []);
 
+  /*
+   * Portfolio statistics are calculated from certificates
+   * CURRENTLY OWNED by this investor.
+   */
   const stats = useMemo(() => {
-    const invested = investments.reduce((s, i) => s + Number(i.amount), 0);
-    const activeInv = investments.filter((i) =>
-      ["active", "funded"].includes(i.status)
+    const invested = investments.reduce(
+      (sum, investment) =>
+        sum + Number(investment.amount || 0),
+      0
     );
+
+    const activeInv = investments.filter((investment) =>
+      ["active", "funded"].includes(
+        String(investment.status || "").toLowerCase()
+      )
+    );
+
     const avgRate =
       activeInv.length > 0
-        ? activeInv.reduce((s, i) => s + Number(i.investor_interest_rate), 0) /
-          activeInv.length
+        ? activeInv.reduce(
+            (sum, investment) =>
+              sum +
+              Number(
+                investment.investor_interest_rate || 0
+              ),
+            0
+          ) / activeInv.length
         : 0;
-    const annualYield = invested * (avgRate / 100);
-    const monthlyYield = annualYield / 12;
-    return { invested, avgRate, annualYield, monthlyYield };
+
+    const annualYield =
+      invested * (avgRate / 100);
+
+    const monthlyYield =
+      annualYield / 12;
+
+    return {
+      invested,
+      avgRate,
+      annualYield,
+      monthlyYield,
+    };
   }, [investments]);
 
   const donutSlices = useMemo(() => {
     const byStatus: Record<string, number> = {};
-    for (const inv of investments) {
-      const s = inv.status ?? "pending";
-      byStatus[s] = (byStatus[s] ?? 0) + Number(inv.amount);
+
+    for (const investment of investments) {
+      const status =
+        String(investment.status || "pending").toLowerCase();
+
+      byStatus[status] =
+        (byStatus[status] ?? 0) +
+        Number(investment.amount || 0);
     }
+
     const COLORS: Record<string, string> = {
       active: "#4da855",
       funded: "#4da855",
@@ -192,38 +288,66 @@ export default function InvestorDashboard() {
       completed: "#3b82f6",
       defaulted: "#ef4444",
     };
-    return Object.entries(byStatus).map(([label, value]) => ({
-      label,
-      value,
-      color: COLORS[label] ?? "#94a3b8",
-    }));
+
+    return Object.entries(byStatus).map(
+      ([label, value]) => ({
+        label,
+        value,
+        color: COLORS[label] ?? "#94a3b8",
+      })
+    );
   }, [investments]);
 
   const barData = useMemo(() => {
     const months: Record<string, number> = {};
-    for (const inv of investments) {
-      const d = new Date(inv.created_at);
-      const key = d.toLocaleDateString("en-US", {
-        month: "short",
-        year: "2-digit",
-      });
-      months[key] = (months[key] ?? 0) + Number(inv.amount);
+
+    const ordered = investments
+      .slice()
+      .sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() -
+          new Date(b.created_at).getTime()
+      );
+
+    for (const investment of ordered) {
+      const date = new Date(investment.created_at);
+
+      const key = date.toLocaleDateString(
+        "en-US",
+        {
+          month: "short",
+          year: "2-digit",
+        }
+      );
+
+      months[key] =
+        (months[key] ?? 0) +
+        Number(investment.amount || 0);
     }
+
     return Object.entries(months)
       .slice(-6)
-      .map(([label, value]) => ({ label, value }));
+      .map(([label, value]) => ({
+        label,
+        value,
+      }));
   }, [investments]);
 
   const sparkData = useMemo(() => {
     let running = 0;
+
     return investments
       .slice()
       .sort(
         (a, b) =>
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          new Date(a.created_at).getTime() -
+          new Date(b.created_at).getTime()
       )
-      .map((i) => {
-        running += Number(i.amount);
+      .map((investment) => {
+        running += Number(
+          investment.amount || 0
+        );
+
         return running;
       });
   }, [investments]);
@@ -234,7 +358,9 @@ export default function InvestorDashboard() {
         <div className="flex min-h-[50vh] items-center justify-center">
           <div className="flex flex-col items-center gap-3 text-slate-400">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500" />
-            <p className="text-sm">Loading portfolio…</p>
+            <p className="text-sm">
+              Loading portfolio…
+            </p>
           </div>
         </div>
       </AppLayout>
@@ -249,40 +375,66 @@ export default function InvestorDashboard() {
   return (
     <AppLayout>
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+
         {/* Hero banner */}
         <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-7 text-white shadow-2xl sm:p-10">
+
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-300">
             Investor Portal
           </p>
+
           <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
             Your Land-Backed Portfolio
           </h1>
+
           <div className="mt-6 flex flex-wrap items-end gap-8">
+
             <div>
-              <p className="text-sm text-slate-400">Total Portfolio Value</p>
+              <p className="text-sm text-slate-400">
+                Total Portfolio Value
+              </p>
+
               <p className="mt-1 font-mono text-4xl font-black">
                 {money(totalPortfolio)}
               </p>
             </div>
+
             {sparkData.length > 1 && (
               <div className="flex flex-col gap-1">
-                <p className="text-xs text-slate-400">Growth trend</p>
-                <Sparkline data={sparkData} color="#4da855" width={140} height={44} />
+
+                <p className="text-xs text-slate-400">
+                  Growth trend
+                </p>
+
+                <Sparkline
+                  data={sparkData}
+                  color="#4da855"
+                  width={140}
+                  height={44}
+                />
               </div>
             )}
+
             <div className="ml-auto flex flex-wrap gap-2">
+
               <button
-                onClick={() => navigate("/investor-wallet")}
+                onClick={() =>
+                  navigate("/investor-wallet")
+                }
                 className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-500"
               >
                 Manage Wallet
               </button>
+
               <button
-                onClick={() => navigate("/marketplace")}
+                onClick={() =>
+                  navigate("/marketplace")
+                }
                 className="rounded-xl bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/20"
               >
                 Browse Deals
               </button>
+
             </div>
           </div>
         </section>
@@ -293,199 +445,352 @@ export default function InvestorDashboard() {
           </div>
         )}
 
-        {/* KYC Banner */}
+        {/* KYC */}
         <div className="mt-6">
           <KYCWorkflow />
         </div>
 
-        {/* Stats */}
+        {/* Portfolio statistics */}
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
           <StatCard
             label="Available Cash"
-            value={money(wallet?.available_balance)}
+            value={money(
+              wallet?.available_balance
+            )}
             sub="Ready to invest"
           />
+
           <StatCard
             label="Capital Invested"
             value={money(stats.invested)}
-            sub={`${investments.length} position${investments.length !== 1 ? "s" : ""}`}
+            sub={`${investments.length} position${
+              investments.length !== 1
+                ? "s"
+                : ""
+            }`}
             accent
           />
+
           <StatCard
             label="Avg. Return"
             value={pct(stats.avgRate)}
             sub="Across active loans"
           />
+
           <StatCard
             label="Monthly Yield"
-            value={money(stats.monthlyYield)}
+            value={money(
+              stats.monthlyYield
+            )}
             sub="Estimated"
           />
+
         </div>
 
         {/* Charts */}
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
+
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-base font-bold text-slate-900">Portfolio Allocation</h2>
-            <p className="mt-0.5 text-xs text-slate-400">By investment status</p>
+
+            <h2 className="text-base font-bold text-slate-900">
+              Portfolio Allocation
+            </h2>
+
+            <p className="mt-0.5 text-xs text-slate-400">
+              By investment status
+            </p>
+
             <div className="mt-6 flex justify-center">
+
               {donutSlices.length > 0 ? (
                 <DonutChart
                   slices={donutSlices}
-                  centerValue={money(stats.invested)}
+                  centerValue={money(
+                    stats.invested
+                  )}
                   centerLabel="invested"
                   size={200}
                 />
               ) : (
                 <div className="flex flex-col items-center gap-3 py-12 text-slate-400">
-                  <p className="text-sm">No investments yet.</p>
+
+                  <p className="text-sm">
+                    No investments yet.
+                  </p>
+
                   <button
-                    onClick={() => navigate("/marketplace")}
+                    onClick={() =>
+                      navigate("/marketplace")
+                    }
                     className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white"
                   >
                     Browse Marketplace
                   </button>
+
                 </div>
               )}
+
             </div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-base font-bold text-slate-900">Capital Deployed</h2>
-            <p className="mt-0.5 text-xs text-slate-400">By month (last 6)</p>
+
+            <h2 className="text-base font-bold text-slate-900">
+              Capital Deployed
+            </h2>
+
+            <p className="mt-0.5 text-xs text-slate-400">
+              By month (last 6)
+            </p>
+
             <div className="mt-6">
+
               {barData.length > 0 ? (
-                <BarChart data={barData} height={180} />
+                <BarChart
+                  data={barData}
+                  height={180}
+                />
               ) : (
                 <p className="py-12 text-center text-sm text-slate-400">
                   No investment history yet.
                 </p>
               )}
+
             </div>
           </div>
+
         </div>
 
-        {/* Active positions table */}
+        {/* Active positions */}
         <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-4">
-            <h2 className="text-base font-bold text-slate-900">Active Positions</h2>
+
+            <h2 className="text-base font-bold text-slate-900">
+              Active Positions
+            </h2>
+
             <button
-              onClick={() => navigate("/marketplace")}
+              onClick={() =>
+                navigate("/marketplace")
+              }
               className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700"
             >
               + New Investment
             </button>
+
           </div>
 
           {investments.length === 0 ? (
             <div className="p-10 text-center text-slate-400">
+
               <p className="text-sm">
                 No investments yet. Browse the marketplace to get started.
               </p>
+
             </div>
           ) : (
             <div className="overflow-x-auto">
+
               <table className="w-full text-sm">
+
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50 text-left">
-                    {["Loan / Certificate", "Amount", "Rate", "Term", "Status", "Date"].map((h) => (
+
+                    {[
+                      "Loan / Certificate",
+                      "Amount",
+                      "Rate",
+                      "Term",
+                      "Status",
+                      "Date",
+                    ].map((heading) => (
                       <th
-                        key={h}
+                        key={heading}
                         className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500"
                       >
-                        {h}
+                        {heading}
                       </th>
                     ))}
+
                   </tr>
                 </thead>
+
                 <tbody>
-                  {investments.map((inv) => (
-                    <tr
-                      key={inv.id}
-                      className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
-                    >
-                      <td className="px-5 py-3 font-semibold text-slate-800">
-                        <p>{inv.business_name ?? `Loan #${inv.loan_id}`}</p>
-                        {inv.certificate_number && (
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/investment-certificate/${encodeURIComponent(inv.certificate_number!)}`)}
-                            className="mt-1 block break-all text-left font-mono text-[10px] font-bold text-amber-700 hover:underline"
+
+                  {investments.map(
+                    (investment) => (
+                      <tr
+                        key={investment.id}
+                        className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                      >
+
+                        <td className="px-5 py-3 font-semibold text-slate-800">
+
+                          <p>
+                            {investment.business_name ??
+                              `Loan #${investment.loan_id}`}
+                          </p>
+
+                          {investment.certificate_number && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                navigate(
+                                  `/investment-certificate/${encodeURIComponent(
+                                    investment.certificate_number!
+                                  )}`
+                                )
+                              }
+                              className="mt-1 block break-all text-left font-mono text-[10px] font-bold text-amber-700 hover:underline"
+                            >
+                              {
+                                investment.certificate_number
+                              }
+                            </button>
+                          )}
+
+                        </td>
+
+                        <td className="px-5 py-3 font-semibold text-emerald-700">
+                          {money(
+                            investment.amount
+                          )}
+                        </td>
+
+                        <td className="px-5 py-3 text-slate-600">
+                          {pct(
+                            investment.investor_interest_rate
+                          )}
+                        </td>
+
+                        <td className="px-5 py-3 text-slate-500">
+                          {
+                            investment.term_months
+                          }
+                          mo
+                        </td>
+
+                        <td className="px-5 py-3">
+
+                          <span
+                            className={`rounded-full px-2 py-1 text-[11px] font-bold ${
+                              STATUS_CHIP[
+                                investment.status
+                              ] ??
+                              "bg-slate-100 text-slate-700"
+                            }`}
                           >
-                            {inv.certificate_number}
-                          </button>
-                        )}
-                      </td>
-                      <td className="px-5 py-3 font-semibold text-emerald-700">
-                        {money(inv.amount)}
-                      </td>
-                      <td className="px-5 py-3 text-slate-600">
-                        {pct(inv.investor_interest_rate)}
-                      </td>
-                      <td className="px-5 py-3 text-slate-500">{inv.term_months}mo</td>
-                      <td className="px-5 py-3">
-                        <span
-                          className={`rounded-full px-2 py-1 text-[11px] font-bold ${
-                            STATUS_CHIP[inv.status] ?? "bg-slate-100 text-slate-700"
-                          }`}
-                        >
-                          {inv.status}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 text-slate-500">
-                        {new Date(inv.created_at).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
+                            {investment.status}
+                          </span>
+
+                        </td>
+
+                        <td className="px-5 py-3 text-slate-500">
+                          {new Date(
+                            investment.created_at
+                          ).toLocaleDateString()}
+                        </td>
+
+                      </tr>
+                    )
+                  )}
+
                 </tbody>
               </table>
             </div>
           )}
+
         </div>
 
         {/* Recent transactions */}
         {transactions.length > 0 && (
           <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
             <div className="border-b border-slate-200 px-6 py-4">
-              <h2 className="text-base font-bold text-slate-900">Recent Transactions</h2>
+
+              <h2 className="text-base font-bold text-slate-900">
+                Recent Transactions
+              </h2>
+
             </div>
+
             <div className="divide-y divide-slate-100">
-              {transactions.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between px-6 py-3">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800 capitalize">
-                      {String(tx.type).replace(/_/g, " ")}
-                    </p>
-                    {tx.description && (
-                      <p className="text-xs text-slate-400">{tx.description}</p>
-                    )}
+
+              {transactions.map((tx) => {
+                const transactionLabel =
+                  tx.transaction_type ??
+                  tx.type ??
+                  "transaction";
+
+                return (
+                  <div
+                    key={tx.id}
+                    className="flex items-center justify-between px-6 py-3"
+                  >
+
+                    <div>
+
+                      <p className="text-sm font-semibold capitalize text-slate-800">
+                        {String(
+                          transactionLabel
+                        ).replace(/_/g, " ")}
+                      </p>
+
+                      {tx.description && (
+                        <p className="text-xs text-slate-400">
+                          {tx.description}
+                        </p>
+                      )}
+
+                    </div>
+
+                    <div className="text-right">
+
+                      <p
+                        className={`text-sm font-black ${
+                          Number(tx.amount) >= 0
+                            ? "text-emerald-600"
+                            : "text-rose-600"
+                        }`}
+                      >
+                        {Number(tx.amount) >= 0
+                          ? "+"
+                          : ""}
+                        {money(tx.amount)}
+                      </p>
+
+                      <p className="text-xs text-slate-400">
+                        {new Date(
+                          tx.created_at
+                        ).toLocaleDateString()}
+                      </p>
+
+                    </div>
+
                   </div>
-                  <div className="text-right">
-                    <p
-                      className={`text-sm font-black ${
-                        Number(tx.amount) >= 0 ? "text-emerald-600" : "text-rose-600"
-                      }`}
-                    >
-                      {Number(tx.amount) >= 0 ? "+" : ""}
-                      {money(tx.amount)}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {new Date(tx.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
+
             </div>
+
             <div className="border-t border-slate-200 px-6 py-3">
+
               <button
-                onClick={() => navigate("/investor-wallet")}
+                onClick={() =>
+                  navigate("/investor-wallet")
+                }
                 className="text-xs font-semibold text-emerald-600 hover:underline"
               >
                 View all transactions →
               </button>
+
             </div>
+
           </div>
         )}
+
       </div>
     </AppLayout>
   );
