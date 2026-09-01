@@ -191,9 +191,6 @@ export default function InvestorDashboard() {
     void load();
   }, [load]);
 
-  /*
-   * Realtime wallet updates.
-   */
   useEffect(() => {
     if (!supabase) return;
 
@@ -226,10 +223,6 @@ export default function InvestorDashboard() {
     return () => cleanup?.();
   }, []);
 
-  /*
-   * Portfolio statistics are calculated from certificates
-   * CURRENTLY OWNED by this investor.
-   */
   const stats = useMemo(() => {
     const invested = investments.reduce(
       (sum, investment) =>
@@ -247,38 +240,24 @@ export default function InvestorDashboard() {
       activeInv.length > 0
         ? activeInv.reduce(
             (sum, investment) =>
-              sum +
-              Number(
-                investment.investor_interest_rate || 0
-              ),
+              sum + Number(investment.investor_interest_rate || 0),
             0
           ) / activeInv.length
         : 0;
 
-    const annualYield =
-      invested * (avgRate / 100);
+    const annualYield = invested * (avgRate / 100);
+    const monthlyYield = annualYield / 12;
 
-    const monthlyYield =
-      annualYield / 12;
-
-    return {
-      invested,
-      avgRate,
-      annualYield,
-      monthlyYield,
-    };
+    return { invested, avgRate, annualYield, monthlyYield };
   }, [investments]);
 
   const donutSlices = useMemo(() => {
     const byStatus: Record<string, number> = {};
 
     for (const investment of investments) {
-      const status =
-        String(investment.status || "pending").toLowerCase();
-
+      const status = String(investment.status || "pending").toLowerCase();
       byStatus[status] =
-        (byStatus[status] ?? 0) +
-        Number(investment.amount || 0);
+        (byStatus[status] ?? 0) + Number(investment.amount || 0);
     }
 
     const COLORS: Record<string, string> = {
@@ -289,13 +268,11 @@ export default function InvestorDashboard() {
       defaulted: "#ef4444",
     };
 
-    return Object.entries(byStatus).map(
-      ([label, value]) => ({
-        label,
-        value,
-        color: COLORS[label] ?? "#94a3b8",
-      })
-    );
+    return Object.entries(byStatus).map(([label, value]) => ({
+      label,
+      value,
+      color: COLORS[label] ?? "#94a3b8",
+    }));
   }, [investments]);
 
   const barData = useMemo(() => {
@@ -311,26 +288,18 @@ export default function InvestorDashboard() {
 
     for (const investment of ordered) {
       const date = new Date(investment.created_at);
-
-      const key = date.toLocaleDateString(
-        "en-US",
-        {
-          month: "short",
-          year: "2-digit",
-        }
-      );
+      const key = date.toLocaleDateString("en-US", {
+        month: "short",
+        year: "2-digit",
+      });
 
       months[key] =
-        (months[key] ?? 0) +
-        Number(investment.amount || 0);
+        (months[key] ?? 0) + Number(investment.amount || 0);
     }
 
     return Object.entries(months)
       .slice(-6)
-      .map(([label, value]) => ({
-        label,
-        value,
-      }));
+      .map(([label, value]) => ({ label, value }));
   }, [investments]);
 
   const sparkData = useMemo(() => {
@@ -344,10 +313,7 @@ export default function InvestorDashboard() {
           new Date(b.created_at).getTime()
       )
       .map((investment) => {
-        running += Number(
-          investment.amount || 0
-        );
-
+        running += Number(investment.amount || 0);
         return running;
       });
   }, [investments]);
@@ -358,9 +324,7 @@ export default function InvestorDashboard() {
         <div className="flex min-h-[50vh] items-center justify-center">
           <div className="flex flex-col items-center gap-3 text-slate-400">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500" />
-            <p className="text-sm">
-              Loading portfolio…
-            </p>
+            <p className="text-sm">Loading portfolio…</p>
           </div>
         </div>
       </AppLayout>
@@ -375,66 +339,39 @@ export default function InvestorDashboard() {
   return (
     <AppLayout>
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-
-        {/* Hero banner */}
         <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-7 text-white shadow-2xl sm:p-10">
-
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-300">
             Investor Portal
           </p>
-
           <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
             Your Land-Backed Portfolio
           </h1>
-
           <div className="mt-6 flex flex-wrap items-end gap-8">
-
             <div>
-              <p className="text-sm text-slate-400">
-                Total Portfolio Value
-              </p>
-
+              <p className="text-sm text-slate-400">Total Portfolio Value</p>
               <p className="mt-1 font-mono text-4xl font-black">
                 {money(totalPortfolio)}
               </p>
             </div>
-
             {sparkData.length > 1 && (
               <div className="flex flex-col gap-1">
-
-                <p className="text-xs text-slate-400">
-                  Growth trend
-                </p>
-
-                <Sparkline
-                  data={sparkData}
-                  color="#4da855"
-                  width={140}
-                  height={44}
-                />
+                <p className="text-xs text-slate-400">Growth trend</p>
+                <Sparkline data={sparkData} color="#4da855" width={140} height={44} />
               </div>
             )}
-
             <div className="ml-auto flex flex-wrap gap-2">
-
               <button
-                onClick={() =>
-                  navigate("/investor-wallet")
-                }
+                onClick={() => navigate("/investor-wallet")}
                 className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-500"
               >
                 Manage Wallet
               </button>
-
               <button
-                onClick={() =>
-                  navigate("/marketplace")
-                }
+                onClick={() => navigate("/marketplace")}
                 className="rounded-xl bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/20"
               >
                 Browse Deals
               </button>
-
             </div>
           </div>
         </section>
@@ -445,167 +382,100 @@ export default function InvestorDashboard() {
           </div>
         )}
 
-        {/* KYC */}
         <div className="mt-6">
           <KYCWorkflow />
         </div>
 
-        {/* Portfolio statistics */}
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
           <StatCard
             label="Available Cash"
-            value={money(
-              wallet?.available_balance
-            )}
+            value={money(wallet?.available_balance)}
             sub="Ready to invest"
           />
-
           <StatCard
             label="Capital Invested"
             value={money(stats.invested)}
             sub={`${investments.length} position${
-              investments.length !== 1
-                ? "s"
-                : ""
+              investments.length !== 1 ? "s" : ""
             }`}
             accent
           />
-
           <StatCard
             label="Avg. Return"
             value={pct(stats.avgRate)}
             sub="Across active loans"
           />
-
           <StatCard
             label="Monthly Yield"
-            value={money(
-              stats.monthlyYield
-            )}
+            value={money(stats.monthlyYield)}
             sub="Estimated"
           />
-
         </div>
 
-        {/* Charts */}
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
-
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-
-            <h2 className="text-base font-bold text-slate-900">
-              Portfolio Allocation
-            </h2>
-
-            <p className="mt-0.5 text-xs text-slate-400">
-              By investment status
-            </p>
-
+            <h2 className="text-base font-bold text-slate-900">Portfolio Allocation</h2>
+            <p className="mt-0.5 text-xs text-slate-400">By investment status</p>
             <div className="mt-6 flex justify-center">
-
               {donutSlices.length > 0 ? (
                 <DonutChart
                   slices={donutSlices}
-                  centerValue={money(
-                    stats.invested
-                  )}
+                  centerValue={money(stats.invested)}
                   centerLabel="invested"
                   size={200}
                 />
               ) : (
                 <div className="flex flex-col items-center gap-3 py-12 text-slate-400">
-
-                  <p className="text-sm">
-                    No investments yet.
-                  </p>
-
+                  <p className="text-sm">No investments yet.</p>
                   <button
-                    onClick={() =>
-                      navigate("/marketplace")
-                    }
+                    onClick={() => navigate("/marketplace")}
                     className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white"
                   >
                     Browse Marketplace
                   </button>
-
                 </div>
               )}
-
             </div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-
-            <h2 className="text-base font-bold text-slate-900">
-              Capital Deployed
-            </h2>
-
-            <p className="mt-0.5 text-xs text-slate-400">
-              By month (last 6)
-            </p>
-
+            <h2 className="text-base font-bold text-slate-900">Capital Deployed</h2>
+            <p className="mt-0.5 text-xs text-slate-400">By month (last 6)</p>
             <div className="mt-6">
-
               {barData.length > 0 ? (
-                <BarChart
-                  data={barData}
-                  height={180}
-                />
+                <BarChart data={barData} height={180} />
               ) : (
                 <p className="py-12 text-center text-sm text-slate-400">
                   No investment history yet.
                 </p>
               )}
-
             </div>
           </div>
-
         </div>
 
-        {/* Active positions */}
         <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-4">
-
-            <h2 className="text-base font-bold text-slate-900">
-              Active Positions
-            </h2>
-
+            <h2 className="text-base font-bold text-slate-900">Active Positions</h2>
             <button
-              onClick={() =>
-                navigate("/marketplace")
-              }
+              onClick={() => navigate("/marketplace")}
               className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700"
             >
               + New Investment
             </button>
-
           </div>
 
           {investments.length === 0 ? (
             <div className="p-10 text-center text-slate-400">
-
               <p className="text-sm">
                 No investments yet. Browse the marketplace to get started.
               </p>
-
             </div>
           ) : (
             <div className="overflow-x-auto">
-
               <table className="w-full text-sm">
-
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50 text-left">
-
-                    {[
-                      "Loan / Certificate",
-                      "Amount",
-                      "Rate",
-                      "Term",
-                      "Status",
-                      "Date",
-                    ].map((heading) => (
+                    {["Loan / Certificate", "Amount", "Rate", "Term", "Status", "Date"].map((heading) => (
                       <th
                         key={heading}
                         className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500"
@@ -613,141 +483,87 @@ export default function InvestorDashboard() {
                         {heading}
                       </th>
                     ))}
-
                   </tr>
                 </thead>
-
                 <tbody>
-
-                  {investments.map(
-                    (investment) => (
-                      <tr
-                        key={investment.id}
-                        className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
-                      >
-
-                        <td className="px-5 py-3 font-semibold text-slate-800">
-
-                          <p>
-                            {investment.business_name ??
-                              `Loan #${investment.loan_id}`}
-                          </p>
-
-                          {investment.certificate_number && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                navigate(
-                                  `/investment-certificate/${encodeURIComponent(
-                                    investment.certificate_number!
-                                  )}`
-                                )
-                              }
-                              className="mt-1 block break-all text-left font-mono text-[10px] font-bold text-amber-700 hover:underline"
-                            >
-                              {
-                                investment.certificate_number
-                              }
-                            </button>
-                          )}
-
-                        </td>
-
-                        <td className="px-5 py-3 font-semibold text-emerald-700">
-                          {money(
-                            investment.amount
-                          )}
-                        </td>
-
-                        <td className="px-5 py-3 text-slate-600">
-                          {pct(
-                            investment.investor_interest_rate
-                          )}
-                        </td>
-
-                        <td className="px-5 py-3 text-slate-500">
-                          {
-                            investment.term_months
-                          }
-                          mo
-                        </td>
-
-                        <td className="px-5 py-3">
-
-                          <span
-                            className={`rounded-full px-2 py-1 text-[11px] font-bold ${
-                              STATUS_CHIP[
-                                investment.status
-                              ] ??
-                              "bg-slate-100 text-slate-700"
-                            }`}
+                  {investments.map((investment) => (
+                    <tr
+                      key={investment.id}
+                      className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                    >
+                      <td className="px-5 py-3 font-semibold text-slate-800">
+                        <p>{investment.business_name ?? `Loan #${investment.loan_id}`}</p>
+                        {investment.certificate_number && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate(
+                                `/investment-certificate/${encodeURIComponent(
+                                  investment.certificate_number!
+                                )}`
+                              )
+                            }
+                            className="mt-1 block break-all text-left font-mono text-[10px] font-bold text-amber-700 hover:underline"
                           >
-                            {investment.status}
-                          </span>
-
-                        </td>
-
-                        <td className="px-5 py-3 text-slate-500">
-                          {new Date(
-                            investment.created_at
-                          ).toLocaleDateString()}
-                        </td>
-
-                      </tr>
-                    )
-                  )}
-
+                            {investment.certificate_number}
+                          </button>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 font-semibold text-emerald-700">
+                        {money(investment.amount)}
+                      </td>
+                      <td className="px-5 py-3 text-slate-600">
+                        {pct(investment.investor_interest_rate)}
+                      </td>
+                      <td className="px-5 py-3 text-slate-500">
+                        {investment.term_months}mo
+                      </td>
+                      <td className="px-5 py-3">
+                        <span
+                          className={`rounded-full px-2 py-1 text-[11px] font-bold ${
+                            STATUS_CHIP[investment.status] ??
+                            "bg-slate-100 text-slate-700"
+                          }`}
+                        >
+                          {investment.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-slate-500">
+                        {new Date(investment.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           )}
-
         </div>
 
-        {/* Recent transactions */}
         {transactions.length > 0 && (
           <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-
             <div className="border-b border-slate-200 px-6 py-4">
-
-              <h2 className="text-base font-bold text-slate-900">
-                Recent Transactions
-              </h2>
-
+              <h2 className="text-base font-bold text-slate-900">Recent Transactions</h2>
             </div>
 
             <div className="divide-y divide-slate-100">
-
               {transactions.map((tx) => {
                 const transactionLabel =
-                  tx.transaction_type ??
-                  tx.type ??
-                  "transaction";
+                  tx.transaction_type ?? tx.type ?? "transaction";
 
                 return (
                   <div
                     key={tx.id}
                     className="flex items-center justify-between px-6 py-3"
                   >
-
                     <div>
-
                       <p className="text-sm font-semibold capitalize text-slate-800">
-                        {String(
-                          transactionLabel
-                        ).replace(/_/g, " ")}
+                        {String(transactionLabel).replace(/_/g, " ")}
                       </p>
-
                       {tx.description && (
-                        <p className="text-xs text-slate-400">
-                          {tx.description}
-                        </p>
+                        <p className="text-xs text-slate-400">{tx.description}</p>
                       )}
-
                     </div>
-
                     <div className="text-right">
-
                       <p
                         className={`text-sm font-black ${
                           Number(tx.amount) >= 0
@@ -755,42 +571,28 @@ export default function InvestorDashboard() {
                             : "text-rose-600"
                         }`}
                       >
-                        {Number(tx.amount) >= 0
-                          ? "+"
-                          : ""}
+                        {Number(tx.amount) >= 0 ? "+" : ""}
                         {money(tx.amount)}
                       </p>
-
                       <p className="text-xs text-slate-400">
-                        {new Date(
-                          tx.created_at
-                        ).toLocaleDateString()}
+                        {new Date(tx.created_at).toLocaleDateString()}
                       </p>
-
                     </div>
-
                   </div>
                 );
               })}
-
             </div>
 
             <div className="border-t border-slate-200 px-6 py-3">
-
               <button
-                onClick={() =>
-                  navigate("/investor-wallet")
-                }
+                onClick={() => navigate("/investor-wallet")}
                 className="text-xs font-semibold text-emerald-600 hover:underline"
               >
                 View all transactions →
               </button>
-
             </div>
-
           </div>
         )}
-
       </div>
     </AppLayout>
   );
