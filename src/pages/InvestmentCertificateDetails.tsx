@@ -199,9 +199,14 @@ export default function InvestmentCertificateDetails() {
     );
   }
 
-  const displayedLoanNumber =
-    publicLoanNumber ?? investment.loan_id;
+  const certificateLoanNumber =
+  investment.certificate_number?.split("-")[2];
 
+const displayedLoanNumber =
+  publicLoanNumber ??
+  (certificateLoanNumber
+    ? Number(certificateLoanNumber)
+    : investment.loan_id);
   return (
     <AppLayout>
       <main className="mx-auto max-w-5xl px-4 py-10 text-white print:bg-white print:text-black">
