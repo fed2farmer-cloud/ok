@@ -407,7 +407,13 @@ export default function InvestorWallet() {
                   <div key={inv.id} className="px-6 py-5">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <p className="font-semibold text-slate-800">Loan #{inv.public_loan_number ?? inv.loan_id}</p>
+                        <p className="font-semibold text-slate-800">
+                          Loan #{
+                            inv.public_loan_number ||
+                            Number(inv.certificate_number?.split("-")[2]) ||
+                            inv.loan_id
+                          }
+                        </p>
                         <p className="text-xs text-slate-500">{rate}% · {months} months</p>
                         {inv.certificate_number && (
                           <p className="mt-2 break-all font-mono text-[11px] font-bold text-amber-700">
