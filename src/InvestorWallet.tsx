@@ -92,14 +92,33 @@ export default function InvestorWallet() {
       .eq("status", "active")
       .order("created_at", { ascending: false });
     const rawInvestments = investmentData || [];
-    const loanIds = [...new Set(rawInvestments.map((inv: any) => inv.loan_application_id ?? inv.loan_id).filter(Boolean))];
-    let loanNumberById = new Map<any, any>();
-    if (loanIds.length > 0) {
-      const { data: loanRows } = await supabase
+
+    // Resolve the public loan number from the loan application relationship.
+    // Legacy investments may keep an internal DB id in loan_id, so prefer
+    // loan_application_id when present and never expose the internal id unless
+    // both the application lookup and permanent certificate fallback fail.
+    const applicationIds = [
+      ...new Set(
+        rawInvestments
+          .map((inv: any) => inv.loan_application_id ?? inv.loan_id)
+          .filter(Boolean)
+      ),
+    ];
+
+    let loanNumberByApplicationId = new Map<any, any>();
+    if (applicationIds.length > 0) {
+      const { data: loanRows, error: loanRowsError } = await supabase
         .from("loan_applications")
         .select("id, loan_number")
-        .in("id", loanIds);
-      loanNumberById = new Map((loanRows || []).map((loan: any) => [loan.id, loan.loan_number]));
+        .in("id", applicationIds);
+
+      if (loanRowsError) {
+        console.error("Unable to resolve public loan numbers:", loanRowsError.message);
+      }
+
+      loanNumberByApplicationId = new Map(
+        (loanRows || []).map((loan: any) => [loan.id, loan.loan_number])
+      );
     }
     const investmentIds = rawInvestments.map((inv: any) => inv.id).filter(Boolean);
     let positionByInvestmentId = new Map<any, any>();
@@ -120,7 +139,11 @@ export default function InvestorWallet() {
         const position = positionByInvestmentId.get(inv.id);
         return {
           ...inv,
-          public_loan_number: loanNumberById.get(inv.loan_application_id ?? inv.loan_id) ?? inv.loan_number ?? inv.loan_application_id ?? inv.loan_id,
+          public_loan_number:
+            loanNumberByApplicationId.get(inv.loan_application_id ?? inv.loan_id) ||
+            inv.loan_number ||
+            Number(String(inv.certificate_number || "").split("-")[2]) ||
+            inv.loan_id,
           original_principal: Number(position?.original_principal ?? inv.amount ?? 0),
           current_principal: Number(position?.current_principal ?? inv.amount ?? 0),
           has_active_position: Boolean(position),
