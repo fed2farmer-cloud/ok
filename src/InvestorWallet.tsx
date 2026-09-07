@@ -92,7 +92,7 @@ export default function InvestorWallet() {
       .eq("status", "active")
       .order("created_at", { ascending: false });
     const rawInvestments = investmentData || [];
-    const loanIds = [...new Set(rawInvestments.map((inv: any) => inv.loan_id).filter(Boolean))];
+    const loanIds = [...new Set(rawInvestments.map((inv: any) => inv.loan_application_id ?? inv.loan_id).filter(Boolean))];
     let loanNumberById = new Map<any, any>();
     if (loanIds.length > 0) {
       const { data: loanRows } = await supabase
@@ -120,7 +120,7 @@ export default function InvestorWallet() {
         const position = positionByInvestmentId.get(inv.id);
         return {
           ...inv,
-          public_loan_number: loanNumberById.get(inv.loan_id) ?? inv.loan_number ?? inv.loan_id,
+          public_loan_number: loanNumberById.get(inv.loan_application_id ?? inv.loan_id) ?? inv.loan_number ?? inv.loan_application_id ?? inv.loan_id,
           original_principal: Number(position?.original_principal ?? inv.amount ?? 0),
           current_principal: Number(position?.current_principal ?? inv.amount ?? 0),
           has_active_position: Boolean(position),
