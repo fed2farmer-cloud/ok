@@ -1,0 +1,16 @@
+SECUREDLANDING LOAN NUMBER / PORTFOLIO FIX — 2026-09-07
+
+FIXED
+1. InvestorWallet now resolves the displayed public loan number using investments.loan_application_id first, rather than treating investments.loan_id as the public loan number/application id.
+2. Portfolio V29 no longer requires public.investor_portfolio_v29 to exist. It loads investments directly and resolves loan_applications.loan_number client-side. This addresses the Supabase 42P01 "relation investor_portfolio_v29 does not exist" error.
+3. Added a Supabase migration that restores investor_portfolio_v29 and uses loan_application_id first.
+4. Existing certificate detail logic is preserved; it already resolves loan_application_id -> loan_applications.loan_number.
+
+EXPECTED RESULT FOR THE SCREENSHOT CASE
+Certificate SLI-2026-460109-000023 should display Loan #460109 instead of Loan #1 anywhere the public loan number is shown.
+
+SUPABASE
+Run supabase/migrations/20260907_fix_portfolio_view_and_public_loan_number.sql in the Supabase SQL Editor if migrations are not automatically applied by your deployment process.
+
+NOTE
+The source ZIP contained a broken/incomplete node_modules tree. A clean dependency install in this environment did not complete before the execution timeout, so a local production build could not be re-verified here. Vercel performs its own clean dependency installation during deployment.
