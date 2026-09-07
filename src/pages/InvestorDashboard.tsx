@@ -46,6 +46,11 @@ const money = (n: number | null | undefined) =>
 
 const pct = (n: number) => `${Number(n || 0).toFixed(2)}%`;
 
+function publicLoanNumberFromCertificate(certificateNumber?: string | null) {
+  const match = String(certificateNumber || "").match(/^SLI-\d{4}-(\d+)-/);
+  return match?.[1] || null;
+}
+
 const STATUS_CHIP: Record<string, string> = {
   active: "bg-emerald-100 text-emerald-800",
   funded: "bg-emerald-100 text-emerald-800",
@@ -492,7 +497,13 @@ export default function InvestorDashboard() {
                       className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
                     >
                       <td className="px-5 py-3 font-semibold text-slate-800">
-                        <p>{investment.business_name ?? `Loan #${investment.loan_id}`}</p>
+                        <p>
+                          {investment.business_name ??
+                            `Loan #${
+                              publicLoanNumberFromCertificate(investment.certificate_number) ??
+                              investment.loan_id
+                            }`}
+                        </p>
                         {investment.certificate_number && (
                           <button
                             type="button"
