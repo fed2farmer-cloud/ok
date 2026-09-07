@@ -27,6 +27,11 @@ function money(value: number | null | undefined) {
   }).format(Number(value || 0));
 }
 
+function publicLoanNumber(row: Investment) {
+  const certificateLoanNumber = row.certificate_number?.match(/^SLI-\d{4}-(\d+)-/)?.[1];
+  return certificateLoanNumber || String(row.loan_id);
+}
+
 function eligibleForRefund(row: Investment) {
   if (!row.refund_policy_enabled || !row.refund_deadline) return false;
   if (row.refunded_at) return false;
@@ -188,7 +193,7 @@ export default function InvestorPortfolio() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Loan #{row.loan_id}
+                        Loan #{publicLoanNumber(row)}
                       </p>
                       <p className="mt-1 text-2xl font-bold text-emerald-950">
                         {money(row.amount)}
