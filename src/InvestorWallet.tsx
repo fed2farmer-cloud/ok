@@ -426,16 +426,21 @@ export default function InvestorWallet() {
                 const amount = Number(inv.amount || 0);
                 const rate = Number(inv.investor_interest_rate || 9);
                 const months = Number(inv.term_months || 36);
+                // Certificate numbers are permanent and encode the public loan number:
+                // SLI-YYYY-PUBLICLOAN-SEQUENCE. Use this before the internal loan_id
+                // so legacy investments such as loan_id=1 display Loan #460109.
+                const certificateLoanMatch = String(inv.certificate_number || "").match(
+                  /^SLI-\d{4}-(\d+)-/
+                );
+                const certificateLoanNumber = certificateLoanMatch?.[1] || "";
+                const displayLoanNumber =
+                  inv.public_loan_number || certificateLoanNumber || inv.loan_id;
                 return (
                   <div key={inv.id} className="px-6 py-5">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
                         <p className="font-semibold text-slate-800">
-                          Loan #{
-                            inv.public_loan_number ||
-                            Number(inv.certificate_number?.split("-")[2]) ||
-                            inv.loan_id
-                          }
+                          Loan #{displayLoanNumber}
                         </p>
                         <p className="text-xs text-slate-500">{rate}% · {months} months</p>
                         {inv.certificate_number && (
