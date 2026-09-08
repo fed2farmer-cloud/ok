@@ -166,7 +166,8 @@ export default function SecondaryMarket() {
         ) : (
           <div className="mt-4 grid gap-4">
             {rows.map((listing) => {
-              const loanPerformance = performance[Number(listing.loan_number)];
+              const publicLoanNumber = getPublicLoanNumber(listing);
+              const loanPerformance = performance[publicLoanNumber];
               const certificateShare =
                 loanPerformance?.loanAmount > 0
                   ? Number(listing.original_principal || 0) / loanPerformance.loanAmount
