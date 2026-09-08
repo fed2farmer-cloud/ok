@@ -5,6 +5,7 @@ export type SecondaryListing = {
   investment_id: number;
   certificate_number: string;
   loan_number: number;
+  public_loan_number?: number;
   seller_user_id: string;
   original_principal: number;
   current_principal: number;
@@ -13,6 +14,23 @@ export type SecondaryListing = {
   discount_to_original_percent: number;
   discount_to_current_principal_percent: number;
 };
+
+
+export function getPublicLoanNumber(listing: Pick<SecondaryListing, "loan_number" | "certificate_number" | "public_loan_number">): number {
+  const explicit = Number(listing.public_loan_number);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+
+  // Certificate format: SLI-YYYY-PUBLICLOAN-SERIAL.  This is also a
+  // compatibility fallback for older listings that accidentally stored the
+  // internal loan_applications.id in loan_number.
+  const match = String(listing.certificate_number || "").match(/^SLI-\d{4}-(\d+)-\d+$/i);
+  if (match) {
+    const fromCertificate = Number(match[1]);
+    if (Number.isFinite(fromCertificate) && fromCertificate > 0) return fromCertificate;
+  }
+
+  return Number(listing.loan_number);
+}
 
 export async function loadSecondaryListings(): Promise<SecondaryListing[]> {
   if (!supabase) {
