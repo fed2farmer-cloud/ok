@@ -1,29 +1,17 @@
-SecuredLanding Ownership + Distribution Fix
-Date: 2026-09-03
+SecuredLanding Underlying Loan Number Patch
 
-NEW FILE
-supabase/migrations/20260903_ownership_distribution_fix.sql
+Modified files:
+- src/pages/SecondaryMarket.tsx
+- src/pages/SecondaryLoanDetails.tsx
+- src/lib/secondaryMarket.ts
 
-WHAT IT FIXES
-1. sync_investor_positions_for_loan_v1
-   - Uses current_owner_id first, investor_id only as fallback.
-   - Marks transferred positions as secondary.
-   - Does NOT reset current_principal during conflict updates.
+Fixes:
+- Secondary Market derives the public loan number from the permanent certificate number when legacy listing.loan_number contains an internal database ID.
+- "View Original Loan" now routes with the public loan number (example: 480946 instead of 14).
+- Performance RPC uses the resolved public loan number.
+- SecondaryLoanDetails first looks up by public loan_number, then falls back to loan_applications.id for old links.
+- Page heading changes to the resolved public loan number after loading.
 
-2. settle_borrower_payment_v5
-   - Uses latest completed ownership-history owner when present.
-   - Falls back to current_owner_id for primary/legacy certificates.
-   - Falls back to investor_id only if current_owner_id is absent.
-   - Leaves the rest of the exported live V5 payment function unchanged.
-
-VERIFIED BEFORE PACKAGING
-- System ownership audit: 0 linked-position owner mismatches.
-- Loan 361380 sync test processed 5 records.
-- Transferred certificate SLI-2026-361380-000010 remained with its buyer.
-- Its reduced current principal (995.90) was preserved.
-- Six active primary certificates were identified with no completed transfer-history row;
-  the V5 fallback in this migration prevents those certificates from failing distribution.
-
-NOTE
-This ZIP is the permanent migration package for the database fixes. It does not
-replace the already-installed React files from the earlier secondary-market ZIP.
+Validation:
+- npm run build: PASS
+- No SQL/database changes required for this compatibility patch.
