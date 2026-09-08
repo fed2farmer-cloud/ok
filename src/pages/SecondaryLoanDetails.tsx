@@ -67,17 +67,35 @@ export default function SecondaryLoanDetails() {
         return;
       }
 
-      const [{ data: loanRow, error: loanError }, { data: performanceRow, error: performanceError }] =
-        await Promise.all([
-          supabase
-            .from("loan_applications")
-            .select("*")
-            .eq("loan_number", Number(loanNumber))
-            .maybeSingle(),
-          supabase.rpc("get_secondary_loan_performance_v1", {
-            p_loan_number: Number(loanNumber),
-          }),
-        ]);
+      const requestedNumber = Number(loanNumber);
+      let { data: loanRow, error: loanError } = await supabase
+        .from("loan_applications")
+        .select("*")
+        .eq("loan_number", requestedNumber)
+        .maybeSingle();
+
+      // Compatibility fallback: older secondary-market links could contain
+      // loan_applications.id instead of the public six-digit loan_number.
+      if (!loanError && !loanRow) {
+        const fallback = await supabase
+          .from("loan_applications")
+          .select("*")
+          .eq("id", requestedNumber)
+          .maybeSingle();
+        loanRow = fallback.data;
+        loanError = fallback.error;
+      }
+
+      const resolvedLoanNumber = Number(loanRow?.loan_number || requestedNumber);
+      let performanceRow: any = null;
+      let performanceError: any = null;
+      if (!loanError && loanRow) {
+        const performanceResult = await supabase.rpc("get_secondary_loan_performance_v1", {
+          p_loan_number: resolvedLoanNumber,
+        });
+        performanceRow = performanceResult.data;
+        performanceError = performanceResult.error;
+      }
 
       if (!active) return;
       if (loanError) setError(loanError.message);
@@ -118,7 +136,7 @@ export default function SecondaryLoanDetails() {
           </p>
           <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
             <h1 className="text-2xl font-black tracking-tight sm:text-3xl">
-              Loan #{loanNumber}
+              Loan #{loan?.loan_number || loanNumber}
             </h1>
             <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold text-slate-200">
               {loan?.status || "Loading"}

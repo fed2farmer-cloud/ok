@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import {
   loadSecondaryListings,
   type SecondaryListing,
+  getPublicLoanNumber,
 } from "../lib/secondaryMarket";
 
 type LoanPerformance = {
@@ -84,7 +85,7 @@ export default function SecondaryMarket() {
       return;
     }
 
-    const loanNumbers = [...new Set(listings.map((row) => Number(row.loan_number)))];
+    const loanNumbers = [...new Set(listings.map((row) => getPublicLoanNumber(row)))];
     const results = await Promise.all(
       loanNumbers.map(async (loanNumber) => {
         const { data, error } = await supabase.rpc("get_secondary_loan_performance_v1", {
@@ -198,10 +199,10 @@ export default function SecondaryMarket() {
                         {listing.certificate_number}
                       </Link>
                       <Link
-                        to={`/secondary-market/loan/${listing.loan_number}`}
+                        to={`/secondary-market/loan/${publicLoanNumber}`}
                         className="mt-1.5 inline-flex text-xs font-bold text-emerald-700 hover:text-emerald-600"
                       >
-                        View Original Loan #{listing.loan_number} →
+                        View Original Loan #{publicLoanNumber} →
                       </Link>
                     </div>
                     <div className="rounded-xl bg-emerald-50 px-3 py-2 text-right ring-1 ring-emerald-200">
@@ -246,7 +247,7 @@ export default function SecondaryMarket() {
                           Loan performance
                         </h2>
                         <Link
-                          to={`/secondary-market/loan/${listing.loan_number}`}
+                          to={`/secondary-market/loan/${publicLoanNumber}`}
                           className="text-[11px] font-bold text-emerald-700"
                         >
                           Full details →
