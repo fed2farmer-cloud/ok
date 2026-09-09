@@ -336,9 +336,13 @@ export default function InvestorDashboard() {
     );
   }
 
+  // Portfolio value must use the same certificate-level source of truth as
+  // Capital Invested. investor_wallets.invested_balance is a cached ledger
+  // value and can lag when an investor owns multiple certificates for the
+  // same underlying loan (including secondary-market ownership transfers).
   const totalPortfolio =
     Number(wallet?.available_balance ?? 0) +
-    Number(wallet?.invested_balance ?? 0) +
+    stats.invested +
     Number(wallet?.pending_balance ?? 0);
 
   return (
