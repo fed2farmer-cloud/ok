@@ -236,7 +236,12 @@ export default function InvestorWallet() {
 
   const totalInvested = investments.reduce((s, i) => s + Number(i.amount || 0), 0);
   const monthlyReturn = investments.reduce((s, i) => s + (Number(i.amount || 0) * Number(i.investor_interest_rate || 9)) / 100 / 12, 0);
-  const totalPortfolio = Number(wallet?.available_balance || 0) + totalInvested;
+  // Keep portfolio total aligned with the certificate-level investment sum.
+  // The wallet invested_balance field can lag ownership changes.
+  const totalPortfolio =
+    Number(wallet?.available_balance || 0) +
+    totalInvested +
+    Number(wallet?.pending_balance || 0);
 
   if (loading) {
     return (
