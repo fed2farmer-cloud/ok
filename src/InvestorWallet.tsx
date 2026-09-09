@@ -64,6 +64,16 @@ export default function InvestorWallet() {
     return `${bank} – ${name}${mask ? " ••••" + mask : ""}`;
   }
 
+  function effectiveInvestmentStatus(investment: any) {
+    const status = String(investment?.status || "").toLowerCase();
+    const expiresAt = investment?.protection_expires_at || investment?.refund_deadline;
+    if (status === "protection_period" && expiresAt) {
+      const expiresMs = new Date(expiresAt).getTime();
+      if (Number.isFinite(expiresMs) && expiresMs <= Date.now()) return "active";
+    }
+    return status;
+  }
+
   async function getToken() {
     if (!supabase) return null;
     const { data: { session } } = await supabase.auth.getSession();
@@ -83,15 +93,36 @@ export default function InvestorWallet() {
     }
     setWallet(walletData);
 
+    // Expired seven-day protection windows should become active before this wallet
+    // is calculated. The RPC is added by the 2026-09-09 migration. Keep the UI
+    // tolerant during rollout so owned certificates are not hidden if the migration
+    // has not been applied yet.
+    const { error: settlementError } = await supabase.rpc("settle_my_expired_investments_v1");
+    if (settlementError) {
+      console.warn("Unable to settle expired investment protection windows:", settlementError.message);
+    }
+
     // Portfolio ownership follows current_owner_id after a transfer; investor_id remains
-    // the original purchaser. Only active positions belong in the invested balance.
+    // the original purchaser. Count every still-owned committed certificate, including
+    // a live protection-period certificate. Terminal refunded/cancelled/failed records
+    // do not belong in invested capital or the position count.
     const { data: investmentData } = await supabase
       .from("investments")
       .select("*")
       .or(`investor_id.eq.${user.id},current_owner_id.eq.${user.id}`)
-      .eq("status", "active")
       .order("created_at", { ascending: false });
-    const rawInvestments = investmentData || [];
+    const committedStatuses = new Set([
+      "active",
+      "settled",
+      "funded",
+      "completed",
+      "protection_period",
+      "refund_requested",
+      "refund_processing",
+    ]);
+    const rawInvestments = (investmentData || []).filter((inv: any) =>
+      committedStatuses.has(String(inv.status || "").toLowerCase())
+    );
 
     // Resolve the public loan number from the loan application relationship.
     // Legacy investments may keep an internal DB id in loan_id, so prefer
@@ -235,7 +266,11 @@ export default function InvestorWallet() {
   }
 
   const totalInvested = investments.reduce((s, i) => s + Number(i.amount || 0), 0);
-  const monthlyReturn = investments.reduce((s, i) => s + (Number(i.amount || 0) * Number(i.investor_interest_rate || 9)) / 100 / 12, 0);
+  const monthlyReturn = investments.reduce((s, i) => {
+    const status = effectiveInvestmentStatus(i);
+    if (!["active", "settled", "funded", "completed"].includes(status)) return s;
+    return s + (Number(i.amount || 0) * Number(i.investor_interest_rate || 9)) / 100 / 12;
+  }, 0);
   // Keep portfolio total aligned with the certificate-level investment sum.
   // The wallet invested_balance field can lag ownership changes.
   const totalPortfolio =
@@ -440,6 +475,10 @@ export default function InvestorWallet() {
                 const certificateLoanNumber = certificateLoanMatch?.[1] || "";
                 const displayLoanNumber =
                   inv.public_loan_number || certificateLoanNumber || inv.loan_id;
+                const effectiveStatus = effectiveInvestmentStatus(inv);
+                const resaleEligible =
+                  ["active", "settled", "funded", "completed"].includes(effectiveStatus) &&
+                  inv.has_active_position;
                 return (
                   <div key={inv.id} className="px-6 py-5">
                     <div className="flex flex-wrap items-start justify-between gap-4">
@@ -456,8 +495,8 @@ export default function InvestorWallet() {
                       </div>
                       <div className="text-right">
                         <p className="font-black text-emerald-700">{money(amount)}</p>
-                        <span className={`text-xs font-bold ${inv.status === "active" ? "text-emerald-600" : "text-slate-500"}`}>
-                          {String(inv.status || "issued").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                        <span className={`text-xs font-bold ${["active", "settled", "funded", "completed"].includes(effectiveStatus) ? "text-emerald-600" : "text-slate-500"}`}>
+                          {String(effectiveStatus || "issued").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
                         </span>
                       </div>
                     </div>
@@ -470,13 +509,15 @@ export default function InvestorWallet() {
                         >
                           View Certificate
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setSellOpenId(sellOpenId === Number(inv.id) ? null : Number(inv.id))}
-                          className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-500"
-                        >
-                          {sellOpenId === Number(inv.id) ? "Close Resale" : "Sell / Resell Certificate"}
-                        </button>
+                        {resaleEligible && (
+                          <button
+                            type="button"
+                            onClick={() => setSellOpenId(sellOpenId === Number(inv.id) ? null : Number(inv.id))}
+                            className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-500"
+                          >
+                            {sellOpenId === Number(inv.id) ? "Close Resale" : "Sell / Resell Certificate"}
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => navigator.clipboard.writeText(inv.certificate_number)}
@@ -486,7 +527,7 @@ export default function InvestorWallet() {
                         </button>
                       </div>
                     )}
-                    {inv.certificate_number && sellOpenId === Number(inv.id) && (
+                    {inv.certificate_number && resaleEligible && sellOpenId === Number(inv.id) && (
                       <div className="mt-4 rounded-xl border border-emerald-900/30 bg-slate-50 p-4">
                         <SecondaryMarketSellForm
                           investmentId={Number(inv.id)}
