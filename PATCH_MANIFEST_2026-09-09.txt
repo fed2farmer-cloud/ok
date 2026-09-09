@@ -1,0 +1,14 @@
+SecuredLanding Investor Wallet / Protection Expiry Fix - 2026-09-09
+
+Changed files:
+- src/InvestorWallet.tsx
+- supabase/migrations/20260909_investor_wallet_protection_expiry_sync.sql
+- RUN_THIS_IN_SUPABASE_2026-09-09.sql
+- SECUREDLANDING_INVESTOR_WALLET_PROTECTION_FIX_2026-09-09.md
+
+Target screenshot account after SQL + deploy:
+- Invested: $25,445.00
+- Portfolio Total: $25,445.00 (with $0 available / $0 pending)
+- Positions: 8
+- My Investments: 8 certificates
+- Expired protection-period certificates become active and participate in yield/servicing.
