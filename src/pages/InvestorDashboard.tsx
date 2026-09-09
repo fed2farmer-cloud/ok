@@ -129,6 +129,20 @@ export default function InvestorDashboard() {
         return;
       }
 
+      // Settle any expired seven-day protection windows before reading the
+      // portfolio. This keeps the dashboard allocation/status view synchronized
+      // even when the investor opens the portfolio before opening the wallet.
+      // The page still loads if the RPC is temporarily unavailable during deploy.
+      const { error: settlementError } = await supabase.rpc(
+        "settle_my_expired_investments_v1"
+      );
+      if (settlementError) {
+        console.warn(
+          "Unable to settle expired investment protection windows:",
+          settlementError.message
+        );
+      }
+
       const [
         walletResult,
         investmentsResult,
@@ -204,7 +218,7 @@ export default function InvestorDashboard() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user || !supabase) return;
 
-      const channel = supabase
+      const walletChannel = supabase
         .channel("investor-wallet-rt")
         .on(
           "postgres_changes",
@@ -220,13 +234,49 @@ export default function InvestorDashboard() {
         )
         .subscribe();
 
+      // Keep status allocation and yield fresh when an owned investment changes
+      // (for example when protection_period automatically becomes active).
+      const originalOwnerChannel = supabase
+        .channel("investor-investments-original-owner-rt")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "investments",
+            filter: `investor_id=eq.${user.id}`,
+          },
+          () => {
+            void load();
+          }
+        )
+        .subscribe();
+
+      const currentOwnerChannel = supabase
+        .channel("investor-investments-current-owner-rt")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "investments",
+            filter: `current_owner_id=eq.${user.id}`,
+          },
+          () => {
+            void load();
+          }
+        )
+        .subscribe();
+
       cleanup = () => {
-        supabase?.removeChannel(channel);
+        supabase?.removeChannel(walletChannel);
+        supabase?.removeChannel(originalOwnerChannel);
+        supabase?.removeChannel(currentOwnerChannel);
       };
     });
 
     return () => cleanup?.();
-  }, []);
+  }, [load]);
 
   const stats = useMemo(() => {
     const invested = investments.reduce(
@@ -241,19 +291,28 @@ export default function InvestorDashboard() {
       )
     );
 
-    const avgRate =
-      activeInv.length > 0
-        ? activeInv.reduce(
-            (sum, investment) =>
-              sum + Number(investment.investor_interest_rate || 0),
-            0
-          ) / activeInv.length
-        : 0;
+    // Yield must be calculated certificate-by-certificate because the same
+    // investor can own positions with different rates (for example 9% and 10%).
+    // Applying one simple average rate to all invested principal understates or
+    // overstates the portfolio whenever position sizes differ.
+    const activeInvested = activeInv.reduce(
+      (sum, investment) => sum + Number(investment.amount || 0),
+      0
+    );
 
-    const annualYield = invested * (avgRate / 100);
+    const annualYield = activeInv.reduce(
+      (sum, investment) =>
+        sum +
+        Number(investment.amount || 0) *
+          (Number(investment.investor_interest_rate || 0) / 100),
+      0
+    );
+
+    const avgRate =
+      activeInvested > 0 ? (annualYield / activeInvested) * 100 : 0;
     const monthlyYield = annualYield / 12;
 
-    return { invested, avgRate, annualYield, monthlyYield };
+    return { invested, activeInvested, avgRate, annualYield, monthlyYield };
   }, [investments]);
 
   const donutSlices = useMemo(() => {
