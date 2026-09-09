@@ -1,0 +1,26 @@
+SecuredLanding final portfolio status + yield fix
+Date: 2026-09-09
+
+Modified:
+- src/pages/InvestorDashboard.tsx
+  * settles expired protection periods before portfolio query
+  * calculates yield per certificate using each certificate's actual rate
+  * calculates weighted average return
+  * refreshes investment data on realtime investment changes
+- RUN_THIS_IN_SUPABASE_2026-09-09.sql
+  * live-compatible protection deadline schema/backfill
+  * one-time expired protection repair
+  * simplified per-user settlement RPC
+  * removes dependencies on absent funding_holds / v3.5 ledger tables
+
+Added:
+- SECUREDLANDING_PORTFOLIO_STATUS_YIELD_FINAL_FIX_2026-09-09.md
+- PATCH_MANIFEST_2026-09-09_FINAL.txt
+- BUILD_LOG_2026-09-09_PORTFOLIO_FINAL.txt
+
+Expected verified test-account result:
+- Total portfolio: $25,445
+- Positions: 8
+- Monthly yield: $200.75
+- Weighted average return: ~9.47%
+- Expired $11,900 protection-period certificates display as active after settlement

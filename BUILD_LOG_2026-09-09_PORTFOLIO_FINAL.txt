@@ -1,0 +1,9 @@
+SecuredLanding portfolio status + yield final fix
+Production build validation: PASS
+
+Command: npm run build
+Vite: 5.4.21
+Modules transformed: 153
+Build completed successfully.
+
+Build emitted the pre-existing Vite chunk-size warning (>500 kB). This is a performance advisory, not a build failure.
