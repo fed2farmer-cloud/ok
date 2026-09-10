@@ -1,0 +1,37 @@
+SecuredLanding v4.4.8 - Public Certificate Preview Fix
+Date: 2026-09-10
+
+ISSUE FIXED
+An authenticated prospective buyer could select a certificate on the Secondary
+Market but then see "Certificate not found." The certificate page queried the
+owner-protected investments table and treated an RLS-hidden row as missing.
+
+CHANGED FILE
+src/pages/InvestmentCertificateDetails.tsx
+
+NEW BEHAVIOR
+1. Current owners continue to receive the full private certificate view.
+2. Prospective buyers receive a limited public preview sourced from
+   secondary_market_open_v2.
+3. Private owner IDs, certificate UUID and ownership history remain protected.
+4. The public preview provides Review Loan Performance and Buy Certificate
+   actions using the correct loan number and listing UUID.
+5. Removed or sold listings return "Certificate not found or no longer listed."
+
+DATABASE INSTALL
+No SQL migration is required. The fix uses the existing
+secondary_market_open_v2 view.
+
+BUILD VERIFICATION
+npm run build: PASS
+
+NEXT LIVE TEST
+1. Deploy this ZIP.
+2. Sign in as an investor who does not own the listed certificate.
+3. Open Secondary Market.
+4. Tap SLI-2026-745320-000025.
+5. Confirm the public preview opens without "Certificate not found."
+6. Tap Review Loan Performance and return.
+7. Tap Buy Certificate and confirm the wallet/split/card checkout opens.
+8. After a successful purchase, confirm the full private certificate opens and
+   appears in the buyer's portfolio.
