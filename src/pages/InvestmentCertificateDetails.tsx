@@ -33,6 +33,17 @@ type OwnershipEvent = {
   transferred_at: string;
 };
 
+type PublicResaleCertificate = {
+  id: string;
+  investment_id: number;
+  certificate_number: string;
+  loan_number: number;
+  original_principal: number;
+  current_principal: number;
+  asking_price: number;
+  listed_at: string;
+};
+
 const money = (value: number | null | undefined) =>
   Number(value || 0).toLocaleString("en-US", {
     style: "currency",
@@ -55,6 +66,8 @@ export default function InvestmentCertificateDetails() {
     useState<number | null>(null);
 
   const [history, setHistory] = useState<OwnershipEvent[]>([]);
+  const [publicListing, setPublicListing] =
+    useState<PublicResaleCertificate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -96,9 +109,33 @@ export default function InvestmentCertificateDetails() {
           .maybeSingle();
 
       if (investmentError || !data) {
-        setError(
-          investmentError?.message || "Certificate not found."
-        );
+        // A certificate offered on the secondary market must be inspectable by
+        // prospective buyers. The investments table remains owner-protected by
+        // RLS, so fall back to the deliberately limited open-listings view.
+        const { data: listing, error: listingError } = await supabase
+          .from("secondary_market_open_v2")
+          .select(`
+            id,
+            investment_id,
+            certificate_number,
+            loan_number,
+            original_principal,
+            current_principal,
+            asking_price,
+            listed_at
+          `)
+          .eq("certificate_number", certificateNumber)
+          .maybeSingle();
+
+        if (listingError || !listing) {
+          setError(
+            listingError?.message ||
+              investmentError?.message ||
+              "Certificate not found or no longer listed."
+          );
+        } else {
+          setPublicListing(listing as PublicResaleCertificate);
+        }
         setLoading(false);
         return;
       }
@@ -188,6 +225,98 @@ export default function InvestmentCertificateDetails() {
   }
 
   if (error || !investment) {
+    if (publicListing) {
+      const certificateLoanNumber =
+        publicListing.certificate_number.match(/^SLI-\d{4}-(\d+)-/)?.[1];
+      const displayedLoanNumber =
+        certificateLoanNumber || publicListing.loan_number;
+      const discount =
+        Number(publicListing.original_principal) > 0
+          ? (1 -
+              Number(publicListing.asking_price) /
+                Number(publicListing.original_principal)) *
+            100
+          : 0;
+
+      return (
+        <AppLayout>
+          <main className="mx-auto max-w-5xl px-4 py-8 text-white sm:py-10">
+            <div className="mb-5">
+              <Link
+                to="/secondary-market"
+                className="inline-flex rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold hover:bg-slate-800"
+              >
+                ← Back to Secondary Market
+              </Link>
+            </div>
+
+            <section className="overflow-hidden rounded-[2rem] border border-emerald-400/40 bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-950 p-6 shadow-2xl sm:p-10">
+              <div className="text-center">
+                <p className="text-xs font-black uppercase tracking-[0.28em] text-emerald-300">
+                  Verified Resale Listing
+                </p>
+                <h1 className="mt-3 text-3xl font-black sm:text-5xl">
+                  Investment Certificate
+                </h1>
+                <p className="mt-3 text-sm text-slate-300">
+                  Public purchase preview. Private ownership information is protected.
+                </p>
+              </div>
+
+              <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5 text-center">
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                  Certificate Number
+                </p>
+                <p className="mt-2 break-all font-mono text-xl font-black text-emerald-300 sm:text-3xl">
+                  {publicListing.certificate_number}
+                </p>
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  ["Underlying Loan", `Loan #${displayedLoanNumber}`],
+                  ["Original Principal", money(publicListing.original_principal)],
+                  ["Principal Remaining", money(publicListing.current_principal)],
+                  ["Asking Price", money(publicListing.asking_price)],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="rounded-2xl border border-white/10 bg-black/20 p-4"
+                  >
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      {label}
+                    </p>
+                    <p className="mt-2 break-words text-base font-black sm:text-lg">
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-950/40 p-4 text-sm text-slate-200">
+                Seller discount from original principal: {discount.toFixed(2)}%. Ownership identity, certificate UUID and transfer history become available to the verified owner after purchase.
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <Link
+                  to={`/secondary-market/loan/${displayedLoanNumber}`}
+                  className="rounded-xl border border-slate-600 px-5 py-3 text-center text-sm font-black hover:bg-white/5"
+                >
+                  Review Loan Performance
+                </Link>
+                <Link
+                  to={`/secondary-market/purchase/${publicListing.id}`}
+                  className="rounded-xl bg-gradient-to-r from-emerald-600 to-blue-700 px-5 py-3 text-center text-sm font-black text-white shadow-lg hover:from-emerald-500 hover:to-blue-600"
+                >
+                  Buy Certificate — {money(publicListing.asking_price)}
+                </Link>
+              </div>
+            </section>
+          </main>
+        </AppLayout>
+      );
+    }
+
     return (
       <AppLayout>
         <div className="mx-auto max-w-3xl px-4 py-16">
