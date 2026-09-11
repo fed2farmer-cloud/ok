@@ -158,11 +158,18 @@ export default function InvestorWallet() {
     const investmentIds = rawInvestments.map((inv: any) => inv.id).filter(Boolean);
     let positionByInvestmentId = new Map<any, any>();
     if (investmentIds.length > 0) {
-      const { data: positionRows } = await supabase
+      const { data: positionRows, error: positionRowsError } = await supabase
         .from("investor_positions")
         .select("investment_id, original_principal, current_principal, status")
         .in("investment_id", investmentIds)
+        .eq("investor_user_id", user.id)
         .eq("status", "active");
+      if (positionRowsError) {
+        // Do not hide the seller controls just because the read-side position
+        // policy is temporarily unavailable. create_secondary_listing_v2 is the
+        // authoritative server-side eligibility check.
+        console.warn("Unable to read active investor positions:", positionRowsError.message);
+      }
       positionByInvestmentId = new Map(
         (positionRows || []).map((position: any) => [position.investment_id, position])
       );
@@ -212,7 +219,6 @@ export default function InvestorWallet() {
       const effectiveStatus = effectiveInvestmentStatus(inv);
       const loanNumber = Number(inv.public_loan_number || 0);
       return ["active", "settled", "funded", "completed"].includes(effectiveStatus)
-        && inv.has_active_position
         && loanNumber > 0
         && !activeListingsByInvestment[Number(inv.id)];
     });
@@ -549,7 +555,6 @@ export default function InvestorWallet() {
                 const activeListing = activeListingsByInvestment[Number(inv.id)];
                 const resaleEligible =
                   ["active", "settled", "funded", "completed"].includes(effectiveStatus) &&
-                  inv.has_active_position &&
                   numericLoanNumber > 0 &&
                   !activeListing;
                 return (
@@ -588,7 +593,7 @@ export default function InvestorWallet() {
                             onClick={() => setSellOpenId(sellOpenId === Number(inv.id) ? null : Number(inv.id))}
                             className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-500"
                           >
-                            {sellOpenId === Number(inv.id) ? "Close Resale" : "Sell / Resell Certificate"}
+                            {sellOpenId === Number(inv.id) ? "Close Sale Form" : "Sell Certificate"}
                           </button>
                         )}
                         {activeListing && (
