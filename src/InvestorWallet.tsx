@@ -265,11 +265,18 @@ export default function InvestorWallet() {
     return true;
   }
 
-  const totalInvested = investments.reduce((s, i) => s + Number(i.amount || 0), 0);
+  const totalInvested = investments.reduce(
+    (s, i) => s + Number(i.current_principal ?? i.amount ?? 0),
+    0
+  );
   const monthlyReturn = investments.reduce((s, i) => {
     const status = effectiveInvestmentStatus(i);
     if (!["active", "settled", "funded", "completed"].includes(status)) return s;
-    return s + (Number(i.amount || 0) * Number(i.investor_interest_rate || 9)) / 100 / 12;
+    return s +
+      (Number(i.current_principal ?? i.amount ?? 0) *
+        Number(i.investor_interest_rate || 9)) /
+        100 /
+        12;
   }, 0);
   // Keep portfolio total aligned with the certificate-level investment sum.
   // The wallet invested_balance field can lag ownership changes.
