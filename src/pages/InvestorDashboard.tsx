@@ -19,6 +19,8 @@ interface Investment {
   business_name?: string | null;
   certificate_number?: string | null;
   transfer_count?: number | null;
+  current_principal?: number | null;
+  public_loan_number?: number | null;
 }
 
 interface Wallet {
@@ -190,8 +192,35 @@ export default function InvestorDashboard() {
         }
       );
 
+      const ownedInvestments =
+        (investmentsResult.data as Investment[] | null) ?? [];
+      const investmentIds = ownedInvestments.map((row) => row.id);
+      let principalByInvestment = new Map<string, number>();
+
+      if (investmentIds.length > 0) {
+        const { data: positions, error: positionsError } = await supabase
+          .from("investor_positions")
+          .select("investment_id,current_principal,status")
+          .in("investment_id", investmentIds)
+          .eq("investor_user_id", user.id)
+          .eq("status", "active");
+
+        if (positionsError) throw positionsError;
+        principalByInvestment = new Map(
+          (positions || []).map((position: any) => [
+            String(position.investment_id),
+            Number(position.current_principal || 0),
+          ])
+        );
+      }
+
       setInvestments(
-        (investmentsResult.data as Investment[] | null) ?? []
+        ownedInvestments.map((investment) => ({
+          ...investment,
+          current_principal:
+            principalByInvestment.get(String(investment.id)) ??
+            Number(investment.amount || 0),
+        }))
       );
 
       setTransactions(
@@ -281,7 +310,7 @@ export default function InvestorDashboard() {
   const stats = useMemo(() => {
     const invested = investments.reduce(
       (sum, investment) =>
-        sum + Number(investment.amount || 0),
+        sum + Number(investment.current_principal ?? investment.amount ?? 0),
       0
     );
 
@@ -296,14 +325,15 @@ export default function InvestorDashboard() {
     // Applying one simple average rate to all invested principal understates or
     // overstates the portfolio whenever position sizes differ.
     const activeInvested = activeInv.reduce(
-      (sum, investment) => sum + Number(investment.amount || 0),
+      (sum, investment) =>
+        sum + Number(investment.current_principal ?? investment.amount ?? 0),
       0
     );
 
     const annualYield = activeInv.reduce(
       (sum, investment) =>
         sum +
-        Number(investment.amount || 0) *
+        Number(investment.current_principal ?? investment.amount ?? 0) *
           (Number(investment.investor_interest_rate || 0) / 100),
       0
     );
@@ -321,7 +351,8 @@ export default function InvestorDashboard() {
     for (const investment of investments) {
       const status = String(investment.status || "pending").toLowerCase();
       byStatus[status] =
-        (byStatus[status] ?? 0) + Number(investment.amount || 0);
+        (byStatus[status] ?? 0) +
+        Number(investment.current_principal ?? investment.amount ?? 0);
     }
 
     const COLORS: Record<string, string> = {
@@ -584,7 +615,7 @@ export default function InvestorDashboard() {
                         )}
                       </td>
                       <td className="px-5 py-3 font-semibold text-emerald-700">
-                        {money(investment.amount)}
+                        {money(investment.current_principal ?? investment.amount)}
                       </td>
                       <td className="px-5 py-3 text-slate-600">
                         {pct(investment.investor_interest_rate)}

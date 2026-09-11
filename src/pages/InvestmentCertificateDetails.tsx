@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import AppLayout from "../components/AppLayout";
 import { supabase } from "../lib/supabase";
+import SecondaryMarketSellForm from "../components/SecondaryMarketSellForm";
 
 type CertificateInvestment = {
   id: number;
@@ -66,6 +67,11 @@ export default function InvestmentCertificateDetails() {
     useState<number | null>(null);
 
   const [history, setHistory] = useState<OwnershipEvent[]>([]);
+  const [position, setPosition] = useState<{
+    original_principal: number;
+    current_principal: number;
+    status: string;
+  } | null>(null);
   const [publicListing, setPublicListing] =
     useState<PublicResaleCertificate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -175,6 +181,19 @@ export default function InvestmentCertificateDetails() {
             Number(loanApplication.loan_number)
           );
         }
+      }
+
+      const { data: positionRow, error: positionError } = await supabase
+        .from("investor_positions")
+        .select("original_principal,current_principal,status")
+        .eq("investment_id", certificate.id)
+        .eq("investor_user_id", auth.user.id)
+        .maybeSingle();
+
+      if (positionError) {
+        console.error("Unable to load certificate position:", positionError.message);
+      } else {
+        setPosition(positionRow as typeof position);
       }
 
       const {
@@ -335,7 +354,9 @@ const displayedLoanNumber =
   publicLoanNumber ??
   (certificateLoanNumber
     ? Number(certificateLoanNumber)
-    : investment.loan_id);
+    : Number(investment.loan_id) > 0
+      ? investment.loan_id
+      : null);
   return (
     <AppLayout>
       <main className="mx-auto max-w-5xl px-4 py-10 text-white print:bg-white print:text-black">
@@ -385,7 +406,7 @@ const displayedLoanNumber =
           </div>          <div className="relative mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
               ["Underlying Loan", `Loan #${displayedLoanNumber}`],
-              ["Principal", money(investment.amount)],
+              ["Principal", money(position?.current_principal ?? investment.amount)],
               [
                 "Investor Rate",
                 `${Number(
@@ -442,6 +463,20 @@ const displayedLoanNumber =
             </div>
           </div>
         </section>
+
+        {!investment.transfer_locked &&
+          position?.status === "active" &&
+          Number(position.current_principal || 0) > 0 && (
+            <section className="mt-8 rounded-3xl border border-emerald-800 bg-[#111] p-6 print:hidden">
+              <SecondaryMarketSellForm
+                investmentId={investment.id}
+                certificateNumber={investment.certificate_number}
+                originalPrincipal={Number(position.original_principal || investment.amount)}
+                currentPrincipal={Number(position.current_principal || investment.amount)}
+                onListed={() => navigate("/secondary-market")}
+              />
+            </section>
+          )}
 
         <section className="mt-8 rounded-3xl border border-slate-800 bg-[#111] p-6 print:border-black print:bg-white">
           <h2 className="text-xl font-black">
