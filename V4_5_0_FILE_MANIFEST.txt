@@ -1,0 +1,16 @@
+SecuredLanding v4.5.0 — Secondary Market Sell-All Test
+
+MODIFIED
+- src/InvestorWallet.tsx
+- src/lib/secondaryMarket.ts
+
+ADDED
+- V4_5_0_SECONDARY_MARKET_SELL_ALL_TEST.md
+- V4_5_0_FILE_MANIFEST.txt
+
+BEHAVIOR
+- Ownership-based resale access
+- Individual sell/resell controls
+- Bulk "List All Eligible at Principal" test action
+- Existing-listing detection / Manage Listing state
+- Hard stop for Loan #0 / unresolved underlying-loan certificates
