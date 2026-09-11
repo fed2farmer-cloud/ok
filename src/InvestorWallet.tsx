@@ -7,6 +7,7 @@ import AppLayout from "./components/AppLayout";
 import { useToast } from "./context/ToastContext";
 import { getNmiTokenizationKey } from "./lib/nmi";
 import SecondaryMarketSellForm from "./components/SecondaryMarketSellForm";
+import { listAllEligibleInvestmentsForSale, loadMySecondaryListings } from "./lib/secondaryMarket";
 
 export default function InvestorWallet() {
   const navigate = useNavigate();
@@ -17,6 +18,9 @@ export default function InvestorWallet() {
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sellOpenId, setSellOpenId] = useState<number | null>(null);
+  const [activeListingsByInvestment, setActiveListingsByInvestment] = useState<Record<number, any>>({});
+  const [bulkListing, setBulkListing] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState("");
 
   const [depositBankId, setDepositBankId] = useState("");
   const [depositAmount, setDepositAmount] = useState("");
@@ -181,6 +185,16 @@ export default function InvestorWallet() {
         };
       }));
 
+    try {
+      const myListings = await loadMySecondaryListings(user.id);
+      setActiveListingsByInvestment(
+        Object.fromEntries(myListings.map((listing: any) => [Number(listing.investment_id), listing]))
+      );
+    } catch (listingError: any) {
+      console.warn("Unable to load seller secondary-market listings:", listingError?.message || listingError);
+      setActiveListingsByInvestment({});
+    }
+
     const { data: txData } = await supabase.from("wallet_transactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     setTransactions(txData || []);
 
@@ -191,6 +205,40 @@ export default function InvestorWallet() {
       if (res.ok) setBankAccounts(result.accounts || []);
     }
     setLoading(false);
+  }
+
+  async function handleListAllEligible() {
+    const eligible = investments.filter((inv: any) => {
+      const effectiveStatus = effectiveInvestmentStatus(inv);
+      const loanNumber = Number(inv.public_loan_number || 0);
+      return ["active", "settled", "funded", "completed"].includes(effectiveStatus)
+        && inv.has_active_position
+        && loanNumber > 0
+        && !activeListingsByInvestment[Number(inv.id)];
+    });
+
+    if (eligible.length === 0) {
+      setBulkMessage("No additional eligible certificates are available to list.");
+      return;
+    }
+
+    setBulkListing(true);
+    setBulkMessage(`Listing ${eligible.length} eligible certificate${eligible.length === 1 ? "" : "s"} at current principal…`);
+    try {
+      const results = await listAllEligibleInvestmentsForSale(
+        eligible.map((inv: any) => ({ id: Number(inv.id), currentPrincipal: Number(inv.current_principal || inv.amount || 0) }))
+      );
+      const success = results.filter((r) => r.ok).length;
+      const failed = results.filter((r) => !r.ok);
+      setBulkMessage(
+        failed.length === 0
+          ? `${success} certificate${success === 1 ? "" : "s"} listed successfully.`
+          : `${success} listed; ${failed.length} failed. ${failed.map((f) => `#${f.investmentId}: ${f.error}`).join(" | ")}`
+      );
+      await loadWallet();
+    } finally {
+      setBulkListing(false);
+    }
   }
 
   async function handleDeposit(e: React.FormEvent) {
@@ -466,7 +514,21 @@ export default function InvestorWallet() {
         {investments.length > 0 && (
           <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 px-6 py-4">
-              <h2 className="text-base font-bold text-slate-900">My Investments</h2>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">My Investments</h2>
+                  <p className="mt-1 text-xs text-slate-500">Secondary-market selling follows certificate ownership, not the profile role.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleListAllEligible}
+                  disabled={bulkListing}
+                  className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-500 disabled:opacity-60"
+                >
+                  {bulkListing ? "Listing…" : "List All Eligible at Principal"}
+                </button>
+              </div>
+              {bulkMessage && <p className="mt-3 text-xs font-semibold text-slate-600">{bulkMessage}</p>}
             </div>
             <div className="divide-y divide-slate-100">
               {investments.map((inv) => {
@@ -482,16 +544,20 @@ export default function InvestorWallet() {
                 const certificateLoanNumber = certificateLoanMatch?.[1] || "";
                 const displayLoanNumber =
                   inv.public_loan_number || certificateLoanNumber || inv.loan_id;
+                const numericLoanNumber = Number(displayLoanNumber || 0);
                 const effectiveStatus = effectiveInvestmentStatus(inv);
+                const activeListing = activeListingsByInvestment[Number(inv.id)];
                 const resaleEligible =
                   ["active", "settled", "funded", "completed"].includes(effectiveStatus) &&
-                  inv.has_active_position;
+                  inv.has_active_position &&
+                  numericLoanNumber > 0 &&
+                  !activeListing;
                 return (
                   <div key={inv.id} className="px-6 py-5">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
                         <p className="font-semibold text-slate-800">
-                          Loan #{displayLoanNumber}
+                          {numericLoanNumber > 0 ? `Loan #${displayLoanNumber}` : "Unlinked loan — repair required"}
                         </p>
                         <p className="text-xs text-slate-500">{rate}% · {months} months</p>
                         {inv.certificate_number && (
@@ -525,6 +591,15 @@ export default function InvestorWallet() {
                             {sellOpenId === Number(inv.id) ? "Close Resale" : "Sell / Resell Certificate"}
                           </button>
                         )}
+                        {activeListing && (
+                          <button
+                            type="button"
+                            onClick={() => navigate("/secondary-market")}
+                            className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400"
+                          >
+                            Manage Listing · {money(activeListing.asking_price)}
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => navigator.clipboard.writeText(inv.certificate_number)}
@@ -533,6 +608,11 @@ export default function InvestorWallet() {
                           Copy Number
                         </button>
                       </div>
+                    )}
+                    {inv.certificate_number && numericLoanNumber <= 0 && (
+                      <p className="mt-3 text-xs font-semibold text-rose-600">
+                        This certificate cannot be listed until its underlying loan is repaired. No secondary-market record will be created with Loan #0.
+                      </p>
                     )}
                     {inv.certificate_number && resaleEligible && sellOpenId === Number(inv.id) && (
                       <div className="mt-4 rounded-xl border border-emerald-900/30 bg-slate-50 p-4">
