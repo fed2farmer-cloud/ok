@@ -1,0 +1,31 @@
+SecuredLanding v4.5.1 - Secondary Market Seller Access Restore
+Date: 2026-09-11
+
+MODIFIED
+- src/InvestorWallet.tsx
+  - Restores visible Sell Certificate buttons for owned active certificates.
+  - Does not hide selling solely because investor_positions SELECT is blocked/unavailable.
+  - Keeps create_secondary_listing_v2 as the authoritative server-side eligibility check.
+  - Owner-filters active position reads.
+- src/components/AppLayout.tsx
+  - Adds Investments and Secondary Market navigation to borrower accounts that own certificates.
+  - Keeps borrower navigation intact for dual-role borrower/investor accounts.
+
+ADDED
+- supabase/migrations/20260911_v4_5_1_restore_secondary_market_seller_access.sql
+  - Restores SELECT RLS policies for investor_positions and secondary-market v2 tables.
+  - Restores cancel_secondary_listing_v2 seller RPC.
+- V4_5_1_SECONDARY_MARKET_RESTORE.md
+- V4_5_1_FILE_MANIFEST.txt
+
+LIVE SUPABASE
+- Migration v4_5_1_restore_secondary_market_seller_access applied successfully to the connected SecuredLanding project.
+
+BUILD TEST
+- npm run build: PASS
+- Vite production build completed successfully.
+- Existing non-fatal chunk-size warning remains.
+
+TEST ACCOUNT
+- 1709ralphave@gmail.com should see Sell Certificate on valid owned certificates.
+- SLI-2026-0-000009 remains intentionally blocked because its underlying loan is unresolved.
