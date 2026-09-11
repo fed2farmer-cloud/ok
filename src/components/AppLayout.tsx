@@ -30,10 +30,22 @@ const ADMIN_LINKS: NavItem[] = [
   { href: "/secondary-market", label: "Secondary Market" },
   { href: "/messages", label: "Messages" },
 ];
-function linksByRole(role: string | null) {
+const BORROWER_INVESTMENT_LINKS: NavItem[] = [
+  { href: "/investor-wallet", label: "Investments" },
+  { href: "/secondary-market", label: "Secondary Market" },
+];
+
+function linksByRole(role: string | null, hasInvestorAccess: boolean) {
   if (role === "investor") return INVESTOR_LINKS;
   if (role === "admin") return ADMIN_LINKS;
-  return BORROWER_LINKS;
+  if (!hasInvestorAccess) return BORROWER_LINKS;
+
+  // SecuredLanding allows a borrower to also own investment certificates.
+  // Keep borrower navigation and add certificate/secondary-market access instead
+  // of forcing one account into a single borrower-or-investor role.
+  const beforeMessages = BORROWER_LINKS.filter((item) => !["/messages", "/tax-center"].includes(item.href));
+  const afterMessages = BORROWER_LINKS.filter((item) => ["/messages", "/tax-center"].includes(item.href));
+  return [...beforeMessages, ...BORROWER_INVESTMENT_LINKS, ...afterMessages];
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -41,6 +53,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [role, setRole] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+  const [hasInvestorAccess, setHasInvestorAccess] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -52,6 +65,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         if (!active || !data.user) return;
         setEmail(data.user.email ?? "");
         const metadataRole = String(data.user.user_metadata?.role || data.user.app_metadata?.role || "borrower").toLowerCase();
+
+        // Capability check: a borrower may also own certificates. The investments
+        // table already has owner-scoped RLS, so this safely enables investment
+        // navigation for dual-role users without changing their borrower role.
+        const { data: ownedInvestmentRows, error: ownedInvestmentError } = await supabase
+          .from("investments")
+          .select("id")
+          .or(`investor_id.eq.${data.user.id},current_owner_id.eq.${data.user.id}`)
+          .limit(1);
+        if (!ownedInvestmentError) {
+          setHasInvestorAccess(Boolean(ownedInvestmentRows?.length));
+        } else {
+          console.warn("Unable to check investment navigation access:", ownedInvestmentError.message);
+        }
 
         const { data: adminRow, error: adminError } = await supabase
           .from("admin_users")
@@ -78,7 +105,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     navigate("/login", { replace: true });
   }
 
-  const navLinks = linksByRole(role);
+  const navLinks = linksByRole(role, hasInvestorAccess);
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950 text-white shadow-xl">
