@@ -72,6 +72,42 @@ export async function listInvestmentForSale(
   return data;
 }
 
+
+export type OwnedSecondaryListing = {
+  id: string;
+  investment_id: number;
+  status: string;
+  asking_price: number;
+  listed_at: string;
+};
+
+export async function loadMySecondaryListings(userId: string): Promise<OwnedSecondaryListing[]> {
+  if (!supabase) throw new Error('Supabase is not configured.');
+  const { data, error } = await supabase
+    .from('secondary_market_listings_v2')
+    .select('id, investment_id, status, asking_price, listed_at')
+    .eq('seller_user_id', userId)
+    .in('status', ['open', 'reserved', 'partial'])
+    .order('listed_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as OwnedSecondaryListing[];
+}
+
+export async function listAllEligibleInvestmentsForSale(
+  investments: Array<{ id: number; currentPrincipal: number }>
+) {
+  const results: Array<{ investmentId: number; ok: boolean; error?: string }> = [];
+  for (const inv of investments) {
+    try {
+      await listInvestmentForSale(inv.id, inv.currentPrincipal);
+      results.push({ investmentId: inv.id, ok: true });
+    } catch (err: any) {
+      results.push({ investmentId: inv.id, ok: false, error: err?.message || 'Unable to list certificate.' });
+    }
+  }
+  return results;
+}
+
 export async function purchaseSecondaryListing(
   listingId: string
 ) {
