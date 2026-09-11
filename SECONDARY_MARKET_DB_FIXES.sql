@@ -1,3 +1,5 @@
+-- SUPERSEDED: do not run this historical troubleshooting file.
+-- Run supabase/migrations/20260911_v4_4_9_secondary_transfer_accounting_resale.sql.
 -- SecuredLanding secondary market V2 settlement + ownership visibility fixes
 -- These statements were applied and verified during troubleshooting.
 

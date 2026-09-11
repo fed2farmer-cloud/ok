@@ -1,0 +1,23 @@
+SECUREDLANDING v4.4.9 — SECONDARY TRANSFER ACCOUNTING + RESALE ACCESS
+
+1. In Supabase SQL Editor, run:
+   supabase/migrations/20260911_v4_4_9_secondary_transfer_accounting_resale.sql
+
+2. Confirm the SQL completes without an error.
+
+3. Deploy this complete ZIP to the existing Vercel project.
+
+4. Sign out, sign back in, then open Investor Wallet and Portfolio.
+
+5. Open certificate SLI-2026-361380-000010. Confirm Loan #361380 and the
+   Sell Loan Security Certificate form are visible to its current owner.
+
+6. Run VERIFY_SECONDARY_TRANSFER_v4_4_9.sql in Supabase. For the $900 test sale:
+   buyer_debit must be 900; seller_credit must be 900; cash_entries must be 2;
+   current_owner and position_owner must match; cached_invested must equal
+   calculated_invested.
+
+7. List the certificate again, then confirm its resale card displays Loan #361380.
+
+Do not repeat a purchase merely to repair totals. The migration reconciles the
+cached invested balance from current certificate positions without changing cash.

@@ -1,0 +1,22 @@
+SecuredLanding v4.4.9
+
+NEW
+- supabase/migrations/20260911_v4_4_9_secondary_transfer_accounting_resale.sql
+- VERIFY_SECONDARY_TRANSFER_v4_4_9.sql
+- INSTALL_v4_4_9.txt
+- V4_4_9_FILE_MANIFEST.txt
+- BUILD_LOG_v4_4_9.txt
+
+MODIFIED
+- src/pages/InvestorDashboard.tsx
+- src/InvestorWallet.tsx
+- src/pages/InvestmentCertificateDetails.tsx
+
+FIXED
+- Capital Invested and yield now use current outstanding principal.
+- Buyer and seller receive one canonical wallet transaction each.
+- Settlement uses one positive buyer-debit and one positive seller-credit ledger row.
+- Current owner and investor position owner remain synchronized.
+- Cached invested balance is recalculated from active certificate positions.
+- Zero/legacy secondary listing loan numbers resolve to the public loan number.
+- Current certificate owner can access the resale form from certificate details.
