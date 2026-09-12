@@ -1,0 +1,35 @@
+SecuredLanding v4.5.4 — Vercel Function Limit + Legacy Clerk/Railway Cleanup
+Date: 2026-09-12
+
+TEST RESULTS
+1. npm run build: PASS
+   - Vite 5.4.21
+   - 154 modules transformed
+   - production bundle generated successfully
+   - main JS bundle: 663.65 kB (gzip 182.24 kB)
+
+2. Vercel serverless function count: PASS
+   - Previous v4.5.3 count: 14
+   - v4.5.4 count: 12
+   - Matches Vercel Hobby deployment limit reported by Vercel.
+
+3. New/changed server handlers compile with esbuild: PASS
+   - api/plaid.ts
+   - api/proof-closing.ts
+   - api/proof-webhook.ts
+
+4. Active source search: PASS
+   - No active Clerk references in src/package metadata.
+   - No active Railway or VITE_RAILWAY_API_URL references in src/package metadata.
+   - No active calls to removed /api/create-link-token, /api/exchange-public-token, or /api/wallet-transactions routes.
+
+5. Strict TypeScript project check:
+   - Existing v4.5.3 project reports 52 lines of pre-existing strict TypeScript diagnostics.
+   - v4.5.4 reports the same 52 lines.
+   - No new TypeScript diagnostics were introduced by this patch.
+
+NOTES
+- api/create-link-token.ts and api/exchange-public-token.ts were consolidated into api/plaid.ts.
+- api/wallet-transactions.ts was removed because the active wallet UI reads wallet_transactions through Supabase directly and did not call this Vercel route.
+- Proof remains on Vercel as two serverless handlers.
+- Stripe was not present as an active dependency/runtime integration in v4.5.3, so no Stripe removal was required.

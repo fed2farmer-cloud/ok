@@ -1,0 +1,32 @@
+SecuredLanding v4.5.4 — File Manifest
+
+NEW
+- api/plaid.ts
+- BUILD_LOG_v4_5_4.txt
+- V4_5_4_FILE_MANIFEST.txt
+- V4_5_4_VERCEL_FUNCTION_LIMIT_FIX.md
+- dist/assets/index-C08Wq8DB.js
+
+MODIFIED
+- package.json
+- package-lock.json
+- src/components/PlaidConnectButton.tsx
+- src/lib/integrations.ts
+- src/pages/LordFarmsDeal.tsx
+- src/components/IntegrationsList.tsx
+- dist/index.html
+
+DELETED
+- api/create-link-token.ts
+- api/exchange-public-token.ts
+- api/wallet-transactions.ts
+- dist/assets/index-tyNg_EU2.js
+
+UNCHANGED CORE PROOF FILES
+- api/proof-closing.ts
+- api/proof-webhook.ts
+- src/components/ProofClosingPanel.tsx
+- supabase/migrations/20260912_v4_5_3_proof_closing_integration.sql
+
+VERCEL FUNCTION COUNT
+12 total TypeScript functions under /api.
