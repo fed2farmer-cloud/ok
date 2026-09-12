@@ -1,0 +1,12 @@
+SecuredLanding v4.5.2
+
+MODIFIED
+- src/components/PaymentForm.tsx
+- src/pages/BorrowerRepayments.tsx
+
+NEW
+- supabase/migrations/20260912_v4_5_2_servicing_guard_and_distribution_credit.sql
+- V4_5_2_SERVICING_GUARD_AND_DISTRIBUTION_CREDIT.md
+- V4_5_2_FILE_MANIFEST.txt
+
+- BUILD_LOG_v4_5_2.txt

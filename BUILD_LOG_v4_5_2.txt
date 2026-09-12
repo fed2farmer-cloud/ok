@@ -1,0 +1,16 @@
+SecuredLanding v4.5.2 build verification
+Date: 2026-09-12
+Command: npm run build
+Result: PASSED
+Vite: v5.4.21
+Modules transformed: 153
+Production bundle created successfully.
+Note: Vite reported only the existing >500 kB chunk-size advisory; no build error.
+
+Supabase verification:
+- borrower_repayment_preflight_v1 exists
+- finalize_borrower_repayment_v1 exists
+- credit_available_distributions_v2 exists
+- Loan #460109 premature repayment schedule rows after migration: 0
+- Loan #813912 premature repayment schedule rows after migration: 0
+- Simulated borrower preflight for Loan #460109 correctly returns allowed=false because no released disbursement exists
