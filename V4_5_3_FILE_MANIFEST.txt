@@ -1,0 +1,22 @@
+SecuredLanding v4.5.3 — Proof Closing Integration
+
+NEW SOURCE / INSTALL FILES
+- api/proof-closing.ts
+- api/proof-webhook.ts
+- src/components/ProofClosingPanel.tsx
+- supabase/migrations/20260912_v4_5_3_proof_closing_integration.sql
+- PROOF_INTEGRATION_v4_5_3.md
+- V4_5_3_FILE_MANIFEST.txt
+- BUILD_LOG_v4_5_3.txt
+
+MODIFIED SOURCE FILES
+- src/pages/ClosingCenter.tsx
+- src/pages/AdminDashboard.tsx
+
+GENERATED PRODUCTION BUILD CHANGES
+- modified: dist/index.html
+- new: dist/assets/index-D6GOSB0S.css
+- new: dist/assets/index-tyNg_EU2.js
+- replaced/removed old generated assets: dist/assets/index-C-ZCbuSD.css, dist/assets/index-D1BjH8gg.js
+
+No existing secondary-market or servicing source files were removed or modified.

@@ -1,0 +1,17 @@
+SecuredLanding v4.5.3 — Proof Closing Integration Build Log
+Date: 2026-09-12
+
+PRODUCTION BUILD TEST: PASSED
+Command: npm run build
+Vite: v5.4.21
+Result: 154 modules transformed; production bundle generated successfully.
+
+Output summary:
+- dist/index.html
+- dist/assets/index-D6GOSB0S.css
+- dist/assets/index-tyNg_EU2.js
+
+Vite emitted its existing bundle-size advisory because the primary JS chunk is over 500 kB. This is a warning, not a build failure.
+
+Additional TypeScript diagnostic:
+`tsc --noEmit` still reports pre-existing project-wide strict-type errors in files such as InvestorWallet, AdminKYCReview, investorProtection imports/casing, and other nullable Supabase references. None of the reported diagnostics point to the new Proof integration files. The Vite production build passes.
