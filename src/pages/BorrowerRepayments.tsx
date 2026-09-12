@@ -56,6 +56,7 @@ export default function BorrowerRepayments() {
   const [loans, setLoans] = useState<LoanRow[]>([]);
   const [schedule, setSchedule] = useState<ScheduleRow[]>([]);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
+  const [readiness, setReadiness] = useState<Record<number, { allowed: boolean; reason?: string }>>({});
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
@@ -108,8 +109,23 @@ export default function BorrowerRepayments() {
         .limit(25),
     ]);
 
-    setSchedule((scheduleResult.data || []) as ScheduleRow[]);
+    const loadedSchedule = (scheduleResult.data || []) as ScheduleRow[];
+    setSchedule(loadedSchedule);
     setPayments((paymentResult.data || []) as PaymentRow[]);
+
+    const readinessEntries = await Promise.all(
+      borrowerLoans.map(async (loan) => {
+        const { data, error } = await supabase.rpc("borrower_repayment_preflight_v1", {
+          p_loan_number: loan.loan_number,
+          p_schedule_id: null,
+          p_amount: null,
+        });
+        if (error) return [loan.loan_number, { allowed: false, reason: error.message }] as const;
+        const result = (data || {}) as { allowed?: boolean; reason?: string };
+        return [loan.loan_number, { allowed: result.allowed === true, reason: result.reason }] as const;
+      })
+    );
+    setReadiness(Object.fromEntries(readinessEntries));
     setLoading(false);
   }, []);
 
@@ -148,6 +164,8 @@ export default function BorrowerRepayments() {
         {loans.map((loan) => {
           const loanSchedule = schedule.filter((row) => row.loan_number === loan.loan_number);
           const nextPayment = firstOpenInstallment(loan.loan_number);
+          const loanReadiness = readiness[loan.loan_number];
+          const repaymentAllowed = loanReadiness?.allowed === true;
           const nextHref = nextPayment
             ? `/payment?purpose=repayment&loan=${loan.loan_number}&schedule=${nextPayment.id}&amount=${Number(nextPayment.expected_total || 0).toFixed(2)}`
             : `/payment?purpose=repayment&loan=${loan.loan_number}`;
@@ -161,13 +179,24 @@ export default function BorrowerRepayments() {
                     <p className="text-sm text-slate-600">{loan.business_name || "Borrower loan"} · {money(loan.loan_amount)} · {loan.status || "status pending"}</p>
                   </div>
                   <div className="flex flex-wrap gap-3">
-                    <a href={nextHref} className="rounded-xl bg-emerald-600 px-4 py-3 font-black text-white shadow-sm hover:bg-emerald-500">Pay next with NMI</a>
+                    {repaymentAllowed && nextPayment ? (
+                      <a href={nextHref} className="rounded-xl bg-emerald-600 px-4 py-3 font-black text-white shadow-sm hover:bg-emerald-500">Pay next with NMI</a>
+                    ) : (
+                      <button disabled title={loanReadiness?.reason || "Repayment is not ready."} className="rounded-xl bg-slate-300 px-4 py-3 font-black text-slate-600">Repayment locked</button>
+                    )}
                     <button disabled title="Square repayment requires production Web Payments keys and server-side settlement wiring." className="rounded-xl bg-slate-300 px-4 py-3 font-black text-slate-600">Square pending config</button>
                   </div>
                 </div>
               </div>
 
-              {nextPayment && (
+              {loanReadiness && !repaymentAllowed && (
+                <div className="m-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+                  <p className="text-sm font-black uppercase tracking-wide">Repayment locked</p>
+                  <p className="mt-1 font-semibold">{loanReadiness.reason || "This loan is not ready for servicing yet."}</p>
+                </div>
+              )}
+
+              {nextPayment && repaymentAllowed && (
                 <div className="m-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                   <p className="text-sm font-black uppercase tracking-wide text-emerald-800">Next open installment</p>
                   <p className="mt-1 text-lg font-black text-slate-950">Payment {nextPayment.installment_number}: {money(nextPayment.expected_total)} due {dateOnly(nextPayment.due_date)}</p>
