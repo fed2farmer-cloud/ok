@@ -10,8 +10,10 @@ export default function PlaidConnectButton() {
   }, []);
 
   async function createLinkToken() {
-    const response = await fetch("/api/create-link-token", {
+    const response = await fetch("/api/plaid", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "create_link_token" }),
     });
 
     const data = await response.json();
@@ -38,13 +40,14 @@ export default function PlaidConnectButton() {
         return;
       }
 
-      const response = await fetch("/api/exchange-public-token", {
+      const response = await fetch("/api/plaid", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
+          action: "exchange_public_token",
           public_token,
         }),
       });

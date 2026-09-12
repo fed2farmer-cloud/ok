@@ -2,15 +2,15 @@ import Reveal from "./Reveal";
 
 const workflows = [
   {
-    name: "Clerk",
+    name: "Supabase Auth",
     title: "Identity and account login",
-    body: "Borrowers, investors, and admins sign in with Clerk before accessing dashboards or reservations.",
-    env: "VITE_CLERK_PUBLISHABLE_KEY",
+    body: "Borrowers, investors, and admins sign in with Supabase Auth before accessing protected dashboards and workflows.",
+    env: "VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY",
   },
   {
     name: "Plaid",
     title: "Bank connection and funding readiness",
-    body: "Investors can connect a bank account, verify account ownership, and prepare ACH funding through the Railway backend.",
+    body: "Investors connect and verify bank accounts through SecuredLanding's protected Vercel API route.",
     env: "PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV",
   },
   {
@@ -20,10 +20,10 @@ const workflows = [
     env: "REPORTALL_API_KEY",
   },
   {
-    name: "Railway",
-    title: "Backend API and database",
-    body: "Railway will host the protected API routes for Plaid token exchange, ReportAll requests, investment records, and PostgreSQL storage.",
-    env: "VITE_RAILWAY_API_URL",
+    name: "Proof",
+    title: "Remote online notarization",
+    body: "Closing documents can be routed to Proof for eligibility, notarization, status updates, and completed-document handling.",
+    env: "PROOF_API_KEY, PROOF_ENVIRONMENT",
   },
 ];
 
@@ -34,10 +34,10 @@ export default function IntegrationsList() {
         <Reveal className="mx-auto max-w-2xl text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-moss-400">Platform Infrastructure</p>
           <h2 className="mt-4 font-display text-3xl font-light tracking-tight text-paper-50 sm:text-5xl">
-            Built for real onboarding, verification, and property due diligence
+            Built for real onboarding, verification, property diligence, and closing
           </h2>
           <p className="mt-6 text-[15px] leading-relaxed text-paper-50/55">
-            SecuredLanding now has the front-end workflow ready for Clerk accounts, Plaid bank verification, ReportAll property data, and Railway backend API routes.
+            SecuredLanding uses Supabase for identity and data, Vercel server functions for protected integrations, Plaid for bank verification, ReportAll for land data, and Proof for online notarization.
           </p>
         </Reveal>
 
