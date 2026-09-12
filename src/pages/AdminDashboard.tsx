@@ -500,8 +500,10 @@ export default function AdminDashboard() {
       ["required_documents", "Upload required property and identity documents", "pending", 3],
       ["loan_documents", "Review generated loan documents", "pending", 4],
       ["signatures", "Sign closing documents", "pending", 5],
-      ["investor_funding", "Investor funding complete", "pending", 6],
-      ["disbursement", "Funds released", "pending", 7],
+      ["online_notary", "Complete remote online notarization", "pending", 6],
+      ["county_recording", "Record security instrument with county", "pending", 7],
+      ["investor_funding", "Investor funding complete", "pending", 8],
+      ["disbursement", "Funds released", "pending", 9],
     ].map(([task_key, title, taskStatus, sort_order]) => ({
       loan_closing_id: closing.id,
       loan_application_id: loan.id,

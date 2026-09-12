@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import AppLayout from "../components/AppLayout";
 import ClosingChecklist from "../components/ClosingChecklist";
 import FundingCountdown from "../components/FundingCountdown";
+import ProofClosingPanel from "../components/ProofClosingPanel";
 import { supabase } from "../lib/supabase";
 
 type Application = { id: string; loan_number?: number | null; business_name?: string | null; full_name?: string | null; loan_amount?: number | null; status?: string | null };
@@ -78,6 +79,8 @@ export default function ClosingCenter() {
               <FundingCountdown deadline={market?.funding_deadline || closing?.funding_deadline} funded={Number(market?.amount_funded || 0)} goal={Number(market?.funding_goal || application?.loan_amount || 0)} />
             </div>
 
+            <ProofClosingPanel loanId={loanId} />
+
             <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -100,7 +103,7 @@ export default function ClosingCenter() {
             </section>
 
             <div className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-900">
-              <strong>Important:</strong> This in-app acknowledgement workflow is a platform prototype. State-specific loan instruments and legally binding electronic signatures must be reviewed by qualified counsel and may require an approved e-signature provider.
+              <strong>Important:</strong> Proof can provide the remote notarization workflow, but SecuredLanding must use attorney-approved final loan instruments. A completed notarization does not mean the deed of trust or mortgage has been recorded; county recording remains a separate closing requirement.
             </div>
           </>
         )}
