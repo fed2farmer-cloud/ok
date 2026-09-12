@@ -16,12 +16,12 @@ export default function LordFarmsDeal() {
 
   const simulatePlaid = async () => {
     const result = await createPlaidLinkToken("demo-investor", lordsFarmsDeal.id);
-    setStatus("Plaid bank verification workflow ready. " + ((result as { message?: string }).message || "Connect Railway backend to activate live Plaid Link."));
+    setStatus("Plaid bank verification workflow ready. " + ((result as { message?: string }).message || "Plaid is served through the SecuredLanding Vercel API."));
   };
 
   const simulateReportAll = async () => {
     const result = await orderReportAllPropertyReport(lordsFarmsDeal.id, "Los Angeles County", "CA", lordsFarmsDeal.borrower);
-    setStatus("ReportAll property-data workflow ready. " + ((result as { message?: string }).message || "Connect Railway backend to order live parcel reports."));
+    setStatus("ReportAll property-data workflow ready. " + ((result as { message?: string }).message || "ReportAll is served through the SecuredLanding Vercel API."));
   };
 
   const reserveInvestment = async () => {
