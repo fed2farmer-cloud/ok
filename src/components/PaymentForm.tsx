@@ -18,6 +18,26 @@ export default function PaymentForm() {
   const cleanAmount = Number(amount || 0).toFixed(2);
   const nmiDiagnostics = getNmiBrowserDiagnostics();
 
+  async function preflightRepayment() {
+    if (!supabase) return { allowed: false, reason: "Supabase is not configured." };
+    const publicLoanNumber = Number(loanId);
+    const repaymentAmount = Number(cleanAmount);
+    if (!Number.isSafeInteger(publicLoanNumber) || publicLoanNumber <= 0) {
+      return { allowed: false, reason: "No valid loan selected." };
+    }
+    if (!Number.isFinite(repaymentAmount) || repaymentAmount <= 0) {
+      return { allowed: false, reason: "Enter a positive repayment amount." };
+    }
+    const { data, error } = await supabase.rpc("borrower_repayment_preflight_v1", {
+      p_loan_number: publicLoanNumber,
+      p_schedule_id: scheduleId || null,
+      p_amount: repaymentAmount,
+    });
+    if (error) return { allowed: false, reason: error.message };
+    const result = (data || {}) as { allowed?: boolean; reason?: string };
+    return { allowed: result.allowed === true, reason: result.reason || "Repayment is not currently available." };
+  }
+
   async function finalizeRepayment(processorTransactionId: string) {
     if (!supabase) { alert("Supabase is not configured."); return false; }
     const publicLoanNumber = Number(loanId);
@@ -117,6 +137,15 @@ export default function PaymentForm() {
           setPaymentStatus("Processing card with NMI…");
           const controller = new AbortController();
           const timeout = window.setTimeout(() => controller.abort(), 20000);
+
+          if (isRepayment) {
+            setPaymentStatus("Checking repayment eligibility…");
+            const preflight = await preflightRepayment();
+            if (!preflight.allowed) {
+              setPaymentStatus(preflight.reason);
+              return preflight.reason;
+            }
+          }
 
           let response: Response;
           try {
