@@ -1,0 +1,25 @@
+SECUREDLANDING v4.5.6 FILE MANIFEST
+
+MODIFIED SOURCE FILES
+- src/pages/Dashboard.tsx
+  - Removes unused ClosingCenterCard import.
+  - Adds canOpenClosingCenter(status).
+  - Adds visible mobile-friendly "Open Closing Center →" button.
+  - Routes borrower to /closing-center?loanId=<application_id>.
+
+NEW RELEASE / TEST FILES
+- V4_5_6_OPEN_CLOSING_CENTER_BUTTON.md
+- V4_5_6_FILE_MANIFEST.txt
+- BUILD_LOG_v4_5_6.txt
+
+GENERATED PRODUCTION BUILD CHANGES
+- dist/index.html (rebuilt to reference new JS bundle)
+- dist/assets/index-CTcKyc0-.js (new generated bundle)
+- dist/assets/index-C08Wq8DB.js (removed/replaced by new generated bundle)
+
+DATABASE CHANGES
+- None
+
+SERVERLESS FUNCTION CHANGES
+- None
+- API function count remains 12.

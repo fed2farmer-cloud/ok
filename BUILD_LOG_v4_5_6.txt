@@ -1,0 +1,21 @@
+SecuredLanding v4.5.6 build verification
+Date: 2026-09-13
+
+Production build command:
+  npm run build
+
+Result: PASS
+Vite: 5.4.21
+Modules transformed: 154
+Build time: 2.78s
+Generated JS: dist/assets/index-CTcKyc0-.js (664.07 kB; gzip 182.35 kB)
+Generated CSS: dist/assets/index-D6GOSB0S.css (67.51 kB; gzip 11.83 kB)
+
+Focused verification:
+- Source contains Open Closing Center button: PASS
+- Built production JavaScript contains Open Closing Center button: PASS
+- Route uses /closing-center?loanId=<application_id>: PASS
+- API TypeScript files at top level: 12 (unchanged; Vercel Hobby limit preserved)
+
+Advisory only:
+- Vite reports the existing >500 kB chunk-size warning. This does not fail the build.
