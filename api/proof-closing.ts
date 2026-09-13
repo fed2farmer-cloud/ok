@@ -15,6 +15,68 @@ function firstAndLast(fullName: string) {
   return { first_name: parts[0] || "Borrower", last_name: parts.slice(1).join(" ") || "Borrower" };
 }
 
+const STATE_ABBREVIATIONS: Record<string, string> = {
+  alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA", colorado: "CO",
+  connecticut: "CT", delaware: "DE", florida: "FL", georgia: "GA", hawaii: "HI", idaho: "ID",
+  illinois: "IL", indiana: "IN", iowa: "IA", kansas: "KS", kentucky: "KY", louisiana: "LA",
+  maine: "ME", maryland: "MD", massachusetts: "MA", michigan: "MI", minnesota: "MN", mississippi: "MS",
+  missouri: "MO", montana: "MT", nebraska: "NE", nevada: "NV", "new hampshire": "NH",
+  "new jersey": "NJ", "new mexico": "NM", "new york": "NY", "north carolina": "NC",
+  "north dakota": "ND", ohio: "OH", oklahoma: "OK", oregon: "OR", pennsylvania: "PA",
+  "rhode island": "RI", "south carolina": "SC", "south dakota": "SD", tennessee: "TN",
+  texas: "TX", utah: "UT", vermont: "VT", virginia: "VA", washington: "WA",
+  "west virginia": "WV", wisconsin: "WI", wyoming: "WY",
+};
+
+function normalizeState(value: unknown) {
+  const raw = String(value || "").trim();
+  if (/^[A-Za-z]{2}$/.test(raw)) return raw.toUpperCase();
+  return STATE_ABBREVIATIONS[raw.toLowerCase()] || raw.toUpperCase();
+}
+
+function parsePropertyAddress(value: unknown, fallbackState?: unknown) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  // Preferred SecuredLanding format: "street/location, City, ST 12345".
+  const commaMatch = raw.match(/^(.+?),\s*([^,]+?),\s*([A-Za-z]{2}|[A-Za-z ]+)\s+(\d{5}(?:-\d{4})?)$/);
+  if (commaMatch) {
+    return {
+      line1: commaMatch[1].trim(),
+      city: commaMatch[2].trim(),
+      state: normalizeState(commaMatch[3]),
+      postal: commaMatch[4].trim(),
+    };
+  }
+
+  // Fallback for addresses entered without commas, e.g. "123 Main St Palmdale CA 93591".
+  const state = normalizeState(fallbackState);
+  const stateToken = state && /^[A-Z]{2}$/.test(state) ? state : "[A-Z]{2}";
+  const looseMatch = raw.match(new RegExp(`^(.+?)\\s+([A-Za-z][A-Za-z .'-]+)\\s+(${stateToken})\\s+(\\d{5}(?:-\\d{4})?)$`, "i"));
+  if (looseMatch) {
+    return {
+      line1: looseMatch[1].trim(),
+      city: looseMatch[2].trim(),
+      state: normalizeState(looseMatch[3]),
+      postal: looseMatch[4].trim(),
+    };
+  }
+
+  return null;
+}
+
+function eligibilityJurisdictions(payload: any): any[] {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.recording_jurisdictions)) return payload.recording_jurisdictions;
+  if (payload && typeof payload === "object") return [payload];
+  return [];
+}
+
+function supportedJurisdiction(payload: any) {
+  const jurisdictions = eligibilityJurisdictions(payload);
+  return jurisdictions.find((item: any) => item?.supported === true) || null;
+}
+
 async function proofFetch(path: string, init: RequestInit = {}) {
   const response = await fetch(`${proofBaseUrl}${path}`, {
     ...init,
@@ -40,7 +102,7 @@ async function authenticate(req: any, db: any) {
 
 async function ownedLoan(db: any, userId: string, loanId: number) {
   const { data, error } = await db.from("loan_applications")
-    .select("id,user_id,loan_number,full_name,business_name,email,phone,property_address,city,county,state,zip_code,status")
+    .select("id,user_id,loan_number,full_name,business_name,email,phone,property_address,county,state,status")
     .eq("id", loanId).eq("user_id", userId).single();
   if (error || !data) throw Object.assign(new Error("Loan not found for this borrower."), { statusCode: 404 });
   return data;
@@ -98,19 +160,23 @@ export default async function handler(req: any, res: any) {
     let row = await getRow(db, loanId);
 
     if (action === "check_eligibility") {
-      const address = String(loan.property_address || "").trim();
-      const city = String(loan.city || "").trim();
-      const state = String(loan.state || "").trim().toUpperCase();
-      if (!address || !city || !state) return res.status(400).json({ error: "Property street address, city, and state are required before Proof eligibility can be checked." });
+      const address = parsePropertyAddress(loan.property_address, loan.state);
+      if (!address) {
+        return res.status(400).json({
+          error: "Proof requires a full property address in the format 'street/location, City, ST ZIP'. Update the property address before checking eligibility.",
+        });
+      }
       const qs = new URLSearchParams({
         transaction_type: String(process.env.PROOF_TRANSACTION_TYPE || "other"),
-        "street_address[line1]": address,
-        "street_address[city]": city,
-        "street_address[state]": state,
+        "street_address[line1]": address.line1,
+        "street_address[city]": address.city,
+        "street_address[state]": address.state,
+        "street_address[postal]": address.postal,
+        "street_address[country]": "US",
       });
-      if (loan.zip_code) qs.set("street_address[zip_code]", String(loan.zip_code));
-      const eligibility = await proofFetch(`/mortgage/v1/transactions/verify_address?${qs.toString()}`, { method: "GET" });
-      const supported = eligibility?.supported === true;
+      const eligibility = await proofFetch(`/mortgage/v2/transactions/verify_address?${qs.toString()}`, { method: "GET" });
+      const jurisdiction = supportedJurisdiction(eligibility);
+      const supported = Boolean(jurisdiction);
       row = await saveRow(db, loan, {
         status: supported ? "eligible" : "not_eligible",
         eligibility_status: supported ? "supported" : "not_supported",
@@ -118,7 +184,13 @@ export default async function handler(req: any, res: any) {
         eligibility_response: eligibility,
         last_error: null,
       });
-      return res.status(200).json({ success: true, message: supported ? "Proof reports this property is eligible for online closing." : "Proof did not report this property as eligible for online closing.", transaction: row });
+      return res.status(200).json({
+        success: true,
+        message: supported
+          ? "Proof reports this property is eligible for online closing."
+          : "Proof did not report this property as eligible for online closing.",
+        transaction: row,
+      });
     }
 
     if (action === "create_transaction") {
@@ -126,6 +198,12 @@ export default async function handler(req: any, res: any) {
       if (row?.proof_transaction_id) return res.status(200).json({ success: true, message: "A Proof transaction already exists for this loan.", transaction: row });
       if (row?.property_supported !== true && String(process.env.PROOF_REQUIRE_ELIGIBILITY || "true").toLowerCase() !== "false") {
         return res.status(409).json({ error: "Check Proof property eligibility before creating the transaction." });
+      }
+      const address = parsePropertyAddress(loan.property_address, loan.state);
+      if (!address) {
+        return res.status(400).json({
+          error: "Proof requires a full property address in the format 'street/location, City, ST ZIP' before a transaction can be created.",
+        });
       }
       const name = firstAndLast(String(loan.full_name || loan.business_name || "Borrower"));
       const payload: any = {
@@ -136,18 +214,24 @@ export default async function handler(req: any, res: any) {
         draft: true,
         signers: [{ email: loan.email || user.email, ...name, external_id: user.id }],
         street_address: {
-          line1: loan.property_address || "",
-          city: loan.city || "",
-          state: String(loan.state || "").toUpperCase(),
-          zip_code: loan.zip_code || "",
+          line1: address.line1,
+          city: address.city,
+          state: address.state,
+          zip_code: address.postal,
         },
         message_subject: `SecuredLanding closing — Loan #${loan.loan_number || loan.id}`,
         message_to_signer: "Complete the identity verification and remote online notarization steps for your SecuredLanding closing. County recording is handled separately after notarization.",
       };
       const eligibility = row?.eligibility_response || {};
-      const jurisdiction = eligibility?.recording_jurisdictions?.[0]?.id || eligibility?.recording_jurisdiction?.id;
-      const titleAgencyId = process.env.PROOF_TITLE_AGENCY_ID || eligibility?.eligible_title_agencies?.[0]?.id;
-      const titleUnderwriterId = process.env.PROOF_TITLE_UNDERWRITER_ID || eligibility?.eligible_title_agencies?.[0]?.eligible_underwriters?.[0]?.id;
+      const jurisdictionObject = supportedJurisdiction(eligibility) || eligibilityJurisdictions(eligibility)[0] || {};
+      const jurisdiction = jurisdictionObject?.id || jurisdictionObject?.recording_jurisdiction_id;
+      const titleAgency = jurisdictionObject?.eligible_title_agencies?.[0] || eligibility?.eligible_title_agencies?.[0] || {};
+      const titleAgencyId = process.env.PROOF_TITLE_AGENCY_ID || titleAgency?.id;
+      const titleUnderwriterId =
+        process.env.PROOF_TITLE_UNDERWRITER_ID ||
+        titleAgency?.eligible_title_underwriters?.[0]?.id ||
+        titleAgency?.eligible_underwriters?.[0]?.id ||
+        jurisdictionObject?.eligible_title_underwriters?.[0]?.id;
       if (jurisdiction) payload.recording_jurisdiction_id = jurisdiction;
       if (titleAgencyId) payload.title_agency_id = titleAgencyId;
       if (titleUnderwriterId) payload.title_underwriter_id = titleUnderwriterId;
