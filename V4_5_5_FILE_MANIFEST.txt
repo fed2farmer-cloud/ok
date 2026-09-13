@@ -1,0 +1,27 @@
+SecuredLanding v4.5.5 — Proof Address / Eligibility Fix
+
+MODIFIED
+- api/proof-closing.ts
+  - removes nonexistent loan_applications city/zip_code query fields
+  - parses full property_address values
+  - normalizes state names/abbreviations
+  - updates Proof eligibility to mortgage/v2/transactions/verify_address
+  - sends v2 postal/country eligibility fields
+  - handles recording-jurisdiction array responses
+  - reuses supported jurisdiction/title data for draft creation
+
+NEW
+- V4_5_5_PROOF_ADDRESS_FIX.md
+- V4_5_5_FILE_MANIFEST.txt
+- BUILD_LOG_v4_5_5.txt
+
+DATABASE CHANGE ALREADY APPLIED LIVE (not a migration)
+- Loan 460109 property_address = VAC/VIC 250 STE/AVE N12, Black Butte, CA 93591
+- Loan 460109 county = Los Angeles
+
+UNCHANGED
+- Proof webhook handler
+- Supabase v4.5.3 Proof migration
+- Secondary Market source
+- Servicing source
+- Vercel API function count remains 12

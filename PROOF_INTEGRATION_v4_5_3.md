@@ -37,7 +37,7 @@ The present SecuredLanding generated forms are mostly rendered in the browser fr
 
 - Fairfax: `https://api.fairfax.proof.com`
 - Production: `https://api.proof.com`
-- Eligibility: `GET /mortgage/v1/transactions/verify_address`
+- Eligibility: `GET /mortgage/v2/transactions/verify_address`
 - Create real-estate draft: `POST /mortgage/v2/transactions`
 - Add documents: `POST /mortgage/v2/transactions/{id}/documents`
 - Retrieve/refresh: `GET /mortgage/v2/transactions/{id}`

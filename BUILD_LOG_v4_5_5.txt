@@ -1,0 +1,43 @@
+SecuredLanding v4.5.5 Build/Test Log
+Date: 2026-09-12
+
+SOURCE BASELINE
+- SecuredLanding-v4.5.4-Vercel-12-Function-Proof.zip
+
+PRODUCTION BUILD
+- Command: npm run build
+- Result: PASS
+- Vite: 5.4.21
+- Modules transformed: 154
+- Output:
+  - dist/index.html
+  - dist/assets/index-D6GOSB0S.css
+  - dist/assets/index-C08Wq8DB.js
+- Main JS: 663.65 kB (gzip 182.24 kB)
+- Advisory only: bundle >500 kB; not a build failure.
+
+FOCUSED TYPESCRIPT CHECK
+- Command: tsc api/proof-closing.ts --noEmit --target ES2020 --module ESNext --moduleResolution node --skipLibCheck --types node
+- Result: PASS (0 diagnostics)
+
+VERCEL FUNCTION COUNT
+- 12 TypeScript files under /api
+- Result: PASS for Hobby plan 12-function deployment limit
+
+PROOF FIX VALIDATION
+- loan_applications query no longer references nonexistent city/zip_code columns
+- eligibility endpoint: /mortgage/v2/transactions/verify_address
+- eligibility request includes line1, city, state, postal, country
+- address parser accepts: VAC/VIC 250 STE/AVE N12, Black Butte, CA 93591
+- recording-jurisdiction array response handling added
+
+LIVE DATABASE VERIFICATION
+- Loan number 460109 resolves to loan_application id 1
+- property_address updated to VAC/VIC 250 STE/AVE N12, Black Butte, CA 93591
+- county updated to Los Angeles
+- state remains California
+- APN remains 3338021011
+
+LIMITATION
+- End-to-end Proof Fairfax eligibility cannot be completed without a valid server-side PROOF_API_KEY and an authenticated borrower session.
+- Final Proof document upload remains blocked until attorney-approved PDFs have non-null generated_loan_documents.storage_path values.
