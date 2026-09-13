@@ -6,7 +6,6 @@ import PropertyGallery from "../components/PropertyGallery";
 import MapEmbed from "../components/MapEmbed";
 import RepaymentSchedule from "../components/RepaymentSchedule";
 import KYCWorkflow from "../components/KYCWorkflow";
-import ClosingCenterCard from "../components/ClosingCenterCard";
 
 type LoanApplication = {
   id: string;
@@ -214,6 +213,11 @@ export default function Dashboard() {
   function isFinalLoanStatus(status?: string | null) {
     const normalized = String(status || "").trim().toLowerCase();
     return ["approved", "funded", "active", "completed", "closed", "denied"].includes(normalized);
+  }
+
+  function canOpenClosingCenter(status?: string | null) {
+    const normalized = String(status || "").trim().toLowerCase();
+    return ["approved", "funded", "active", "completed", "closed"].includes(normalized);
   }
 
   function getPendingCounteroffer(application: LoanApplication) {
@@ -465,6 +469,18 @@ export default function Dashboard() {
                           <p className="mt-2 text-xs text-amber-700">Not yet published to marketplace. Awaiting admin approval.</p>
                         )}
                       </div>
+
+                      {canOpenClosingCenter(displayedStatus) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            window.location.href = `/closing-center?loanId=${encodeURIComponent(String(applicationId))}`;
+                          }}
+                          className="mt-4 w-full rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-emerald-600 sm:w-auto"
+                        >
+                          Open Closing Center →
+                        </button>
+                      )}
 
                       {/* Expanded sections */}
                       {isExpanded && (
