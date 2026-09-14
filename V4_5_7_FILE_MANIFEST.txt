@@ -1,0 +1,19 @@
+SECUREDLANDING v4.5.7 FILE MANIFEST
+
+MODIFIED SOURCE FILES
+- src/components/AppLayout.tsx
+- src/pages/ClosingCenter.tsx
+
+NEW DOCUMENTATION
+- V4_5_7_CLOSING_CENTER_MENU_CHOOSER.md
+- V4_5_7_FILE_MANIFEST.txt
+- VALIDATION_LOG_v4_5_7.txt
+
+DATABASE CHANGES
+- None
+
+SERVERLESS FUNCTION CHANGES
+- None (12 api/*.ts functions remain)
+
+GENERATED DIST FILES
+- Intentionally not required for mobile upload. Vercel rebuilds dist from source.

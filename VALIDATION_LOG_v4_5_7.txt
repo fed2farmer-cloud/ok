@@ -1,0 +1,11 @@
+SecuredLanding v4.5.7 validation
+
+PASS - TypeScript transpile/syntax validation: src/components/AppLayout.tsx
+PASS - TypeScript transpile/syntax validation: src/pages/ClosingCenter.tsx
+PASS - Borrower navigation contains /closing-center -> Closing Center
+PASS - /closing-center no-loan selector UI is present
+PASS - Selector routes to /closing-center?loanId=<application_id>
+PASS - Eligible closing statuses include approved, funded, active, completed, closed
+PASS - api/*.ts count remains 12
+
+NOTE: A clean local Vite production bundle could not be rerun in this isolated container because npm registry DNS is unavailable. The previous v4.5.6 production build passed, and these v4.5.7 changes were syntax/transpile checked. After upload, verify the authoritative Vercel production build before treating deployment as complete.
