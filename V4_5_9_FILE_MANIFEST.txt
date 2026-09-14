@@ -1,0 +1,14 @@
+SecuredLanding v4.5.9 — New and Modified Files
+
+NEW
+- src/components/AdminManualNotaryPanel.tsx
+- supabase/migrations/20260914_v4_5_9_closing_sync_manual_notary.sql
+- V4_5_9_CLOSING_SYNC_MANUAL_NOTARY.md
+- V4_5_9_FILE_MANIFEST.txt
+- BUILD_LOG_v4_5_9.txt
+- VERIFY_V4_5_9_CLOSING_SYNC.sql
+
+MODIFIED
+- src/components/ProofClosingPanel.tsx
+- src/pages/ClosingCenter.tsx
+- src/pages/AdminDashboard.tsx
