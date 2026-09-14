@@ -6,7 +6,7 @@ import FundingCountdown from "../components/FundingCountdown";
 import ProofClosingPanel from "../components/ProofClosingPanel";
 import { supabase } from "../lib/supabase";
 
-type Application = { id: string; loan_number?: number | null; business_name?: string | null; full_name?: string | null; loan_amount?: number | null; status?: string | null };
+type Application = { id: string; loan_number?: number | null; business_name?: string | null; full_name?: string | null; loan_amount?: number | null; status?: string | null; created_at?: string | null };
 type Closing = { id: string; stage?: string | null; progress_percent?: number | null; funding_deadline?: string | null; closing_status?: string | null };
 type Task = { id: string; title: string; status?: string | null; sort_order?: number | null };
 type GeneratedDocument = { id: string | number; title?: string | null; document_name?: string | null; document_type?: string | null; status?: string | null; acknowledged_at?: string | null; signed_at?: string | null; storage_path?: string | null };
@@ -17,6 +17,7 @@ export default function ClosingCenter() {
   const [params] = useSearchParams();
   const loanId = params.get("loanId") || "";
   const [application, setApplication] = useState<Application | null>(null);
+  const [availableLoans, setAvailableLoans] = useState<Application[]>([]);
   const [closing, setClosing] = useState<Closing | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [documents, setDocuments] = useState<GeneratedDocument[]>([]);
@@ -26,14 +27,27 @@ export default function ClosingCenter() {
   const [error, setError] = useState("");
 
   async function load() {
-    if (!supabase || !loanId) return;
+    if (!supabase) return;
     setLoading(true); setError("");
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = "/login"; return; }
+
+      if (!loanId) {
+        const { data: loanRows, error: loanError } = await supabase
+          .from("loan_applications")
+          .select("id,loan_number,business_name,full_name,loan_amount,status,created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        if (loanError) throw loanError;
+        const eligibleStatuses = new Set(["approved", "funded", "active", "completed", "closed"]);
+        setAvailableLoans(((loanRows as Application[] | null) || []).filter((loan) => eligibleStatuses.has(String(loan.status || "").trim().toLowerCase())));
+        return;
+      }
+
       await supabase.rpc("ensure_borrower_signature_requests", { p_loan_application_id: Number(loanId) });
       const [applicationResult, closingResult, taskResult, documentResult, marketResult, signatureResult] = await Promise.all([
-        supabase.from("loan_applications").select("id,loan_number,business_name,full_name,loan_amount,status,user_id").eq("id", Number(loanId)).eq("user_id", user.id).single(),
+        supabase.from("loan_applications").select("id,loan_number,business_name,full_name,loan_amount,status,user_id,created_at").eq("id", Number(loanId)).eq("user_id", user.id).single(),
         supabase.from("loan_closings").select("*").eq("loan_application_id", Number(loanId)).maybeSingle(),
         supabase.from("closing_tasks").select("id,title,status,sort_order").eq("loan_application_id", Number(loanId)).order("sort_order"),
         supabase.from("generated_loan_documents").select("id,title,document_name,document_type,status,acknowledged_at,signed_at,storage_path").eq("loan_application_id", Number(loanId)).order("created_at"),
@@ -56,7 +70,50 @@ export default function ClosingCenter() {
   const completedDocuments = useMemo(() => signatureRequests.filter((request) => request.status === "signed").length, [signatureRequests]);
   const requestByDocument = useMemo(() => new Map(signatureRequests.map((request) => [String(request.generated_document_id), request])), [signatureRequests]);
 
-  if (!loanId) return <AppLayout><div className="mx-auto max-w-4xl p-6 text-white">Choose a loan from your borrower dashboard.</div></AppLayout>;
+  if (!loanId) return (
+    <AppLayout>
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        <section className="rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-7 text-white shadow-2xl sm:p-10">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-300">Borrower Closing Center</p>
+          <h1 className="mt-3 text-3xl font-black sm:text-4xl">Choose a loan to continue closing</h1>
+          <p className="mt-2 max-w-2xl text-slate-300">Open an approved or funded land loan to review closing tasks, signatures, remote notarization, recording, and funding status.</p>
+        </section>
+
+        {error && <div className="mt-5 rounded-xl border border-rose-300 bg-rose-50 p-4 font-semibold text-rose-700">{error}</div>}
+
+        {loading ? (
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 text-slate-500 shadow-sm">Loading your closing loans…</div>
+        ) : availableLoans.length ? (
+          <section className="mt-6 space-y-4">
+            {availableLoans.map((loan) => (
+              <article key={loan.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Loan #{loan.loan_number ?? loan.id}</p>
+                    <h2 className="mt-1 text-xl font-black text-slate-950">{loan.business_name || loan.full_name || "Land Loan"}</h2>
+                    <p className="mt-1 text-sm text-slate-500">{loan.status || "Approved"}{loan.loan_amount != null ? ` · $${Number(loan.loan_amount).toLocaleString()}` : ""}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { window.location.href = `/closing-center?loanId=${encodeURIComponent(String(loan.id))}`; }}
+                    className="w-full rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-emerald-600 sm:w-auto"
+                  >
+                    Open Closing Center →
+                  </button>
+                </div>
+              </article>
+            ))}
+          </section>
+        ) : (
+          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-black text-slate-950">No closing-ready loans yet</h2>
+            <p className="mt-2 text-sm text-slate-600">Loans appear here after approval. You can still review applications from your dashboard.</p>
+            <button type="button" onClick={() => { window.location.href = "/dashboard"; }} className="mt-4 rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white">Back to Dashboard</button>
+          </section>
+        )}
+      </main>
+    </AppLayout>
+  );
 
   return (
     <AppLayout>
