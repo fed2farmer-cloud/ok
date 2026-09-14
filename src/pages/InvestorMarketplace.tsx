@@ -25,6 +25,8 @@ type MarketplaceLoan = {
   investor_interest_rate?: number | null;
   repayment_term_months?: number | null;
   status?: string | null;
+  funding_deadline?: string | null;
+  funding_status?: string | null;
   borrower_video_path?: string | null;
   borrower_video_status?: string | null;
   investor_refund_enabled?: boolean | null;
@@ -520,6 +522,8 @@ function InvestorMarketplace() {
             const soldPct = goal > 0 ? Math.min((sold / goal) * 100, 100) : 0;
             const pendingPct = goal > 0 ? Math.min((pending / goal) * 100, Math.max(100 - soldPct, 0)) : 0;
             const committedPct = goal > 0 ? Math.min((committed / goal) * 100, 100) : 0;
+            const fundingDeadlineMs = loan.funding_deadline ? new Date(loan.funding_deadline).getTime() : Number.NaN;
+            const fundingExpired = Number.isFinite(fundingDeadlineMs) && fundingDeadlineMs <= Date.now();
             const amount = Number(amounts[loan.id] || 0);
             const available = Number(wallet?.available_balance || 0);
             const method =
@@ -530,7 +534,7 @@ function InvestorMarketplace() {
                   ? "card"
                   : "wallet");
             const invalidAmount =
-              !Number.isFinite(amount) || amount < 100 || amount > remaining;
+              fundingExpired || !Number.isFinite(amount) || amount < 100 || amount > remaining;
             const walletDisabled = invalidAmount || amount > available;
             const refundDays = loan.investor_refund_days ?? 7;
             const loanNumber = loan.loan_number ?? loan.loan_application_id;
@@ -548,7 +552,7 @@ function InvestorMarketplace() {
                     <p className="mt-1 text-slate-400">Loan #{loanNumber}</p>
                   </div>
                   <span className="rounded-full bg-emerald-950 px-4 py-2 font-bold text-emerald-300">
-                    {remaining <= 0 ? "Fully Committed" : (loan.status || "Open")}
+                    {remaining <= 0 ? "Fully Committed" : fundingExpired ? "Funding Closed" : (loan.status || "Open")}
                   </span>
                 </div>
 
@@ -635,10 +639,12 @@ function InvestorMarketplace() {
                   </div>
                 </div>
 
-                {remaining <= 0 ? (
+                {remaining <= 0 || fundingExpired ? (
                   <div className="mt-6 rounded-2xl border border-emerald-700 bg-emerald-950/60 p-4">
-                    <p className="font-black text-emerald-300">Fully Committed / Funding Complete</p>
-                    <p className="mt-1 text-sm text-slate-300">This loan has no investment capacity remaining. New investments are disabled.</p>
+                    <p className="font-black text-emerald-300">{remaining <= 0 ? "Fully Committed / Funding Complete" : "Funding Closed"}</p>
+                    <p className="mt-1 text-sm text-slate-300">{remaining <= 0
+                      ? "This loan has no investment capacity remaining. New investments are disabled."
+                      : "The funding deadline passed before the goal was reached. New primary investments are disabled unless the campaign is extended."}</p>
                   </div>
                 ) : (
                 <>

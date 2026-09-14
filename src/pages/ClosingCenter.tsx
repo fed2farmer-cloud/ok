@@ -5,12 +5,13 @@ import ClosingChecklist from "../components/ClosingChecklist";
 import FundingCountdown from "../components/FundingCountdown";
 import ProofClosingPanel from "../components/ProofClosingPanel";
 import { supabase } from "../lib/supabase";
+import { deriveFundingDisplay } from "../lib/fundingStatus";
 
 type Application = { id: string; loan_number?: number | null; business_name?: string | null; full_name?: string | null; loan_amount?: number | null; status?: string | null; created_at?: string | null };
 type Closing = { id: string; stage?: string | null; progress_percent?: number | null; funding_deadline?: string | null; closing_status?: string | null };
 type Task = { id: string; title: string; status?: string | null; sort_order?: number | null };
 type GeneratedDocument = { id: string | number; title?: string | null; document_name?: string | null; document_type?: string | null; status?: string | null; acknowledged_at?: string | null; signed_at?: string | null; storage_path?: string | null };
-type Market = { funding_goal?: number | null; amount_funded?: number | null; funding_deadline?: string | null };
+type Market = { funding_goal?: number | null; amount_funded?: number | null; funding_deadline?: string | null; funding_status?: string | null; status?: string | null };
 type SignatureRequest = { id: string; generated_document_id: string; status: string; signed_at?: string | null };
 
 export default function ClosingCenter() {
@@ -51,7 +52,7 @@ export default function ClosingCenter() {
         supabase.from("loan_closings").select("*").eq("loan_application_id", Number(loanId)).maybeSingle(),
         supabase.from("closing_tasks").select("id,title,status,sort_order").eq("loan_application_id", Number(loanId)).order("sort_order"),
         supabase.from("generated_loan_documents").select("id,title,document_name,document_type,status,acknowledged_at,signed_at,storage_path").eq("loan_application_id", Number(loanId)).order("created_at"),
-        supabase.from("marketplace_loans").select("funding_goal,amount_funded,funding_deadline").eq("loan_application_id", Number(loanId)).maybeSingle(),
+        supabase.from("marketplace_loans").select("funding_goal,amount_funded,funding_deadline,funding_status,status").eq("loan_application_id", Number(loanId)).maybeSingle(),
         supabase.from("document_signature_requests").select("id,generated_document_id,status,signed_at").eq("loan_application_id", Number(loanId)),
       ]);
       if (applicationResult.error) throw applicationResult.error;
@@ -69,6 +70,12 @@ export default function ClosingCenter() {
 
   const completedDocuments = useMemo(() => signatureRequests.filter((request) => request.status === "signed").length, [signatureRequests]);
   const requestByDocument = useMemo(() => new Map(signatureRequests.map((request) => [String(request.generated_document_id), request])), [signatureRequests]);
+  const fundingDisplay = useMemo(() => deriveFundingDisplay({
+    goal: Number(market?.funding_goal || application?.loan_amount || 0),
+    funded: Number(market?.amount_funded || 0),
+    deadline: market?.funding_deadline || closing?.funding_deadline,
+    fallbackStatus: application?.status || "Approved",
+  }), [application?.loan_amount, application?.status, closing?.funding_deadline, market?.amount_funded, market?.funding_deadline, market?.funding_goal]);
 
   if (!loanId) return (
     <AppLayout>
@@ -121,7 +128,7 @@ export default function ClosingCenter() {
         <section className="rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-7 text-white shadow-2xl sm:p-10">
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-300">Borrower Closing Center</p>
           <h1 className="mt-3 text-3xl font-black sm:text-4xl">{application?.business_name || application?.full_name || "Your approved loan"}</h1>
-          <p className="mt-2 text-slate-300">Loan #{application?.loan_number ?? loanId} · {application?.status || "Approved"}</p>
+          <p className="mt-2 text-slate-300">Loan #{application?.loan_number ?? loanId} · {fundingDisplay.label}</p>
           <div className="mt-5 flex flex-wrap gap-3">
             <button onClick={() => window.location.href = `/loan-forms?loanId=${loanId}`} className="rounded-xl bg-emerald-600 px-5 py-3 font-bold hover:bg-emerald-500">Review signing documents</button>
             <button onClick={() => window.location.href = `/loan-documents?loanId=${loanId}`} className="rounded-xl bg-white/10 px-5 py-3 font-bold hover:bg-white/20">Upload supporting documents</button>

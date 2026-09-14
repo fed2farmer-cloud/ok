@@ -6,6 +6,7 @@ import PropertyGallery from "../components/PropertyGallery";
 import MapEmbed from "../components/MapEmbed";
 import RepaymentSchedule from "../components/RepaymentSchedule";
 import KYCWorkflow from "../components/KYCWorkflow";
+import { deriveFundingDisplay } from "../lib/fundingStatus";
 
 type LoanApplication = {
   id: string;
@@ -41,6 +42,8 @@ type MarketplaceLoan = {
   amount_remaining?: number | null;
   investor_interest_rate?: number | null;
   status?: string | null;
+  funding_deadline?: string | null;
+  funding_status?: string | null;
   created_at?: string | null;
 };
 
@@ -217,7 +220,7 @@ export default function Dashboard() {
 
   function canOpenClosingCenter(status?: string | null) {
     const normalized = String(status || "").trim().toLowerCase();
-    return ["approved", "funded", "active", "completed", "closed"].includes(normalized);
+    return ["approved", "funded", "funding", "fully funded", "funding closed — underfunded", "active", "completed", "closed"].includes(normalized);
   }
 
   function getPendingCounteroffer(application: LoanApplication) {
@@ -260,9 +263,9 @@ export default function Dashboard() {
 
   function statusClasses(status?: string | null) {
     const s = String(status || "pending").toLowerCase();
-    if (["funded", "approved", "active", "completed"].includes(s)) return "bg-emerald-100 text-emerald-800";
-    if (["open", "published", "funding"].includes(s)) return "bg-blue-100 text-blue-800";
-    if (["denied", "rejected", "defaulted", "failed"].includes(s)) return "bg-rose-100 text-rose-800";
+    if (s.includes("fully funded") || ["funded", "active", "completed"].includes(s)) return "bg-emerald-100 text-emerald-800";
+    if (s.includes("funding closed") || ["denied", "rejected", "defaulted", "failed"].includes(s)) return "bg-rose-100 text-rose-800";
+    if (["approved", "open", "published", "funding"].includes(s)) return "bg-blue-100 text-blue-800";
     return "bg-amber-100 text-amber-800";
   }
 
@@ -372,7 +375,13 @@ export default function Dashboard() {
                 const ml = getMarketplaceLoan(application);
                 const appDocs = getDocuments(application);
                 const { goal, funded, remaining, percentage } = getFundingValues(application, ml);
-                const displayedStatus = ml?.status || application.status || "Pending";
+                const fundingDisplay = ml ? deriveFundingDisplay({
+                  goal,
+                  funded,
+                  deadline: ml.funding_deadline,
+                  fallbackStatus: application.status || ml.status || "Approved",
+                }) : null;
+                const displayedStatus = fundingDisplay?.label || application.status || "Pending";
                 const isExpanded = expandedLoan === applicationId;
                 const rate = Number(application.borrower_interest_rate || application.interest_rate_percent || 9);
                 const term = Number(application.repayment_term_months || 36);

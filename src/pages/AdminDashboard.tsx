@@ -10,6 +10,7 @@ import AdminPropertyPhotoReview from "../components/AdminPropertyPhotoReview";
 import AdminAccordionSection from "../components/AdminAccordionSection";
 import AdminLoanMediaPanel from "../components/AdminLoanMediaPanel";
 import AdminLoanReviewActions from "../components/AdminLoanReviewActions";
+import { deriveFundingDisplay } from "../lib/fundingStatus";
 
 
 type LoanApplication = {
@@ -34,6 +35,8 @@ type LoanApplication = {
   company_spread_rate?: number | null;
   amount_funded?: number | null;
   amount_remaining?: number | null;
+  funding_deadline?: string | null;
+  funding_status?: string | null;
   risk_score?: string | null;
   underwriter_notes?: string | null;
   published_to_marketplace?: boolean | null;
@@ -453,6 +456,11 @@ export default function AdminDashboard() {
         if (removeError) throw removeError;
       }
 
+      if (loan.loan_number) {
+        const { error: fundingRefreshError } = await supabase.rpc("refresh_loan_funding_totals", { p_loan_number: Number(loan.loan_number) });
+        if (fundingRefreshError) throw fundingRefreshError;
+      }
+
       setMessage(`Loan #${loan.loan_number ?? id} was saved successfully.`);
       await loadApplications(true);
     } catch (error: any) {
@@ -573,6 +581,26 @@ export default function AdminDashboard() {
     });
   }
 
+  async function refreshLoanFunding(loan: LoanApplication) {
+    if (!supabase) return;
+    setMessage("");
+    setErrorMessage("");
+    setSavingId(loan.id);
+
+    try {
+      const reference = Number(loan.loan_number ?? loan.id);
+      if (!Number.isFinite(reference)) throw new Error("Loan reference is invalid.");
+      const { error } = await supabase.rpc("refresh_loan_funding_totals", { p_loan_number: reference });
+      if (error) throw error;
+      setMessage(`Loan #${loan.loan_number || loan.id} funding was recalculated from investment records.`);
+      await loadApplications(true);
+    } catch (error: any) {
+      setErrorMessage(error?.message || "Unable to refresh loan funding.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   async function updateStatus(id: string, status: string) {
     if (!supabase) return;
     setMessage("");
@@ -626,17 +654,13 @@ export default function AdminDashboard() {
         }
       }
 
-      const loanAmount = Number(loan.loan_amount || 0);
-      const payload: Record<string, unknown> = { status };
       if (status === "Funded") {
-        payload.amount_funded = loanAmount;
-        payload.amount_remaining = 0;
-        payload.published_to_marketplace = true;
+        throw new Error("Funded status is automatic. Use Refresh funding; the loan becomes Funded only when qualifying investments reach the goal.");
       }
 
       const { error: applicationError } = await supabase
         .from("loan_applications")
-        .update(payload)
+        .update({ status })
         .eq("id", id);
       if (applicationError) throw applicationError;
 
@@ -644,45 +668,18 @@ export default function AdminDashboard() {
         await createClosingCenter({ ...loan, status });
       }
 
-      if (status === "Funded") {
-        const values = editing[id];
-        const borrowerRate = Number(values?.borrower_interest_rate ?? loan.borrower_interest_rate ?? 10);
-        const investorRate = Number(values?.investor_interest_rate ?? loan.investor_interest_rate ?? 9);
+      const marketStatus = status === "Approved" ? "Open" : status === "Denied" ? "Closed" : null;
+      if (marketStatus) {
         const { error: marketplaceError } = await supabase
           .from("marketplace_loans")
-          .upsert(
-            {
-              loan_application_id: id,
-              loan_number: loan.loan_number,
-              business_name: loan.business_name || "Land-backed loan",
-              borrower_name: loan.full_name || "",
-              apn: values.apn.trim(),
-              state: values.state.trim().toUpperCase(),
-              acreage: Number(loan.acreage || 0),
-              land_value: Number(loan.land_value || 0),
-              loan_amount: loanAmount,
-              funding_goal: loanAmount,
-              amount_funded: loanAmount,
-              amount_remaining: 0,
-              borrower_interest_rate: borrowerRate,
-              investor_interest_rate: investorRate,
-              company_spread_rate: Number((borrowerRate - investorRate).toFixed(2)),
-              repayment_term_months: Number(loan.repayment_term_months || 36),
-              risk_score: values?.risk_score || loan.risk_score || "Pending",
-              status: "Funded",
-            },
-            { onConflict: "loan_application_id" }
-          );
+          .update({ status: marketStatus })
+          .eq("loan_application_id", id);
         if (marketplaceError) throw marketplaceError;
-      } else {
-        const marketStatus = status === "Approved" ? "Open" : status === "Denied" ? "Closed" : null;
-        if (marketStatus) {
-          const { error: marketplaceError } = await supabase
-            .from("marketplace_loans")
-            .update({ status: marketStatus })
-            .eq("loan_application_id", id);
-          if (marketplaceError) throw marketplaceError;
-        }
+      }
+
+      if (status === "Approved" && loan.loan_number) {
+        const { error: fundingRefreshError } = await supabase.rpc("refresh_loan_funding_totals", { p_loan_number: Number(loan.loan_number) });
+        if (fundingRefreshError) throw fundingRefreshError;
       }
 
       setMessage(`Loan #${loan.loan_number || id} status changed to ${status}.`);
@@ -761,9 +758,9 @@ export default function AdminDashboard() {
 
   function statusClasses(status?: string | null) {
     const normalized = String(status || "Pending").toLowerCase();
-    if (normalized === "approved" || normalized === "funded") return "bg-emerald-100 text-emerald-800";
-    if (normalized === "denied") return "bg-rose-100 text-rose-800";
-    if (normalized === "open") return "bg-blue-100 text-blue-800";
+    if (normalized.includes("fully funded") || normalized === "funded") return "bg-emerald-100 text-emerald-800";
+    if (normalized.includes("funding closed") || normalized === "denied") return "bg-rose-100 text-rose-800";
+    if (normalized === "approved" || normalized === "funding" || normalized === "open") return "bg-blue-100 text-blue-800";
     return "bg-amber-100 text-amber-800";
   }
 
@@ -973,6 +970,13 @@ export default function AdminDashboard() {
               const totalInterest = Math.max(totalRepayment - loanAmount, 0);
               const ltv = landValue > 0 ? (loanAmount / landValue) * 100 : 0;
               const isSaving = savingId === loan.id;
+              const fundingDisplay = deriveFundingDisplay({
+                goal: loanAmount,
+                funded: Number(loan.amount_funded || 0),
+                deadline: loan.funding_deadline,
+                fallbackStatus: loan.status || "Pending",
+              });
+              const displayedStatus = fundingDisplay.label;
 
               return (
                 <details key={loan.id} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
@@ -982,7 +986,7 @@ export default function AdminDashboard() {
                       <h2 className="mt-1 text-2xl font-black text-slate-950">{loan.business_name || loan.full_name || "Land-backed loan"}</h2>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className={`rounded-full px-3 py-1 text-sm font-bold ${statusClasses(loan.status)}`}>{loan.status || "Pending"}</span>
+                      <span className={`rounded-full px-3 py-1 text-sm font-bold ${statusClasses(displayedStatus)}`}>{displayedStatus}</span>
                       <span className="grid h-9 w-9 place-items-center rounded-full border border-slate-300 text-lg font-black transition group-open:rotate-180">⌄</span>
                     </div>
                   </summary>
@@ -1148,7 +1152,7 @@ export default function AdminDashboard() {
                       <button disabled={isSaving} onClick={() => void updateStatus(loan.id, "Pending")} className="rounded-xl bg-amber-500 px-5 py-3 font-bold text-white disabled:bg-slate-400">Pending</button>
                       <button disabled={isSaving} onClick={() => void updateStatus(loan.id, "Approved")} className="rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white disabled:bg-slate-400">Approve loan</button>
                       <button disabled={isSaving} onClick={() => void updateStatus(loan.id, "Denied")} className="rounded-xl bg-rose-600 px-5 py-3 font-bold text-white disabled:bg-slate-400">Deny</button>
-                      <button disabled={isSaving} onClick={() => void updateStatus(loan.id, "Funded")} className="rounded-xl bg-blue-600 px-5 py-3 font-bold text-white disabled:bg-slate-400">Mark funded</button>
+                      <button disabled={isSaving || !loan.loan_number} onClick={() => void refreshLoanFunding(loan)} className="rounded-xl bg-blue-600 px-5 py-3 font-bold text-white disabled:bg-slate-400">Refresh funding</button>
                     </div>
                   </div>
                 </details>
