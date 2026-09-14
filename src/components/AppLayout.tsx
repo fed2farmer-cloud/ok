@@ -8,6 +8,7 @@ const BORROWER_LINKS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/loan-application", label: "Apply" },
   { href: "/repayments", label: "Repayments" },
+  { href: "/closing-center", label: "Closing Center" },
   { href: "/loan-forms", label: "Loan Forms" },
   { href: "/loan-documents", label: "Documents" },
   { href: "/messages", label: "Messages" },
