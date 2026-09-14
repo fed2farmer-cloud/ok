@@ -47,6 +47,10 @@ export default function ClosingCenter() {
       }
 
       await supabase.rpc("ensure_borrower_signature_requests", { p_loan_application_id: Number(loanId) });
+      // v4.5.9 keeps legacy and newly signed closing tasks synchronized.
+      // Ignore a missing RPC briefly during a staggered frontend/database deployment.
+      const { error: closingSyncError } = await supabase.rpc("sync_closing_document_tasks", { p_loan_application_id: Number(loanId) });
+      if (closingSyncError && !/does not exist|schema cache/i.test(closingSyncError.message || "")) throw closingSyncError;
       const [applicationResult, closingResult, taskResult, documentResult, marketResult, signatureResult] = await Promise.all([
         supabase.from("loan_applications").select("id,loan_number,business_name,full_name,loan_amount,status,user_id,created_at").eq("id", Number(loanId)).eq("user_id", user.id).single(),
         supabase.from("loan_closings").select("*").eq("loan_application_id", Number(loanId)).maybeSingle(),
@@ -167,7 +171,7 @@ export default function ClosingCenter() {
             </section>
 
             <div className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-900">
-              <strong>Important:</strong> Proof can provide the remote notarization workflow, but SecuredLanding must use attorney-approved final loan instruments. A completed notarization does not mean the deed of trust or mortgage has been recorded; county recording remains a separate closing requirement.
+              <strong>Important:</strong> Notarization can be tracked manually during testing or automated through Proof later, but SecuredLanding must use attorney-approved final loan instruments. A completed notarization does not mean the deed of trust or mortgage has been recorded; county recording remains a separate closing requirement.
             </div>
           </>
         )}

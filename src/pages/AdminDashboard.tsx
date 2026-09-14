@@ -10,6 +10,7 @@ import AdminPropertyPhotoReview from "../components/AdminPropertyPhotoReview";
 import AdminAccordionSection from "../components/AdminAccordionSection";
 import AdminLoanMediaPanel from "../components/AdminLoanMediaPanel";
 import AdminLoanReviewActions from "../components/AdminLoanReviewActions";
+import AdminManualNotaryPanel from "../components/AdminManualNotaryPanel";
 import { deriveFundingDisplay } from "../lib/fundingStatus";
 
 
@@ -1146,6 +1147,10 @@ export default function AdminDashboard() {
                       loan={loan}
                       onChanged={() => loadApplications(true)}
                     />
+
+                    {["approved", "funded"].includes(String(loan.status || "").toLowerCase()) && (
+                      <AdminManualNotaryPanel loanId={loan.id} loanNumber={loan.loan_number} />
+                    )}
 
                     <div className="mt-7 flex flex-wrap gap-3">
                       <button disabled={isSaving} onClick={() => void saveLoanTerms(loan.id)} className="rounded-xl bg-violet-600 px-5 py-3 font-bold text-white disabled:bg-slate-400">{isSaving ? "Saving…" : "Save review"}</button>
