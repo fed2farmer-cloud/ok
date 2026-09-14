@@ -16,6 +16,11 @@ type ProofStatus = {
     released_at?: string | null;
     last_error?: string | null;
     documents_uploaded?: number | null;
+    manual_mode?: boolean | null;
+    manual_status?: string | null;
+    manual_scheduled_at?: string | null;
+    manual_completed_at?: string | null;
+    manual_document_name?: string | null;
   } | null;
 };
 
@@ -45,10 +50,10 @@ export default function ProofClosingPanel({ loanId }: { loanId: string }) {
         headers: { Authorization: `Bearer ${token}` },
       });
       const body = await response.json();
-      if (!response.ok) throw new Error(body?.error || "Unable to load Proof closing status.");
+      if (!response.ok) throw new Error(body?.error || "Unable to load notarization status.");
       setStatus(body);
     } catch (e: any) {
-      setError(e?.message || "Unable to load Proof closing status.");
+      setError(e?.message || "Unable to load notarization status.");
     }
   }
 
@@ -78,59 +83,72 @@ export default function ProofClosingPanel({ loanId }: { loanId: string }) {
   const row = status?.transaction;
   const hasTransaction = Boolean(row?.proof_transaction_id);
   const eligible = row?.property_supported === true;
+  const manualMode = status?.configured === false || row?.manual_mode === true;
+  const manualComplete = row?.manual_status === "completed" || Boolean(row?.manual_completed_at);
 
   return (
     <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Remote online notarization</p>
-          <h2 className="mt-1 text-2xl font-black text-slate-950">Proof closing</h2>
-          <p className="mt-1 max-w-2xl text-sm text-slate-600">Identity verification, remote notary workflow, and closing status tracking. County recording remains a separate required step.</p>
+          <h2 className="mt-1 text-2xl font-black text-slate-950">Notarization closing</h2>
+          <p className="mt-1 max-w-2xl text-sm text-slate-600">SecuredLanding can use a manual closing workflow now and switch to Proof API automation later. County recording remains a separate required step.</p>
         </div>
-        <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${status?.environment === "production" ? "bg-rose-100 text-rose-800" : "bg-sky-100 text-sky-800"}`}>
-          Proof {status?.environment || "fairfax"}
+        <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${manualMode ? "bg-amber-100 text-amber-800" : status?.environment === "production" ? "bg-rose-100 text-rose-800" : "bg-sky-100 text-sky-800"}`}>
+          {manualMode ? "Manual / Test Mode" : `Proof ${status?.environment || "fairfax"}`}
         </span>
       </div>
 
-      {!status?.configured && (
+      {manualMode ? (
         <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-          Proof is installed in SecuredLanding but no server API key is configured yet. Add the Proof Fairfax/test credentials before running Loan 460109 through the sandbox.
+          Proof API automation is not active. SecuredLanding can continue the closing manually while preserving the Proof integration for later activation. Your administrator controls scheduling, completion, and the returned notarized PDF.
         </div>
-      )}
-      {status?.configured && !status.enabled && (
+      ) : status?.configured && !status.enabled ? (
         <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-          Proof credentials are present, but transaction creation is intentionally disabled. Set <strong>PROOF_ENABLED=true</strong> when you are ready to test.
+          Proof credentials are present, but transaction creation is intentionally disabled. Set <strong>PROOF_ENABLED=true</strong> when the Proof test account is ready.
         </div>
+      ) : null}
+
+      {manualMode ? (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Status label="Workflow" value="Manual / Test" good />
+          <Status label="Notary status" value={pretty(row?.manual_status)} good={manualComplete} />
+          <Status label="Appointment" value={row?.manual_scheduled_at ? new Date(row.manual_scheduled_at).toLocaleString() : "Not scheduled"} good={Boolean(row?.manual_scheduled_at)} />
+          <Status label="Returned document" value={row?.manual_document_name || "Not uploaded"} good={Boolean(row?.manual_document_name)} />
+        </div>
+      ) : (
+        <>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Status label="Property eligibility" value={eligible ? "Supported" : pretty(row?.eligibility_status)} good={eligible} />
+            <Status label="Proof transaction" value={hasTransaction ? "Created" : "Not created"} good={hasTransaction} />
+            <Status label="Notary status" value={pretty(row?.proof_transaction_status || row?.status)} good={Boolean(row?.notarized_at)} />
+            <Status label="Documents sent" value={String(row?.documents_uploaded || 0)} good={Number(row?.documents_uploaded || 0) > 0} />
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <button disabled={!status?.configured || Boolean(busy)} onClick={() => void run("check_eligibility")} className="rounded-xl border border-emerald-700 px-4 py-2 text-sm font-bold text-emerald-800 disabled:cursor-not-allowed disabled:opacity-40">
+              {busy === "check_eligibility" ? "Checking…" : "Check RON eligibility"}
+            </button>
+            <button disabled={!status?.configured || !status?.enabled || !eligible || hasTransaction || Boolean(busy)} onClick={() => void run("create_transaction")} className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300">
+              {busy === "create_transaction" ? "Creating…" : "Create Proof draft"}
+            </button>
+            <button disabled={!hasTransaction || Boolean(busy)} onClick={() => void run("upload_documents")} className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300">
+              {busy === "upload_documents" ? "Sending…" : "Send approved PDFs"}
+            </button>
+            <button disabled={!hasTransaction || !status?.allowPlaceOrder || Boolean(busy)} onClick={() => void run("place_order")} className="rounded-xl border border-slate-950 px-4 py-2 text-sm font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">
+              {busy === "place_order" ? "Sending…" : "Send to Proof closing team"}
+            </button>
+            <button disabled={!hasTransaction || Boolean(busy)} onClick={() => void run("refresh")} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">
+              Refresh status
+            </button>
+          </div>
+        </>
       )}
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Status label="Property eligibility" value={eligible ? "Supported" : pretty(row?.eligibility_status)} good={eligible} />
-        <Status label="Proof transaction" value={hasTransaction ? "Created" : "Not created"} good={hasTransaction} />
-        <Status label="Notary status" value={pretty(row?.proof_transaction_status || row?.status)} good={Boolean(row?.notarized_at)} />
-        <Status label="Documents sent" value={String(row?.documents_uploaded || 0)} good={Number(row?.documents_uploaded || 0) > 0} />
-      </div>
-
-      <div className="mt-5 flex flex-wrap gap-2">
-        <button disabled={!status?.configured || Boolean(busy)} onClick={() => void run("check_eligibility")} className="rounded-xl border border-emerald-700 px-4 py-2 text-sm font-bold text-emerald-800 disabled:cursor-not-allowed disabled:opacity-40">
-          {busy === "check_eligibility" ? "Checking…" : "Check RON eligibility"}
-        </button>
-        <button disabled={!status?.configured || !status?.enabled || !eligible || hasTransaction || Boolean(busy)} onClick={() => void run("create_transaction")} className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300">
-          {busy === "create_transaction" ? "Creating…" : "Create Proof draft"}
-        </button>
-        <button disabled={!hasTransaction || Boolean(busy)} onClick={() => void run("upload_documents")} className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300">
-          {busy === "upload_documents" ? "Sending…" : "Send approved PDFs"}
-        </button>
-        <button disabled={!hasTransaction || !status?.allowPlaceOrder || Boolean(busy)} onClick={() => void run("place_order")} className="rounded-xl border border-slate-950 px-4 py-2 text-sm font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">
-          {busy === "place_order" ? "Sending…" : "Send to Proof closing team"}
-        </button>
-        <button disabled={!hasTransaction || Boolean(busy)} onClick={() => void run("refresh")} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">
-          Refresh status
-        </button>
-      </div>
-
-      {row?.proof_transaction_id && <p className="mt-4 break-all text-xs text-slate-500">Proof transaction ID: {row.proof_transaction_id}</p>}
-      {row?.released_at && <p className="mt-2 text-sm font-bold text-emerald-700">✓ Proof released the completed documents. Recording must still be confirmed separately.</p>}
-      {row?.last_error && <div className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700">Last Proof error: {row.last_error}</div>}
+      {manualComplete && <p className="mt-4 text-sm font-bold text-emerald-700">✓ Notarization is marked complete. County recording must still be confirmed separately.</p>}
+      {row?.proof_transaction_id && !manualMode && <p className="mt-4 break-all text-xs text-slate-500">Proof transaction ID: {row.proof_transaction_id}</p>}
+      {row?.released_at && !manualMode && <p className="mt-2 text-sm font-bold text-emerald-700">✓ Proof released the completed documents. Recording must still be confirmed separately.</p>}
+      {row?.last_error && !manualMode && <div className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700">Last Proof error: {row.last_error}</div>}
       {message && <div className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">{message}</div>}
       {error && <div className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700">{error}</div>}
     </section>
@@ -138,5 +156,5 @@ export default function ProofClosingPanel({ loanId }: { loanId: string }) {
 }
 
 function Status({ label, value, good }: { label: string; value: string; good?: boolean }) {
-  return <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p><p className={`mt-1 font-black capitalize ${good ? "text-emerald-700" : "text-slate-900"}`}>{value}</p></div>;
+  return <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p><p className={`mt-1 break-words font-black capitalize ${good ? "text-emerald-700" : "text-slate-900"}`}>{value}</p></div>;
 }
