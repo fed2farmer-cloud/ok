@@ -1,0 +1,34 @@
+SecuredLanding v4.5.8 validation log
+2026-09-14
+
+SOURCE BASE
+PASS - Built from SecuredLanding-v4.5.7-Closing-Center-Menu-Chooser.zip.
+PASS - Only the files listed in V4_5_8_FILE_MANIFEST.txt plus this audit/build documentation differ from the v4.5.7 source base.
+
+TYPESCRIPT / UI VALIDATION
+PASS - TypeScript transpile/syntax validation: src/lib/fundingStatus.ts
+PASS - TypeScript transpile/syntax validation: src/components/FundingCountdown.tsx
+PASS - TypeScript transpile/syntax validation: src/pages/ClosingCenter.tsx
+PASS - TypeScript transpile/syntax validation: src/pages/Dashboard.tsx
+PASS - TypeScript transpile/syntax validation: src/pages/AdminDashboard.tsx
+PASS - TypeScript transpile/syntax validation: src/pages/InvestorMarketplace.tsx
+PASS - Funding helper behavior: below goal + open deadline => Funding.
+PASS - Funding helper behavior: below goal + expired deadline => Funding Closed — Underfunded.
+PASS - Funding helper behavior: goal reached/over goal => Fully Funded.
+PASS - Terminal Denied state is preserved.
+PASS - Old Admin “Mark funded” UI is removed.
+PASS - Old Admin forced amount_funded=loanAmount / amount_remaining=0 mutation is removed.
+
+CONNECTED DATABASE REVIEW - READ ONLY
+PASS - Reviewed all 15 current marketplace loans against the investments ledger.
+PASS - Identified false Funded states on #460109 and #813912.
+PASS - Confirmed legitimate fully funded states on #361380 and #977005.
+PASS - Identified cached funding mismatches on #554407 and #791069.
+PASS - Migration includes an all-loan reconciliation pass and future investment sync trigger.
+PASS - Migration keeps borrower disbursement/protection logic separate from “fully funded.”
+NOTE - No production Supabase rows or schema were changed during this review.
+
+PRODUCTION BUNDLE
+NOT RUN - A clean npm/Vite production bundle cannot be rerun in this isolated runtime because registry.npmjs.org DNS is unavailable, so missing dependencies cannot be installed.
+PASS - The v4.5.7 base already carried the same environment limitation and its changed files were syntax/transpile validated; v4.5.8 changed files are independently syntax/transpile validated above.
+REQUIRED - After uploading/deploying, use the Vercel build as the authoritative production-bundle test before treating v4.5.8 as deployed.

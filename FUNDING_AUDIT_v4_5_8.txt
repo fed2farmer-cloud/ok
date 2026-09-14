@@ -1,0 +1,36 @@
+SecuredLanding v4.5.8 - Funding Integrity Audit
+Snapshot reviewed: 2026-09-14
+Source: connected SecuredLanding Supabase project, read-only review before applying this migration.
+
+Rule used
+- Actual committed funding is calculated from investment records.
+- Refunded/cancelled/failed/reversed/voided/rejected investments do not count.
+- Goal reached -> Fully Funded.
+- Below goal + deadline still open/no deadline -> Funding.
+- Below goal + deadline passed -> Funding Closed — Underfunded.
+
+Current 15-loan review
+Loan #184898 | Goal $15,000 | Committed $4,000 | Expected: Funding Closed — Underfunded
+Loan #204546 | Goal $25 | Committed $0 | Expected: Funding Closed — Underfunded
+Loan #352552 | Goal $500,000 | Committed $25,300 | Expected: Funding
+Loan #361380 | Goal $40,000 | Committed $40,000 | Expected: Fully Funded
+Loan #373613 | Goal $40,000 | Committed $0 | Expected: Funding Closed — Underfunded
+Loan #396274 | Goal $100,000 | Committed $0 | Expected: Funding Closed — Underfunded
+Loan #460109 | Goal $40,000 | Committed $2,400 | Expected: Funding Closed — Underfunded
+Loan #480946 | Goal $100,000 | Committed $51,065 | Expected: Funding
+Loan #554407 | Goal $40,000 | Committed $4,100 | Expected: Funding Closed — Underfunded
+Loan #745320 | Goal $60,000 | Committed $3,000 | Expected: Funding Closed — Underfunded
+Loan #791069 | Goal $27,000 | Committed $245 | Expected: Funding Closed — Underfunded
+Loan #813912 | Goal $40,000 | Committed $4,130 | Expected: Funding Closed — Underfunded
+Loan #889568 | Goal $45,000 | Committed $22,000 | Expected: Funding
+Loan #971657 | Goal $12,000 | Committed $1,000 | Expected: Funding Closed — Underfunded
+Loan #977005 | Goal $25,000 | Committed $25,000 | Expected: Fully Funded
+
+Important corrections identified
+- #460109 is falsely stored/displayed as Funded at $2,400 / $40,000.
+- #813912 is falsely stored/displayed as Funded at $4,130 / $40,000.
+- #554407 has $4,100 in the investment ledger while its marketplace cached amount is $0.
+- #791069 has $245 in the investment ledger while its cached application/marketplace amount is $0.
+- #361380 and #977005 are legitimately fully funded based on the investment ledger.
+
+Applying 20260914_v4_5_8_funding_status_integrity.sql will reconcile these cached amounts/statuses and will close existing underfunded campaigns whose funding deadlines have already passed. It does not release borrower funds.
