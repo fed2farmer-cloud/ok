@@ -1,0 +1,17 @@
+SecuredLanding v4.6.0 — Reopen Funding
+
+MODIFIED
+- src/components/AdminLoanReviewActions.tsx
+
+NEW
+- supabase/migrations/20260916_v4_6_0_reopen_funding_admin.sql
+- VERIFY_V4_6_0_REOPEN_FUNDING.sql
+- V4_6_0_REOPEN_FUNDING.md
+- V4_6_0_FILE_MANIFEST.txt
+- BUILD_LOG_v4_6_0.txt
+
+Behavior added
+- Shows Reopen Funding — 45 Days only for expired/underfunded loans.
+- Preserves existing qualifying investments.
+- Uses the admin-only reopen_loan_funding_v1 RPC.
+- Refresh Funding remains a separate recalculation action.

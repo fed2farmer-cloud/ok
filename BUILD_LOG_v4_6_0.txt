@@ -1,0 +1,12 @@
+SecuredLanding v4.6.0 build validation
+Date: 2026-09-16
+
+PASS — Modified src/components/AdminLoanReviewActions.tsx exactly matches the current v4.5.9/GitHub source plus the v4.6.0 reopen-funding additions.
+PASS — TypeScript JSX syntax/transpile validation completed with zero syntax errors.
+PASS — Production Supabase contains public.reopen_loan_funding_v1(bigint, integer).
+PASS — Loan #460109 was successfully reopened with the RPC; existing $2,400 remained funded and $37,600 remained to raise.
+PASS — ZIP/source paths preserve exact filenames; no .patch filenames are used.
+
+FULL VITE BUILD — not completed in this container. `npm ci` could not finish because the runtime could not retrieve every npm package. The partial install therefore lacked @nmipayments/nmi-pay-react, and the project's existing prebuild patch script correctly stopped the build. This is an environment/dependency-fetch limitation, not a TypeScript syntax failure in the v4.6.0 change.
+
+Final production verification: allow Vercel to install dependencies and run the normal `npm run build` after deployment.
