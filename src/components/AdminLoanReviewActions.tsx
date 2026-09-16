@@ -26,6 +26,10 @@ interface LoanApplication {
   borrower_interest_rate?: number | null;
   repayment_term_months?: number | null;
   status?: string | null;
+  funding_status?: string | null;
+  funding_deadline?: string | null;
+  amount_funded?: number | string | null;
+  amount_remaining?: number | string | null;
 }
 
 interface Props {
@@ -108,6 +112,7 @@ export default function AdminLoanReviewActions({
   const [adminNotes, setAdminNotes] = useState("");
   const [approvedAmount, setApprovedAmount] = useState("");
   const [saving, setSaving] = useState(false);
+  const [reopeningFunding, setReopeningFunding] = useState(false);
 
   const landValue = numberValue(loan.land_value);
   const requestedAmount = numberValue(loan.loan_amount);
@@ -118,6 +123,20 @@ export default function AdminLoanReviewActions({
   const proposedAmount = numberValue(approvedAmount);
   const proposedLtv =
     landValue > 0 ? (proposedAmount / landValue) * 100 : 0;
+
+  const remainingFunding = numberValue(loan.amount_remaining);
+  const fundingStatus = String(loan.funding_status || "").toLowerCase();
+  const fundingDeadlineMs = loan.funding_deadline
+    ? new Date(loan.funding_deadline).getTime()
+    : Number.NaN;
+  const deadlineExpired =
+    Number.isFinite(fundingDeadlineMs) && fundingDeadlineMs <= Date.now();
+  const canReopenFunding =
+    remainingFunding > 0 &&
+    (fundingStatus === "expired" ||
+      fundingStatus === "closed" ||
+      fundingStatus === "funding_closed" ||
+      deadlineExpired);
 
   const estimatedPayment = useMemo(
     () =>
@@ -143,6 +162,56 @@ export default function AdminLoanReviewActions({
 
   async function refresh() {
     await onChanged?.();
+  }
+
+  async function reopenFundingWindow() {
+    if (!supabase) {
+      notify("Supabase is not configured.", "error");
+      return;
+    }
+
+    const reference = Number(loan.loan_number ?? loan.id);
+    if (!Number.isFinite(reference)) {
+      notify("Loan reference is invalid.", "error");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Reopen Loan #${loan.loan_number ?? loan.id} for a new 45-day funding window? Existing qualifying investments will be preserved.`,
+    );
+    if (!confirmed) return;
+
+    setReopeningFunding(true);
+    try {
+      const { data, error } = await supabase.rpc("reopen_loan_funding_v1", {
+        p_loan_number: reference,
+        p_days: 45,
+      });
+      if (error) throw error;
+
+      const result = Array.isArray(data) ? data[0] : data;
+      const deadline =
+        result && typeof result === "object" && "funding_deadline" in result
+          ? String((result as { funding_deadline?: unknown }).funding_deadline || "")
+          : "";
+      const deadlineText = deadline
+        ? new Date(deadline).toLocaleDateString()
+        : "45 days from today";
+
+      notify(
+        `Loan #${loan.loan_number ?? loan.id} funding reopened through ${deadlineText}. Existing funded amount was preserved.`,
+        "success",
+      );
+      await refresh();
+    } catch (error: unknown) {
+      console.error("Reopen funding failed:", error);
+      notify(
+        errorMessage(error, "Unable to reopen this funding window."),
+        "error",
+      );
+    } finally {
+      setReopeningFunding(false);
+    }
   }
 
   function toggleRevisionItem(item: RevisionItem) {
@@ -412,6 +481,24 @@ export default function AdminLoanReviewActions({
           Send Revised Loan Offer
         </button>
       </div>
+
+      {canReopenFunding && (
+        <div className="mt-4 rounded-xl border border-blue-400/30 bg-blue-950/40 p-4">
+          <p className="font-bold text-blue-100">Funding window expired</p>
+          <p className="mt-1 text-sm text-blue-200">
+            {money(numberValue(loan.amount_funded))} funded · {money(remainingFunding)} remaining.
+            Reopening starts a fresh 45-day window and preserves existing qualifying investments.
+          </p>
+          <button
+            type="button"
+            onClick={reopenFundingWindow}
+            disabled={reopeningFunding}
+            className="mt-3 w-full rounded-xl bg-blue-600 px-5 py-3 font-bold text-white disabled:opacity-50 sm:w-auto"
+          >
+            {reopeningFunding ? "Reopening funding..." : "Reopen Funding — 45 Days"}
+          </button>
+        </div>
+      )}
 
       {requestedLtv > 50 && (
         <div className="mt-4 rounded-xl border border-red-500/40 bg-red-950/40 p-4">
