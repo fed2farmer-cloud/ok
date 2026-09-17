@@ -1,0 +1,23 @@
+SecuredLanding v4.6.1 — Investor Balance / Load Consistency
+
+NEW
+- src/lib/investorPortfolio.ts
+- supabase/migrations/20260917_v4_6_1_investor_balance_load_consistency.sql
+- VERIFY_V4_6_1_INVESTOR_LOAD_CONSISTENCY.sql
+- V4_6_1_INVESTOR_LOAD_CONSISTENCY.md
+- V4_6_1_FILE_MANIFEST.txt
+- BUILD_LOG_v4_6_1.txt
+
+MODIFIED
+- src/InvestorWallet.tsx
+- src/pages/InvestorDashboard.tsx
+- src/pages/InvestorMarketplace.tsx
+
+BEHAVIOR
+- Wallet, Portfolio, and Marketplace load invested principal from one shared loader.
+- current_owner_id is authoritative after a transfer.
+- current principal from investor_positions is used when available.
+- cached investor_wallets.invested_balance is no longer independently trusted by Marketplace.
+- NMI/card finalization cannot double-increment invested_balance.
+- NMI/card purchases sync investor_positions immediately.
+- servicing principal changes refresh the cached wallet invested balance.

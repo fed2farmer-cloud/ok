@@ -1,0 +1,14 @@
+SecuredLanding v4.6.1 — Investor Balance / Load Consistency
+Build date: 2026-09-17
+
+PASS - Added shared investor ownership/current-principal loader.
+PASS - Investor Wallet now uses shared loader.
+PASS - Investor Portfolio/Dashboard now uses shared loader.
+PASS - Investor Marketplace now uses shared loader and no longer displays the cached invested balance independently.
+PASS - Ownership rule is current_owner_id first, investor_id only when current_owner_id is null.
+PASS - Missing investor_positions fall back to investment amount rather than hiding certificates.
+PASS - Added database migration to derive wallet invested_balance, refresh it on position changes, preserve corrected NMI finalizer accounting, sync positions, and repair existing accounts.
+PASS - Added read-only post-migration verification SQL.
+PASS - TypeScript transpile/syntax validation passed for all four changed/new TS/TSX files.
+PASS - Static checks confirmed all three investor-facing screens import loadOwnedInvestorPortfolio.
+NOT RUN - Full npm/Vite build in this artifact runtime because node_modules are not bundled in the base ZIP and external package installation is unavailable here. Vercel production build remains the authoritative bundle test after upload.
