@@ -8,6 +8,7 @@ import { useToast } from "./context/ToastContext";
 import { getNmiTokenizationKey } from "./lib/nmi";
 import SecondaryMarketSellForm from "./components/SecondaryMarketSellForm";
 import { listAllEligibleInvestmentsForSale, loadMySecondaryListings } from "./lib/secondaryMarket";
+import { loadOwnedInvestorPortfolio } from "./lib/investorPortfolio";
 
 export default function InvestorWallet() {
   const navigate = useNavigate();
@@ -95,8 +96,6 @@ export default function InvestorWallet() {
       const { data: nw } = await supabase.from("investor_wallets").insert({ user_id: user.id }).select().single();
       walletData = nw;
     }
-    setWallet(walletData);
-
     // Expired seven-day protection windows should become active before this wallet
     // is calculated. The RPC is added by the 2026-09-09 migration. Keep the UI
     // tolerant during rollout so owned certificates are not hidden if the migration
@@ -106,27 +105,15 @@ export default function InvestorWallet() {
       console.warn("Unable to settle expired investment protection windows:", settlementError.message);
     }
 
-    // Portfolio ownership follows current_owner_id after a transfer; investor_id remains
-    // the original purchaser. Count every still-owned committed certificate, including
-    // a live protection-period certificate. Terminal refunded/cancelled/failed records
-    // do not belong in invested capital or the position count.
-    const { data: investmentData } = await supabase
-      .from("investments")
-      .select("*")
-      .or(`investor_id.eq.${user.id},current_owner_id.eq.${user.id}`)
-      .order("created_at", { ascending: false });
-    const committedStatuses = new Set([
-      "active",
-      "settled",
-      "funded",
-      "completed",
-      "protection_period",
-      "refund_requested",
-      "refund_processing",
-    ]);
-    const rawInvestments = (investmentData || []).filter((inv: any) =>
-      committedStatuses.has(String(inv.status || "").toLowerCase())
-    );
+    // Use the same ownership/current-principal loader as Portfolio and Marketplace
+    // so all three screens agree even when a cached wallet balance or position
+    // projection temporarily lags.
+    const portfolioSnapshot = await loadOwnedInvestorPortfolio(supabase, user.id);
+    const rawInvestments = portfolioSnapshot.investments;
+    setWallet({
+      ...(walletData || {}),
+      invested_balance: portfolioSnapshot.investedBalance,
+    });
 
     // Resolve the public loan number from the loan application relationship.
     // Legacy investments may keep an internal DB id in loan_id, so prefer
@@ -155,42 +142,14 @@ export default function InvestorWallet() {
         (loanRows || []).map((loan: any) => [loan.id, loan.loan_number])
       );
     }
-    const investmentIds = rawInvestments.map((inv: any) => inv.id).filter(Boolean);
-    let positionByInvestmentId = new Map<any, any>();
-    if (investmentIds.length > 0) {
-      const { data: positionRows, error: positionRowsError } = await supabase
-        .from("investor_positions")
-        .select("investment_id, original_principal, current_principal, status")
-        .in("investment_id", investmentIds)
-        .eq("investor_user_id", user.id)
-        .eq("status", "active");
-      if (positionRowsError) {
-        // Do not hide the seller controls just because the read-side position
-        // policy is temporarily unavailable. create_secondary_listing_v2 is the
-        // authoritative server-side eligibility check.
-        console.warn("Unable to read active investor positions:", positionRowsError.message);
-      }
-      positionByInvestmentId = new Map(
-        (positionRows || []).map((position: any) => [position.investment_id, position])
-      );
-    }
-
-    setInvestments(rawInvestments
-      .filter((inv: any) => (inv.current_owner_id ?? inv.investor_id) === user.id)
-      .map((inv: any) => {
-        const position = positionByInvestmentId.get(inv.id);
-        return {
-          ...inv,
-          public_loan_number:
-            loanNumberByApplicationId.get(inv.loan_application_id ?? inv.loan_id) ||
-            inv.loan_number ||
-            Number(String(inv.certificate_number || "").split("-")[2]) ||
-            inv.loan_id,
-          original_principal: Number(position?.original_principal ?? inv.amount ?? 0),
-          current_principal: Number(position?.current_principal ?? inv.amount ?? 0),
-          has_active_position: Boolean(position),
-        };
-      }));
+    setInvestments(rawInvestments.map((inv: any) => ({
+      ...inv,
+      public_loan_number:
+        loanNumberByApplicationId.get(inv.loan_application_id ?? inv.loan_id) ||
+        inv.loan_number ||
+        Number(String(inv.certificate_number || "").split("-")[2]) ||
+        inv.loan_id,
+    })));
 
     try {
       const myListings = await loadMySecondaryListings(user.id);
