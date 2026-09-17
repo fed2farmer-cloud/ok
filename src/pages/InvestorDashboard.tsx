@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import AppLayout from "../components/AppLayout";
 import { BarChart, DonutChart, Sparkline } from "../components/PortfolioCharts";
 import KYCWorkflow from "../components/KYCWorkflow";
+import { loadOwnedInvestorPortfolio } from "../lib/investorPortfolio";
 
 interface Investment {
   id: string;
@@ -147,7 +148,7 @@ export default function InvestorDashboard() {
 
       const [
         walletResult,
-        investmentsResult,
+        portfolioSnapshot,
         transactionsResult,
       ] = await Promise.all([
         supabase
@@ -156,13 +157,7 @@ export default function InvestorDashboard() {
           .eq("user_id", user.id)
           .maybeSingle(),
 
-        supabase
-          .from("investments")
-          .select("*")
-          .or(
-            `current_owner_id.eq.${user.id},and(current_owner_id.is.null,investor_id.eq.${user.id})`
-          )
-          .order("created_at", { ascending: false }),
+        loadOwnedInvestorPortfolio(supabase, user.id),
 
         supabase
           .from("wallet_transactions")
@@ -176,52 +171,21 @@ export default function InvestorDashboard() {
         throw walletResult.error;
       }
 
-      if (investmentsResult.error) {
-        throw investmentsResult.error;
-      }
-
       if (transactionsResult.error) {
         throw transactionsResult.error;
       }
 
-      setWallet(
-        (walletResult.data as Wallet | null) ?? {
-          available_balance: 0,
-          invested_balance: 0,
-          pending_balance: 0,
-        }
-      );
+      const walletRow = (walletResult.data as Wallet | null) ?? {
+        available_balance: 0,
+        invested_balance: 0,
+        pending_balance: 0,
+      };
+      setWallet({
+        ...walletRow,
+        invested_balance: portfolioSnapshot.investedBalance,
+      });
 
-      const ownedInvestments =
-        (investmentsResult.data as Investment[] | null) ?? [];
-      const investmentIds = ownedInvestments.map((row) => row.id);
-      let principalByInvestment = new Map<string, number>();
-
-      if (investmentIds.length > 0) {
-        const { data: positions, error: positionsError } = await supabase
-          .from("investor_positions")
-          .select("investment_id,current_principal,status")
-          .in("investment_id", investmentIds)
-          .eq("investor_user_id", user.id)
-          .eq("status", "active");
-
-        if (positionsError) throw positionsError;
-        principalByInvestment = new Map(
-          (positions || []).map((position: any) => [
-            String(position.investment_id),
-            Number(position.current_principal || 0),
-          ])
-        );
-      }
-
-      setInvestments(
-        ownedInvestments.map((investment) => ({
-          ...investment,
-          current_principal:
-            principalByInvestment.get(String(investment.id)) ??
-            Number(investment.amount || 0),
-        }))
-      );
+      setInvestments(portfolioSnapshot.investments as Investment[]);
 
       setTransactions(
         (transactionsResult.data as WalletTransaction[] | null) ?? []

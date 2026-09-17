@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { resolveStorageUrl } from "../lib/mediaStorage";
+import { loadOwnedInvestorPortfolio } from "../lib/investorPortfolio";
 
 type MarketplaceLoan = {
   id: number;
@@ -101,7 +102,7 @@ function InvestorMarketplace() {
         return;
       }
 
-      const [walletResult, loanResult, fundingResult] = await Promise.all([
+      const [walletResult, loanResult, fundingResult, portfolioSnapshot] = await Promise.all([
         supabase
           .from("investor_wallets")
           .select("available_balance,invested_balance")
@@ -115,6 +116,7 @@ function InvestorMarketplace() {
         supabase
           .from("marketplace_funding_breakdown_v1")
           .select("loan_application_id,loan_number,funding_goal,sold_amount,protected_amount"),
+        loadOwnedInvestorPortfolio(supabase, user.id),
       ]);
 
       if (walletResult.error) throw walletResult.error;
@@ -140,7 +142,17 @@ function InvestorMarketplace() {
         };
       });
 
-      setWallet((walletResult.data as InvestorWallet | null) || null);
+      const walletRow = (walletResult.data as InvestorWallet | null) || {
+        available_balance: 0,
+        invested_balance: 0,
+      };
+      // Never display the cached invested_balance independently from the wallet
+      // and portfolio pages. All investor surfaces now use the same certificate-
+      // level ownership/current-principal snapshot.
+      setWallet({
+        ...walletRow,
+        invested_balance: portfolioSnapshot.investedBalance,
+      });
       setLoans(nextLoans);
 
       const approvedVideos = nextLoans.filter(
